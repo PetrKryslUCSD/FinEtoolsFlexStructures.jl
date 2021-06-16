@@ -1,0 +1,9 @@
+
+Issues and ideas:
+
+-- Documenter:
+using FinEtoolsFlexStructures
+import Pkg; Pkg.add("DocumenterTools")
+using DocumenterTools
+Travis.genkeys(user="PetrKryslUCSD", repo="https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.jl")
+Pkg.rm("DocumenterTools")
