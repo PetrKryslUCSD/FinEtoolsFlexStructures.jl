@@ -20,7 +20,7 @@ function addpair(nt, key, val)
     return (; d...)
 end
 
-function local_frame!(F0, x0, x1x2_vector)
+function _beam_local_frame!(F0, x0, x1x2_vector)
     # This is the element frame in the configuration t=0
     F0[:,1] = (x0[2,:]-x0[1,:]);
     L0 = norm(@view F0[:,1]);
@@ -123,7 +123,7 @@ end
 function _circular(dimensions, buffers, x1x2_vector, R1I, R1J; kwargs...)
     radius = dimensions[1]
     F0, x0, xt, c, s, xc, faces, facecolors = buffers
-    L0, F0 = local_frame!(F0, x0, x1x2_vector)
+    L0, F0 = _beam_local_frame!(F0, x0, x1x2_vector)
     FtI=R1I*F0;
     FtJ=R1J*F0;
     nseg = length(c)-1
@@ -137,7 +137,7 @@ end
 function _rectangular(dimensions, buffers, x1x2_vector, R1I, R1J; kwargs...)
     b, h = dimensions[1:2]./2 # departures from the midline by half the dimension
     F0, x0, xt, c, s, xc, faces, facecolors = buffers
-    L0, F0 = local_frame!(F0, x0, x1x2_vector)
+    L0, F0 = _beam_local_frame!(F0, x0, x1x2_vector)
     FtI=R1I*F0;
     FtJ=R1J*F0;
     for j in 1:4+1
@@ -226,22 +226,25 @@ end
     render(traces; kwargs...)
 
 Render a plot
+
+Key word arguments:
+- `config = PlotConfig()`
 """
 function render(traces; kwargs...)
     layout = default_layout_3d(; kwargs...)
     if :layout in keys(kwargs)
         layout = kwargs[:layout]; kwargs = removepair(kwargs, :layout)
     end
-    # Default options: show the safe the chart studio button
-    options = Dict(
-        :showSendToCloud=>true, 
-        :plotlyServerURL=>"https://chart-studio.plotly.com"
+    # Default options: show the "save to chart studio" button
+    config = PlotConfig(
+        showLink=true, 
+        plotlyServerURL="https://chart-studio.plotly.com"
         )
-    # Should we override options because they were supplied as argument?
-    if :options in keys(kwargs)
-        options = kwargs[:options]; kwargs = removepair(kwargs, :options)
+    # Should we override config because they were supplied as argument?
+    if :config in keys(kwargs)
+        config = kwargs[:config]; kwargs = removepair(kwargs, :config)
     end
-    p = plot(traces, layout; options = options)
+    p = plot(traces, layout; config = config)
     display(p)
     return p
 end
@@ -273,54 +276,31 @@ function default_layout_3d(; kwargs...)
     if :height in keys(kwargs)
         height = kwargs[:height]; kwargs = removepair(kwargs, :height)
     end
+    scene=attr(
+        xaxis = attr(title="X", gridcolor="rgb(255, 255, 255)",
+          zerolinecolor="rgb(255, 255, 255)",
+          showbackground=true,
+          backgroundcolor=BACKGROUNDCOLOR),
+        yaxis = attr(title="Y", gridcolor="rgb(255, 255, 255)",
+           zerolinecolor="rgb(255, 255, 255)",
+           showbackground=true,
+           backgroundcolor=BACKGROUNDCOLOR),
+        zaxis = attr(title="Z", gridcolor="rgb(255, 255, 255)",
+           zerolinecolor="rgb(255, 255, 255)",
+           showbackground=true,
+           backgroundcolor=BACKGROUNDCOLOR),
+        camera = attr(
+            up=attr(x=0, y=0, z=1),
+            center=attr(x=0, y=0, z=0),
+            eye=attr(x=1.25, y=1.25, z=1.25),
+            projection = attr(type = "orthographic") # alternative: projection = attr(type = "perspective")
+            ),
+        aspectratio = aspectratio,
+        aspectmode = "manual")
     if autosize
-        layout = Layout(autosize=autosize, title=title,
-            scene=attr(
-                xaxis = attr(title="X", gridcolor="rgb(255, 255, 255)",
-                  zerolinecolor="rgb(255, 255, 255)",
-                  showbackground=true,
-                  backgroundcolor=BACKGROUNDCOLOR),
-                yaxis = attr(title="Y", gridcolor="rgb(255, 255, 255)",
-                   zerolinecolor="rgb(255, 255, 255)",
-                   showbackground=true,
-                   backgroundcolor=BACKGROUNDCOLOR),
-                zaxis = attr(title="Z", gridcolor="rgb(255, 255, 255)",
-                   zerolinecolor="rgb(255, 255, 255)",
-                   showbackground=true,
-                   backgroundcolor=BACKGROUNDCOLOR),
-                camera = attr(
-                    up=attr(x=0, y=0, z=1),
-                    center=attr(x=0, y=0, z=0),
-                    eye=attr(x=1.25, y=1.25, z=1.25),
-                    projection = attr(type = "orthographic") # alternative: projection = attr(type = "perspective")
-                    ),
-                aspectratio = aspectratio,
-                aspectmode = "manual"),
-            showlegend=false,)
+        layout = Layout(autosize=autosize, title=title, scene=scene, showlegend=false)
     else
-        layout = Layout(width=width, height=height, title=title,
-            scene=attr(
-                xaxis = attr(title="X", gridcolor="rgb(255, 255, 255)",
-                  zerolinecolor="rgb(255, 255, 255)",
-                  showbackground=true,
-                  backgroundcolor=BACKGROUNDCOLOR),
-                yaxis = attr(title="Y", gridcolor="rgb(255, 255, 255)",
-                   zerolinecolor="rgb(255, 255, 255)",
-                   showbackground=true,
-                   backgroundcolor=BACKGROUNDCOLOR),
-                zaxis = attr(title="Z", gridcolor="rgb(255, 255, 255)",
-                   zerolinecolor="rgb(255, 255, 255)",
-                   showbackground=true,
-                   backgroundcolor=BACKGROUNDCOLOR),
-                camera = attr(
-                    up=attr(x=0, y=0, z=1),
-                    center=attr(x=0, y=0, z=0),
-                    eye=attr(x=1.25, y=1.25, z=1.25),
-                    projection = attr(type = "orthographic") # alternative: projection = attr(type = "perspective")
-                    ),
-                aspectratio = aspectratio,
-                aspectmode = "manual"),
-            showlegend=false,)
+        layout = Layout(width=width, height=height, title=title, scene=scene, showlegend=false,)
     end
     
     return layout
@@ -347,4 +327,55 @@ function plot_from_json(fn)
     return pl
 end
 
-end # FinEtoolsFlexStructures.VisUtilModule
+
+"""
+    plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4)
+
+Plot the midsurface
+"""
+function plot_midsurface(fens, fes; kwargs...) 
+    x = deepcopy(fens.xyz)
+    if :x in keys(kwargs)
+        x = kwargs[:x]; kwargs = removepair(kwargs, :x)
+    end
+    u = fill(0.0, size(x))
+    if :u in keys(kwargs)
+        u = kwargs[:u]; kwargs = removepair(kwargs, :u)
+    end
+    lwidth = 4
+    if :lwidth in keys(kwargs)
+        lwidth = kwargs[:lwidth]; kwargs = removepair(kwargs, :lwidth)
+    end
+    color = "rgb(155, 155, 255)"
+    if :color in keys(kwargs)
+        color = kwargs[:color]; kwargs = removepair(kwargs, :color)
+    end
+    facecolors = fill(color, 2)
+    faces = [0 1 2; 2 3 0]
+    t = PlotlyBase.GenericTrace[]
+    lx = fill(0.0, 4, 3)
+    for c in fes.conn
+        for k in 1:4
+            lx[k, :] .= x[c[k], :]
+        end
+        push!(t, mesh3d(;x=lx[:, 1], y=lx[:, 2], z=lx[:, 3], i=faces[:, 1], j=faces[:, 2], k=faces[:, 3], facecolor=facecolors))
+    end
+
+    return t
+end
+
+# function _rectangular(dimensions, buffers, x1x2_vector, R1I, R1J; kwargs...)
+#     b, h = dimensions[1:2]./2 # departures from the midline by half the dimension
+#     F0, x0, xt, c, s, xc, faces, facecolors = buffers
+#     L0, F0 = _beam_local_frame!(F0, x0, x1x2_vector)
+#     FtI=R1I*F0;
+#     FtJ=R1J*F0;
+#     for j in 1:4+1
+#         xc[j,:] = xt[1,:]+c[j]*b*FtI[:,2]+s[j]*h*FtI[:,3];
+#         xc[j+(4+1),:] = xt[2,:]+c[j]*b*FtJ[:,2]+s[j]*h*FtJ[:,3];
+#     end
+#     return mesh3d(;x=xc[:, 1],y=xc[:, 2], z=xc[:, 3], i=faces[:, 1].-1, j=faces[:, 2].-1, k=faces[:, 3].-1, facecolor=facecolors, kwargs...)
+# end
+
+
+end # FinEtoolsBeamsVis
