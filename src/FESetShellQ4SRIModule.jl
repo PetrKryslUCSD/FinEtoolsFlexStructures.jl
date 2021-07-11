@@ -1,6 +1,7 @@
 module FESetShellQ4SRIModule
 
 using FinEtools
+using FinEtools.MeshQuadrilateralModule
 import FinEtools: cat, subset
 using FinEtools.MatrixUtilityModule: complete_lt! 
 using LinearAlgebra: norm, Transpose, mul!
@@ -13,7 +14,7 @@ end
 
 function FESetShellQ4SRI(conn::FIntMat) 
     N = size(conn, 1)
-    self = FESetL2CorotBeam(NTuple{4, FInt}[], FInt[])
+    self = FESetShellQ4SRI(NTuple{4, FInt}[], FInt[], FFlt[])
     self = fromarray!(self, conn)
     setlabel!(self, 0)
     return self

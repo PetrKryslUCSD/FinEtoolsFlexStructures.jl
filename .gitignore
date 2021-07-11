@@ -10,4 +10,4 @@
 *.sublime-workspace
 docs/build/
 .vscode/
-
+*.bak
