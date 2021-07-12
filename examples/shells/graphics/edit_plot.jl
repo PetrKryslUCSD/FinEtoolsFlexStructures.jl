@@ -8,11 +8,11 @@ using JSON
 L = 42.0
 H = 21.0
 
-fens, fes = Q4block(L, H, 3, 2)
+fens, fes = Q4block(L, H, 3, 5)
 fens.xyz = xyz3(fens)
 fes = FESetShellQ4SRI(connasarray(fes))
 plots = cat(plot_nodes(fens),
-    plot_midsurface(fens, fes; facecolor = "rgb(155, 155, 255)", lwidth = 4),
+    plot_midsurface(fens, fes; facecolor = "rgb(15, 15, 225)", lwidth = 4),
     dims = 1)
 layout = default_layout_3d(autosize=true)
 # layout = default_layout_3d(width=400, height=400)

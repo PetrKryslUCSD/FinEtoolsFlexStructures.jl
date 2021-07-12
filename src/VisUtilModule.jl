@@ -346,21 +346,15 @@ function plot_midsurface(fens, fes; kwargs...)
     if :lwidth in keys(kwargs)
         lwidth = kwargs[:lwidth]; kwargs = removepair(kwargs, :lwidth)
     end
-    color = "rgb(155, 155, 255)"
-    if :color in keys(kwargs)
-        color = kwargs[:color]; kwargs = removepair(kwargs, :color)
+    facecolor = "rgb(155, 155, 255)"
+    if :facecolor in keys(kwargs)
+        facecolor = kwargs[:facecolor]; kwargs = removepair(kwargs, :facecolor)
     end
-    facecolors = fill(color, 2)
-    faces = [0 1 2; 2 3 0]
+    facecolors = fill(facecolor, count(fes))
+    faces = connasarray(fes).-1
     t = PlotlyBase.GenericTrace[]
-    lx = fill(0.0, 4, 3)
-    for c in fes.conn
-        for k in 1:4
-            lx[k, :] .= x[c[k], :]
-        end
-        push!(t, mesh3d(;x=lx[:, 1], y=lx[:, 2], z=lx[:, 3], i=faces[:, 1], j=faces[:, 2], k=faces[:, 3], facecolor=facecolors))
-    end
-
+    push!(t, mesh3d(;x=x[:, 1], y=x[:, 2], z=x[:, 3], i=faces[:, 1], j=faces[:, 2], k=faces[:, 3], facecolor=facecolors))
+    push!(t, mesh3d(;x=x[:, 1], y=x[:, 2], z=x[:, 3], i=faces[:, 4], j=faces[:, 1], k=faces[:, 3], facecolor=facecolors))
     return t
 end
 
