@@ -1,4 +1,4 @@
-module FESetShellQ4SRIModule
+module FESetShellDSG3Module
 
 using FinEtools
 using FinEtools.MeshQuadrilateralModule
@@ -6,21 +6,21 @@ import FinEtools.FESetModule: cat, subset, nodesperelem
 using FinEtools.MatrixUtilityModule: complete_lt! 
 using LinearAlgebra: norm, Transpose, mul!
 
-mutable struct FESetShellQ4SRI <: AbstractFESet2Manifold{4}
-    conn::Array{NTuple{4, FInt}, 1};
+mutable struct FESetShellDSG3 <: AbstractFESet2Manifold{3}
+    conn::Array{NTuple{3, FInt}, 1};
     label::FIntVec; 
     dimensions::Vector{FFltVec}
 end
 
-function FESetShellQ4SRI(conn::FIntMat) 
-    @assert size(conn, 2) == 4
-    self = FESetShellQ4SRI(NTuple{4, FInt}[], FInt[], FFlt[])
+function FESetShellDSG3(conn::FIntMat) 
+    @assert size(conn, 2) == 3
+    self = FESetShellDSG3(NTuple{3, FInt}[], FInt[], FFlt[])
     self = fromarray!(self, conn)
     setlabel!(self, 0)
     return self
 end
 
-nodesperelem(fes::FESetShellQ4SRI) = 4
+nodesperelem(fes::FESetShellDSG3) = 3
 
 function local_frame!(F0, J0)
     # This is the tangent to the coordinate curve 1

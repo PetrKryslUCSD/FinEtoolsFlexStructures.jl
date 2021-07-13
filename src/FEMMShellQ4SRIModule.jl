@@ -1,0 +1,354 @@
+module FEMMFESetShellQ4SRIModule
+
+using LinearAlgebra: norm, Transpose, mul!
+using FinEtools
+using FinEtools.IntegDomainModule: IntegDomain
+import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
+using ..FESetShellQ4SRIModule: FESetShellQ4SRI
+
+
+"""
+    FEMMDeforLinear{MR<:AbstractDeforModelRed,  S<:AbstractFESet, F<:Function, M<:AbstractMatDeforLinearElastic} <: FEMMFESetShellQ4SRI
+
+Class for linear deformation finite element modeling machine.
+"""
+mutable struct FEMMFESetShellQ4SRI{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    integdomain::IntegDomain{S, F} # integration domain data
+    material::MatDeforElastIso # material object
+    # The attributes below are buffers used in various operations.
+    _ecoords0::FFltMat
+    _ecoords1::FFltMat
+    _edisp1::FFltMat
+    _evel1::FFltMat
+    _evel1f::FFltMat
+    _dofnums::FIntMat
+    _F0::FFltMat
+    _Ft::FFltMat
+    _FtI::FFltMat
+    _FtJ::FFltMat
+    _Te::FFltMat
+    _tempelmat1::FFltMat
+    _tempelmat2::FFltMat
+    _tempelmat3::FFltMat
+    _elmat::FFltMat
+    _elmatTe::FFltMat
+    _elmato::FFltMat
+    _elvec::FFltVec
+    _elvecf::FFltVec
+    _Bm::FFltMat
+    _Bb::FFltMat
+    _Bs::FFltMat
+    _LF::FFltVec
+    _RI::FFltMat
+    _RJ::FFltMat
+    _OS::FFltMat
+end
+
+function FEMMFESetShellQ4SRI(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2CorotBeam, F<:Function}
+    _ecoords0 = fill(0.0, 4, 3); 
+    _ecoords1 = fill(0.0, 4, 3)
+    _edisp1 = fill(0.0, 4, 3); 
+    _evel1 = fill(0.0, 4, 6); 
+    _evel1f = fill(0.0, 4, 6)
+    _dofnums = zeros(FInt, 1, 24); 
+    _F0 = fill(0.0, 3, 3); 
+    _Ft = fill(0.0, 3, 3); 
+    _FtI = fill(0.0, 3, 3); 
+    _FtJ = fill(0.0, 3, 3)
+    _Te = fill(0.0, 24, 24)
+    _tempelmat1 = fill(0.0, 24, 24); 
+    _tempelmat2 = fill(0.0, 24, 24); 
+    _tempelmat3 = fill(0.0, 24, 24)
+    _elmat = fill(0.0, 24, 24);    
+    _elmatTe = fill(0.0, 24, 24);    
+    _elmato = fill(0.0, 24, 24)
+    _elvec = fill(0.0, 24);    
+    _elvecf = fill(0.0, 24)
+    _Bm = fill(0.0, 3, 24)
+    _Bb = fill(0.0, 3, 24)
+    _Bs = fill(0.0, 2, 24)
+    _LF = fill(0.0, 24)
+    _RI = fill(0.0, 3, 3);    
+    _RJ = fill(0.0, 3, 3);    
+    _OS = fill(0.0, 3, 3)
+    return FEMMFESetShellQ4SRI(integdomain, material,
+     _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, 
+     _dofnums, 
+     _F0, _Ft, _FtI, _FtJ, _Te,
+     _tempelmat1, _tempelmat2, _tempelmat3, _elmat, _elmatTe, _elmato, 
+     _elvec, _elvecf, 
+     _aN, _dN, _DN, _PN, _LF, 
+     _RI, _RJ, _OS)
+end
+
+function _transfmat!(Te, Ft)
+    @. Te[1:3, 1:3] = Te[4:6, 4:6] = Te[7:9, 7:9] = Te[10:12, 10:12] = Te[13:15, 13:15] = Te[16:18, 16:18] = Te[19:21, 19:21] = Te[22:24, 22:24] = Ft
+    return Te
+end
+
+"""
+    _Bsmat!(Bs, gradN, N)
+
+Computed the linear shear strain-displacement matrix
+"""
+function _Bsmat!(Bs, gradN, N)
+    for i in 1:4
+        Bs[1,6*(i-1)+3] = gradN[i,1];
+        Bs[1,6*(i-1)+5] = N[i];
+        Bs[2,6*(i-1)+3] = gradN[i,2];
+        Bs[2,6*(i-1)+4] = -N[i];
+    end
+end
+
+"""
+    _Bmmat!(Bm, gradN)
+
+Compute the linear membrane strain-displacement matrix.
+"""
+function _Bmmat!(Bm, gradN)
+    for i in 1:4
+        Bm[1,6*(i-1)+1] = gradN[i,1];
+        Bm[2,6*(i-1)+2] = gradN[i,2];
+        Bm[3,6*(i-1)+1] = gradN[i,2];
+        Bm[3,6*(i-1)+2] = gradN[i,1];
+    end
+end
+
+"""
+    _Bbmat!(Bb, gradN)
+
+Compute the linear, displacement independent, curvature-displacement/rotation matrix for a shell quadrilateral element with nfens=4 nodes. Displacements and rotations are in a local coordinate system.
+"""
+function _Bbmat!(Bb, gradN)
+    for i in 1:4
+        Bb[1,6*(i-1)+5] = gradN[i,1];
+        Bb[2,6*(i-1)+4] = -gradN[i,2];
+        Bb[3,6*(i-1)+5] = gradN[i,2];
+        Bb[3,6*(i-1)+4] = -gradN[i,1];
+    end
+end
+
+"""
+    mass(self::FEMMFESetShellQ4SRI,  assembler::A,
+      geom::NodalField{FFlt},
+      u::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+
+Compute the consistent mass matrix
+
+This is a general routine for the abstract linear-deformation  FEMM.
+"""
+function mass(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+    fes = self.integdomain.fes
+    ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
+    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
+    R1I, R1J = self._RI, self._RJ
+    elmat, elmatTe = self._elmat, self._elmatTe
+    dN = self._dN
+    rho = massdensity(self.material)
+    A, I1, I2, I3, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.x1x2_vector
+    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    for i = 1:count(fes) # Loop over elements
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
+        gathervalues_asmat!(u1, edisp1, fes.conn[i]);
+        ecoords1 .= ecoords0 .+ edisp1
+        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
+        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
+        fill!(elmat,  0.0); # Initialize element matrix
+        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
+        _transfmat!(Te, Ft)
+        L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
+        local_mass!(elmat, A[i], I1[i], I2[i], I3[i], rho, L0, mass_type);
+        mul!(elmatTe, elmat, Transpose(Te))
+        mul!(elmat, Te, elmatTe)
+        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
+        assemble!(assembler, elmat, dofnums, dofnums); 
+    end # Loop over elements
+    return makematrix!(assembler);
+end
+
+function mass(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
+    assembler = SysmatAssemblerSparseSymm();
+    return mass(self, assembler, geom0, u1, Rfield1, dchi; mass_type = mass_type);
+end
+
+"""
+    stiffness(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+
+Compute the material stiffness matrix.
+"""
+function stiffness(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+    fes = self.integdomain.fes
+    ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
+    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
+    R1I, R1J = self._RI, self._RJ
+    elmat, elmatTe = self._elmat, self._elmatTe
+    aN, dN, DN = self._aN, self._dN, self._DN
+    E = self.material.E
+    G = E / 2 / (1 + self.material.nu)::Float64
+    A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
+    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    for i = 1:count(fes) # Loop over elements
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
+        gathervalues_asmat!(u1, edisp1, fes.conn[i]);
+        ecoords1 .= ecoords0 .+ edisp1
+        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
+        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
+        fill!(elmat,  0.0); # Initialize element matrix
+        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
+        _transfmat!(Te, Ft)
+        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L1, aN, DN);
+        mul!(elmatTe, elmat, Transpose(Te))
+        mul!(elmat, Te, elmatTe)
+        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
+        assemble!(assembler, elmat, dofnums, dofnums); 
+    end # Loop over elements
+    return makematrix!(assembler);
+end
+
+function stiffness(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+    assembler = SysmatAssemblerSparseSymm();
+    return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
+end
+
+# % Compute the stiffness matrices of the individual shell gcells.
+# % Return an array of the element matrices so they may be assembled.
+# %    Call as
+# % ems = stiffness(feb, geom, u)
+# %     geom=geometry field
+# %     u=displacement field
+# %
+# function ems = stiffness (self, geom, u)
+# gcells = get(self.feblock,'gcells');
+# ngcells = length(gcells);
+# nfens = get(gcells(1),'nfens');
+# dim = get(geom,'dim');
+# if dim ~= 3
+#     error(['wrong dimension: need dim=3']);
+# end
+# % Pre-allocate the element matrices
+# ems(1:ngcells) = deal(elemat);
+# % Integration rule
+# integration_rule = get(self, 'integration_rule');
+# % - bending and membrane terms
+# pc_bm = get(integration_rule, 'param_coords',1);
+# w_bm  = get(integration_rule, 'weights',1);
+# npts_per_gcell_bm = get(integration_rule, 'npts',1);
+# % - out of plane shear terms
+# pc_s = get(integration_rule, 'param_coords',2);
+# w_s  = get(integration_rule, 'weights',2);
+# npts_per_gcell_s = get(integration_rule, 'npts',2);
+# % Material
+# mat = get(self.feblock, 'mater');
+# scf=5/6;  % shear correction factor
+# matstates = get(self.feblock, 'matstates');
+# % Now loop over all gcells in the block
+# for i=1:ngcells
+#     conn = get(gcells(i), 'conn'); % connectivity
+#     x = gather(geom, conn, 'values', 'noreshape'); % coordinates of nodes
+#     Ke = zeros(2*dim*nfens); % element stiffness matrix
+#     k = zeros(2*dim*nfens); % element stiffness matrix
+    # % Loop over all integration points: bending and membrane contributions
+    # for j=1:npts_per_gcell_bm
+    #     Nder = Ndermat_param (gcells(i), pc_bm(j,:));
+    #     ts=Nder'*x; % rows: tangent vectors to parametric curves
+    #     es=local_basis(self,ts); % calculate the local Cartesian basis
+    #     xl=x*es(:,1:2);% local coordinates
+    #     [Nspatialder,detJ] = Ndermat_spatial (gcells(i), Nder, xl);
+    #     D = tangent_moduli (mat, struct ('ms',matstates{i,j}));% note: the material must be plane stress
+    #     h =thickness(gcells(i), pc_bm(j,:));
+    #     Bb = Bblmat (gcells(i), Nspatialder);
+    #     Bm = Bmlmat (gcells(i), Nspatialder);
+    #     Kl = ((h^3/15)*Bb'*D*Bb + h*Bm'*D*Bm) * detJ * w_bm(j);
+    #     T = zeros(2*dim*nfens); for q=1:2*nfens, s=3*(q-1)+1; T(s:s+2,s:s+2)=es; end
+    #     Ke = Ke + T*Kl*T';
+    #     k=k+Kl;
+    # end
+    # Kbavg=sum(diag(Ke(4:6:2*dim*nfens,4:6:2*dim*nfens))+diag(Ke(5:6:2*dim*nfens,5:6:2*dim*nfens)))/nfens/2;
+    # % Loop over all integration points: out of plane shear
+    # for j=1:npts_per_gcell_s
+    #     Nder = Ndermat_param (gcells(i), pc_s(j,:));
+    #     ts=Nder'*x; % rows: tangent vectors to parametric curves
+    #     es=local_basis(self,ts); % calculate the local Cartesian basis
+    #     xl=x*es(:,1:2);% local coordinates
+    #     [Nspatialder,detJ] = Ndermat_spatial (gcells(i), Nder, xl);
+    #     h =thickness(gcells(i), pc_s(j,:));
+    #     G=get(mat,'E')/2/(1.0+get(mat,'nu')); % shear modulus: raw -- need a better way to account for anisotropic materials
+    #     Ds=G*scf*eye(2);  % shear stiffness
+    #     Bs = Bslmat (gcells(i), Nspatialder, Nmat(gcells(i), pc_s(j,:)));
+    #     Kl = (Bs'*Ds*Bs) * h * detJ * w_s(j);
+    #     T = zeros(2*dim*nfens); for q=1:2*nfens, s=3*(q-1)+1; T(s:s+2,s:s+2)=es; end
+#         % add a very small stiffness (compared to bending) to stabilize
+#         % twisting deformation about the normal to the surface
+#         Kl(6:6:2*dim*nfens,6:6:2*dim*nfens)=Kl(6:6:2*dim*nfens,6:6:2*dim*nfens)+10e-7*Kbavg;
+#         Ke = Ke + T*Kl*T';
+#         k=k+Kl;
+#     end
+#     ems(i) = set(ems(i), 'mat', Ke);
+#     ems(i) = set(ems(i), 'eqnums', gather(u, conn, 'eqnums'));
+# end
+# return;
+
+
+"""
+    distribloads_global(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}, fi) where {T<:Number}
+    
+Compute the load vector due to distributed loads.
+
+Compute the global load vector corresponding to applied distributed
+load. Here it means force per unit length of the beam,
+in the configuration u1,Rfield1.
+
+Note: the force intensity must be uniform across the entire element.
+Note: the force intensity is given in the global coordinates.
+"""
+function distribloads_global(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
+    fes = self.integdomain.fes
+    ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
+    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
+    R1I, R1J = self._RI, self._RJ
+    elmat, elmatTe = self._elmat, self._elmatTe
+    aN, dN, DN, PN = self._aN, self._dN, self._DN, self._PN
+    elvec, elvecf = self._elvec, self._elvecf
+    Lforce = fill(0.0, 3)
+    ignore = fill(0.0 , 0, 0)
+    E = self.material.E
+    G = E / 2 / (1 + self.material.nu)
+    A, I2, I3, J, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    startassembly!(assembler, dchi.nfreedofs);
+    for i = 1:count(fes) # Loop over elements
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
+        gathervalues_asmat!(u1, edisp1, fes.conn[i]);
+        ecoords1 .= ecoords0 .+ edisp1
+        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
+        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
+        fill!(elmat,  0.0); # Initialize element matrix
+        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
+        _transfmat!(Te, Ft)
+        L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
+        force = updateforce!(fi, ignore, ignore, fes.label[i]); # retrieve the applied load
+        Lforce = Ft' * force # local distributed load components
+        elvecf[1] = Lforce[1]*L0/2;
+        elvecf[2] = Lforce[2]*L0/2;
+        elvecf[3] = Lforce[3]*L0/2;
+        elvecf[4] = 0;
+        elvecf[5] = -Lforce[3]*L0^2/12;
+        elvecf[6] = +Lforce[2]*L0^2/12;
+        elvecf[7] = Lforce[1]*L0/2;
+        elvecf[8] = Lforce[2]*L0/2;
+        elvecf[9] = Lforce[3]*L0/2;
+        elvecf[10] = 0;
+        elvecf[11] = +Lforce[3]*L0^2/12;
+        elvecf[12] = -Lforce[2]*L0^2/12;
+        mul!(elvec, Te, elvecf)
+        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
+        assemble!(assembler, elvec, dofnums); 
+    end # Loop over elements
+    return makevector!(assembler);
+end
+
+function distribloads_global(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
+    assembler = SysvecAssembler();
+    return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi);
+end
+
+end # module
