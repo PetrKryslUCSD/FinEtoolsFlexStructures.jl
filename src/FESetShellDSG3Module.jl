@@ -9,12 +9,12 @@ using LinearAlgebra: norm, Transpose, mul!
 mutable struct FESetShellDSG3 <: AbstractFESet2Manifold{3}
     conn::Array{NTuple{3, FInt}, 1};
     label::FIntVec; 
-    dimensions::Vector{FFltVec}
+    thickness::FFlt
 end
 
-function FESetShellDSG3(conn::FIntMat) 
+function FESetShellDSG3(conn::FIntMat; thickness = zero(FFlt)) 
     @assert size(conn, 2) == 3
-    self = FESetShellDSG3(NTuple{3, FInt}[], FInt[], FFlt[])
+    self = FESetShellDSG3(NTuple{3, FInt}[], FInt[], thickness)
     self = fromarray!(self, conn)
     setlabel!(self, 0)
     return self

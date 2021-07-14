@@ -9,12 +9,12 @@ using LinearAlgebra: norm, Transpose, mul!
 mutable struct FESetShellQ4SRI <: AbstractFESet2Manifold{4}
     conn::Array{NTuple{4, FInt}, 1};
     label::FIntVec; 
-    dimensions::Vector{FFltVec}
+    thickness::FFlt
 end
 
-function FESetShellQ4SRI(conn::FIntMat) 
+function FESetShellQ4SRI(conn::FIntMat; thickness = zero(FFlt)) 
     @assert size(conn, 2) == 4
-    self = FESetShellQ4SRI(NTuple{4, FInt}[], FInt[], FFlt[])
+    self = FESetShellQ4SRI(NTuple{4, FInt}[], FInt[], thickness)
     self = fromarray!(self, conn)
     setlabel!(self, 0)
     return self
@@ -24,7 +24,7 @@ nodesperelem(fes::FESetShellQ4SRI) = 4
 
 function local_frame!(F0, J0)
     # This is the tangent to the coordinate curve 1
-    a = @view J0[:, 1]
+    pre = @view J0[:, 1]
     L0 = norm(a);
     F0[:,1] = a/L0;
     # This is the tangent to the coordinate curve 2
