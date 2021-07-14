@@ -19,5 +19,6 @@ include("FEMMCorotBeamModule.jl")
 include("FEMMPointMassModule.jl")
 include("FEMMPointGroundedSpringModule.jl")
 include("FEMMShellQ4SRIModule.jl")
+include("FEMMShellDSG3Module.jl")
 
 end # module
