@@ -353,25 +353,11 @@ function plot_midsurface(fens, fes; kwargs...)
     facecolors = fill(facecolor, count(fes))
     faces = connasarray(fes).-1
     t = PlotlyBase.GenericTrace[]
-    push!(t, mesh3d(;x=x[:, 1], y=x[:, 2], z=x[:, 3], i=faces[:, 1], j=faces[:, 2], k=faces[:, 3], facecolor=facecolors))
+    push!(t, mesh3d(;x=x[:, 1]+u[:, 1], y=x[:, 2]+u[:, 2], z=x[:, 3]+u[:, 3], i=faces[:, 1], j=faces[:, 2], k=faces[:, 3], facecolor=facecolors))
     if nodesperelem(fes)   == 4
         push!(t, mesh3d(;x=x[:, 1], y=x[:, 2], z=x[:, 3], i=faces[:, 4], j=faces[:, 1], k=faces[:, 3], facecolor=facecolors))
     end
     return t
 end
-
-# function _rectangular(dimensions, buffers, x1x2_vector, R1I, R1J; kwargs...)
-#     b, h = dimensions[1:2]./2 # departures from the midline by half the dimension
-#     F0, x0, xt, c, s, xc, faces, facecolors = buffers
-#     L0, F0 = _beam_local_frame!(F0, x0, x1x2_vector)
-#     FtI=R1I*F0;
-#     FtJ=R1J*F0;
-#     for j in 1:4+1
-#         xc[j,:] = xt[1,:]+c[j]*b*FtI[:,2]+s[j]*h*FtI[:,3];
-#         xc[j+(4+1),:] = xt[2,:]+c[j]*b*FtJ[:,2]+s[j]*h*FtJ[:,3];
-#     end
-#     return mesh3d(;x=xc[:, 1],y=xc[:, 2], z=xc[:, 3], i=faces[:, 1].-1, j=faces[:, 2].-1, k=faces[:, 3].-1, facecolor=facecolors, kwargs...)
-# end
-
 
 end # FinEtoolsBeamsVis

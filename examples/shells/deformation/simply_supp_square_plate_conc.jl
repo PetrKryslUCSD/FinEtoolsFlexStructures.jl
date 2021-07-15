@@ -6,7 +6,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellDSG3Module: FESetShellDSG3, local_frame!
 using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
-
+using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 function doit()
     E = 30e6;
@@ -18,7 +18,7 @@ function doit()
 
 # Mesh
     L= 10;
-    n=2;
+    n = 4;
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -56,9 +56,9 @@ function doit()
     for i in [3,5,6]
         setebc!(dchi, l1, true, i)
     end
-# in-plane
+# in-plane, rotations
     l1 = selectnode(fens; box = Float64[0 L/2 0 L/2 -Inf Inf], tolerance = tolerance)
-    for i in [1, 2]
+    for i in [1, 2, 6]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -67,37 +67,26 @@ function doit()
 # Assemble the system matrix
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-# # Load
-# #   weight of the shell is 90 lb per square ft.
-# nl=fenode_select (fens,struct ('box',[0 0 0 0  -1000  1000],'inflate',0.1));
-# F = start (sysvec, get(ur, 'neqns'));
-# F = assemble (F, loads(nodal_load(struct ('id',nl,'dir',[3],'magn',[-force/4])), ur));
-# F = finish(F);
-# # Solve
-# ur = scatter_sysvec(ur, get(K,'mat')\get(F,'vec'));
-# eqn=gather (ur,nl,'eqnums');
-# uv=gather_sysvec(ur);
-# disp(['Vertical deflection under the load: ' num2str(uv(eqn(3))) '  --  ' num2str(uv(eqn(3))/analyt_sol*100) '%'])
+# Load
+    nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
+    loadbdry = FESetP1(reshape(nl, 1, 1))
+    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+    fi = ForceIntensity(FFlt[0, 0, -force/4, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 3);
 
-# # Plot
-# gv=graphic_viewer;
-# gv=reset (gv,[]);
-# scale=100;
-# u=slice(ur,(1:3),'u');
-# draw(feb,gv, struct ('x', x, 'u', 0*u, 'facecolor','none'));
-# # draw(feb,gv, struct ('x', x, 'u', +scale*u,'facecolor','red'));
+# Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    @show dchi.values[nl, :]
 
-# U=get(u,'values');
-# dcm=data_colormap(struct ('range',[min(U(:,3)),max(U(:,3))], 'colormap',jet));
-# colorfield=field(struct ('name', ['colorfield'], 'data',map_data(dcm, U(:,3))));
-# draw(feb, gv, struct ('x', x,'u', scale*u, 'colorfield',colorfield, 'shrink',0.9));
-# %
-# for i=1:length(fens)
-#   draw(fens(i),gv, struct ('x', x, 'u', 0*u, 'facecolor','blue'));
-# end
-
-# draw_axes(gv, struct([]));
-
+# Visualization
+    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    update_rotation_field!(Rfield0, dchi)
+    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        #plot_nodes(fens),
+        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    dims = 1)
+    pl = render(plots)
 end
 
 end # simply_supp_square_plate_conc

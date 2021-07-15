@@ -192,7 +192,7 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    Dps, Dt = _shell_material_stiffness(self.material)
+   Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
@@ -203,7 +203,7 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
         fill!(elmat,  0.0); # Initialize element matrix
         for j in 1:npts
             locjac!(loc, J, ecoords0, Ns[j], gradNparams[j])
-            Jac = Jacobianvolume(self.integdomain, J, loc, fes.conn[i], Ns[j]);
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
             t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
             local_frame!(delegateof(fes), Ft, J)
             mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
@@ -213,14 +213,14 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
             _Bbmat!(Bb, lgradN)
             _Bsmat!(Bs, lgradN, Ns[j])
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
-            add_btdb_ut_only!(elmat, Bb, t^3*Jac*w[j], Dps, DpsBmb)
+            add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
             complete_lt!(elmat)
             _transfmat!(Te, Ft)
             mul!(elmatTe, elmat, Transpose(Te))
             mul!(elmat, Te, elmatTe)
         end
-        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
+        gatherdofnums!(dchi, dofnums, fes.conn[i]); 
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
     return makematrix!(assembler);
