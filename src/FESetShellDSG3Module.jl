@@ -6,23 +6,11 @@ import FinEtools.FESetModule: cat, subset, nodesperelem
 using FinEtools.MatrixUtilityModule: complete_lt! 
 using LinearAlgebra: norm, Transpose, mul!
 
-mutable struct FESetShellDSG3 <: AbstractFESet2Manifold{3}
-    conn::Array{NTuple{3, FInt}, 1};
-    label::FIntVec; 
-    thickness::FFlt
+mutable struct FESetShellDSG3 <: AbstractFESet2Manifold{3} 
+    
 end
 
-function FESetShellDSG3(conn::FIntMat; thickness = zero(FFlt)) 
-    @assert size(conn, 2) == 3
-    self = FESetShellDSG3(NTuple{3, FInt}[], FInt[], thickness)
-    self = fromarray!(self, conn)
-    setlabel!(self, 0)
-    return self
-end
-
-nodesperelem(fes::FESetShellDSG3) = 3
-
-function local_frame!(F0, J0)
+function local_frame!(fes::FESetShellDSG3, F0, J0)
     # This is the tangent to the coordinate curve 1
     a = @view J0[:, 1]
     L0 = norm(a);

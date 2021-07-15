@@ -2,11 +2,14 @@ module FEMMShellDSG3Module
 
 using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
-using FinEtools.IntegDomainModule: IntegDomain
-import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
+import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
+using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
+using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
+using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
+using ..FESetShellDSG3Module: FESetShellDSG3, local_frame!
 
-using ..FESetShellDSG3Module: FESetShellDSG3
-
+const __nn = 3 # number of nodes
+const __ndof = 6 # number of degrees of freedom per node
 
 """
     FEMMShellDSG3{S<:AbstractFESet, F<:Function} <: AbstractFEMM
@@ -22,11 +25,14 @@ mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::M # material object
     # The attributes below are buffers used in various operations.
+    _loc::FFltMat
+    _J::FFltMat
     _ecoords0::FFltMat
     _ecoords1::FFltMat
     _edisp1::FFltMat
     _evel1::FFltMat
     _evel1f::FFltMat
+    _lecoords0::FFltMat
     _dofnums::FIntMat
     _F0::FFltMat
     _Ft::FFltMat
@@ -41,23 +47,29 @@ mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _elmato::FFltMat
     _elvec::FFltVec
     _elvecf::FFltVec
+    _lloc::FFltMat
+    _lJ::FFltMat
+    _lgradN::FFltMat
     _Bm::FFltMat
     _Bb::FFltMat
     _Bs::FFltMat
+    _DpsBmb::FFltMat
+    _DtBs::FFltMat
     _LF::FFltVec
     _RI::FFltMat
     _RJ::FFltMat
     _OS::FFltMat
 end
 
-function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:FESetShellDSG3, F<:Function, M}
-    __nn = 3 # number of nodes
-    __ndof = 6 # number of degrees of freedom per node
+function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+    _loc = fill(0.0, 1, 3)
+    _J = fill(0.0, 3, 2)
     _ecoords0 = fill(0.0, __nn, 3); 
     _ecoords1 = fill(0.0, __nn, 3)
     _edisp1 = fill(0.0, __nn, 3); 
-    _evel1 = fill(0.0, __nn, 6); 
-    _evel1f = fill(0.0, __nn, 6)
+    _evel1 = fill(0.0, __nn, __ndof); 
+    _evel1f = fill(0.0, __nn, __ndof)
+    _lecoords0 = fill(0.0, __nn, 2) 
     _dofnums = zeros(FInt, 1, __nn*__ndof); 
     _F0 = fill(0.0, 3, 3); 
     _Ft = fill(0.0, 3, 3); 
@@ -72,25 +84,53 @@ function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:FE
     _elmato = fill(0.0, __nn*__ndof, __nn*__ndof)
     _elvec = fill(0.0, __nn*__ndof);    
     _elvecf = fill(0.0, __nn*__ndof)
+    _lloc = fill(0.0, 1, 2)
+    _lJ = fill(0.0, 2, 2)
+    _lgradN = fill(0.0, __nn, 2)
     _Bm = fill(0.0, 3, __nn*__ndof)
     _Bb = fill(0.0, 3, __nn*__ndof)
     _Bs = fill(0.0, 2, __nn*__ndof)
+    _DpsBmb = similar(_Bm)
+    _DtBs = similar(_Bs)
     _LF = fill(0.0, __nn*__ndof)
     _RI = fill(0.0, 3, 3);    
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
     return FEMMShellDSG3(integdomain, material,
-     _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, 
-     _dofnums, 
-     _F0, _Ft, _FtI, _FtJ, _Te,
-     _tempelmat1, _tempelmat2, _tempelmat3, _elmat, _elmatTe, _elmato, 
-     _elvec, _elvecf, 
-     _Bm, _Bb, _Bs, _LF, 
-     _RI, _RJ, _OS)
+        _loc, _J,
+        _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, _lecoords0,
+        _dofnums, 
+        _F0, _Ft, _FtI, _FtJ, _Te,
+        _tempelmat1, _tempelmat2, _tempelmat3, _elmat, _elmatTe, _elmato, 
+        _elvec, _elvecf, 
+        _lloc, _lJ, _lgradN,
+        _Bm, _Bb, _Bs, _DpsBmb, _DtBs, _LF, 
+        _RI, _RJ, _OS)
+end
+    
+function _shell_material_stiffness(material)
+    D = fill(0.0, 6, 6)
+    t::FFlt, dt::FFlt, loc::FFltMat, label::FInt = 0.0, 0.0, [0.0 0.0 0.0], 0
+    tangentmoduli!(material,  D,  t, dt, loc, label)
+    Dps = fill(0.0, 3, 3)
+    Dps[1:2, 1:2] = D[1:2, 1:2] -  (reshape(D[1:2,3], 2, 1) * reshape(D[3,1:2], 1, 2))/D[3, 3]
+    ix=[1, 2, 4];
+    for i = 1:3
+        Dps[3,i] = Dps[i,3] = D[4, ix[i]];
+    end
+    Dt = fill(0.0, 2, 2)
+    ix=[5, 6];
+    for i = 1:2
+        Dt[i,i] = D[ix[i], ix[i]];
+    end
+    return Dps, Dt
 end
 
 function _transfmat!(Te, Ft)
-    @. Te[1:3, 1:3] = Te[4:6, 4:6] = Te[7:9, 7:9] = Te[10:12, 10:12] = Te[13:15, 13:15] = Te[16:18, 16:18] = Te[19:21, 19:21] = Te[22:24, 22:24] = Ft
+    for i in 1:2*__nn
+        r = (i-1)*__nn .+ (1:3)
+        @. Te[r, r] = Ft
+    end
     return Te
 end
 
@@ -100,7 +140,7 @@ end
 Compute the linear transverse shear strain-displacement matrix.
 """
 function _Bsmat!(Bs, gradN, N)
-    for i in 1:3
+    for i in 1:__nn
         Bs[1,6*(i-1)+3] = gradN[i,1];
         Bs[1,6*(i-1)+5] = N[i];
         Bs[2,6*(i-1)+3] = gradN[i,2];
@@ -114,7 +154,7 @@ end
 Compute the linear membrane strain-displacement matrix.
 """
 function _Bmmat!(Bm, gradN)
-    for i in 1:3
+    for i in 1:__nn
         Bm[1,6*(i-1)+1] = gradN[i,1];
         Bm[2,6*(i-1)+2] = gradN[i,2];
         Bm[3,6*(i-1)+1] = gradN[i,2];
@@ -128,7 +168,7 @@ end
 Compute the linear, displacement independent, curvature-displacement/rotation matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and rotations are in a local coordinate system.
 """
 function _Bbmat!(Bb, gradN)
-    for i in 1:3
+    for i in 1:__nn
         Bb[1,6*(i-1)+5] = gradN[i,1];
         Bb[2,6*(i-1)+4] = -gradN[i,2];
         Bb[3,6*(i-1)+4] = -gradN[i,1];
@@ -143,27 +183,43 @@ Compute the material stiffness matrix.
 """
 function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
+    npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
+    loc, J = self._loc, self._J
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
+    lecoords0 = self._lecoords0
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
     R1I, R1J = self._RI, self._RJ
     elmat, elmatTe = self._elmat, self._elmatTe
-    aN, dN, DN = self._aN, self._dN, self._DN
-    E = self.material.E
-    G = E / 2 / (1 + self.material.nu)::Float64
-    t = fes.thickness
+    lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
+    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    Dps, Dt = _shell_material_stiffness(self.material)
+    scf=5/6;  # shear correction factor
+    Dt .*= scf
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
         ecoords1 .= ecoords0 .+ edisp1
-        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
-        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
         fill!(elmat,  0.0); # Initialize element matrix
-        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
-        _transfmat!(Te, Ft)
-        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L1, aN, DN);
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        for j in 1:npts
+            locjac!(loc, J, ecoords0, Ns[j], gradNparams[j])
+            Jac = Jacobianvolume(self.integdomain, J, loc, fes.conn[i], Ns[j]);
+            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+            local_frame!(delegateof(fes), Ft, J)
+            mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
+            locjac!(lloc, lJ, lecoords0, Ns[j], gradNparams[j])
+            gradN!(fes, lgradN, gradNparams[j], lJ);
+            _Bmmat!(Bm, lgradN)
+            _Bbmat!(Bb, lgradN)
+            _Bsmat!(Bs, lgradN, Ns[j])
+            add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
+            add_btdb_ut_only!(elmat, Bb, t^3*Jac*w[j], Dps, DpsBmb)
+            add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
+            complete_lt!(elmat)
+            _transfmat!(Te, Ft)
+            mul!(elmatTe, elmat, Transpose(Te))
+            mul!(elmat, Te, elmatTe)
+        end
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
@@ -175,43 +231,7 @@ function stiffness(self::FEMMShellDSG3, geom0::NodalField{FFlt}, u1::NodalField{
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
-# % Compute the stiffness matrices of the individual shell gcells.
-# % Return an array of the element matrices so they may be assembled.
-# %    Call as
-# % ems = stiffness(feb, geom, u)
-# %     geom=geometry field
-# %     u=displacement field
-# %
-# function ems = stiffness (self, geom, u)
-# gcells = get(self.feblock,'gcells');
-# ngcells = length(gcells);
-# nfens = get(gcells(1),'nfens');
-# dim = get(geom,'dim');
-# if dim ~= 3
-#     error(['wrong dimension: need dim=3']);
-# end
-# % Pre-allocate the element matrices
-# ems(1:ngcells) = deal(elemat);
-# % Integration rule
-# integration_rule = get(self, 'integration_rule');
-# % - bending and membrane terms
-# pc_bm = get(integration_rule, 'param_coords',1);
-# w_bm  = get(integration_rule, 'weights',1);
-# npts_per_gcell_bm = get(integration_rule, 'npts',1);
-# % - out of plane shear terms
-# pc_s = get(integration_rule, 'param_coords',2);
-# w_s  = get(integration_rule, 'weights',2);
-# npts_per_gcell_s = get(integration_rule, 'npts',2);
-# % Material
-# mat = get(self.feblock, 'mater');
-# scf=5/6;  % shear correction factor
-# matstates = get(self.feblock, 'matstates');
-# % Now loop over all gcells in the block
-# for i=1:ngcells
-#     conn = get(gcells(i), 'conn'); % connectivity
-#     x = gather(geom, conn, 'values', 'noreshape'); % coordinates of nodes
-#     Ke = zeros(2*dim*nfens); % element stiffness matrix
-#     k = zeros(2*dim*nfens); % element stiffness matrix
+
     # % Loop over all integration points: bending and membrane contributions
     # for j=1:npts_per_gcell_bm
     #     Nder = Ndermat_param (gcells(i), pc_bm(j,:));

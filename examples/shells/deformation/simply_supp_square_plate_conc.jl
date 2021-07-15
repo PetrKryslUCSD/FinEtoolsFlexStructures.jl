@@ -2,73 +2,71 @@
 module simply_supp_square_plate_conc
 
 using FinEtools
-using FinEtoolsFlexStructures.FESetShellDSG3Module: FESetShellDSG3
-using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3
 using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.FESetShellDSG3Module: FESetShellDSG3, local_frame!
+using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+
 
 function doit()
-E = 30e6;
-nu = 0.3;
-force = 40;
-thickness = 0.1;
+    E = 30e6;
+    nu = 0.3;
+    force = 40;
+    thickness = 0.1;
 # analytical solution for the vertical deflection under the load
-analyt_sol=-0.0168;
+    analyt_sol=-0.0168;
 
 # Mesh
-L= 10;
-n=2;
-fens, fes = T3block(L/2,L/2,n,n);
-fens.xyz = xyz3(fens)
-fes = FESetShellDSG3(connasarray(fes); thickness = thickness)
+    L= 10;
+    n=2;
+    tolerance = L/n/1000
+    fens, fes = T3block(L/2,L/2,n,n);
+    fens.xyz = xyz3(fens)
 
-mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-femm = FEMMShellDSG3(IntegDomain(fes, TriRule(1)), mater)
-# # Material
-# mater = mater_defor_ss_linelastic_biax (struct('E',E,'nu',nu,'type', ['stress']));
-# # Finite element block
-# feb = feblock_defor_ss_shell (struct ('mater',mater, 'gcells',gcells, ...
-#     'integration_order',integration_order));
-# # Geometry
-# x = field(struct ('name',['geom'], 'dim', 3, 'fens',fens));
-# # Define the displacement/rotation field
-# ur  = field(struct ('name',['ur'], 'dim', 6, 'data', zeros(get(x,'nfens'),6)));
+    sfes = FESetShellDSG3()
+    accepttodelegate(fes, sfes)
 
-# # Apply EBC's
-# # plane of symmetry perpendicular to X
-# nl=fenode_select (fens,struct ('box',[0 0   0 L/2   -10000 10000],'inflate',0.001));
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+1, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+5, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+6, nl*0);
-# ur = apply_ebc (ur);
-# # plane of symmetry perpendicular to Y
-# nl=fenode_select (fens,struct ('box',[0 L/2  0 0    -10000 10000],'inflate',0.001));
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+2, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+4, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+6, nl*0);
-# ur = apply_ebc (ur);
-# # simple support
-# nl=fenode_select (fens,struct ('box',[L/2 L/2  0 L/2    -10000 10000],'inflate',0.001));
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+3, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+4, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+6, nl*0);
-# ur = apply_ebc (ur);
-# nl=fenode_select (fens,struct ('box',[0 L/2   L/2 L/2   -10000 10000],'inflate',0.001));
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+3, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+5, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+6, nl*0);
-# ur = apply_ebc (ur);
-# # in-plane
-# nl=fenode_select (fens,struct ('box',[0 L/2    0 L/2   -10000 10000],'inflate',0.001));
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+1, nl*0);
-# ur = set_ebc(ur, nl, nl*0+1, nl*0+2, nl*0);
-# ur = apply_ebc (ur);
-# # OB(ur)
-# # Number equations
-# ur   = numbereqns (ur);
-# # Assemble the system matrix
-# K = start (sparse_sysmat, get(ur, 'neqns'));
-# K = assemble (K, stiffness(feb, x, ur));
-# K = finish (K);
+    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    femm = FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
+
+# Construct the requisite fields, geometry and displacement
+# Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+# Apply EBC's
+# plane of symmetry perpendicular to X
+    l1 = selectnode(fens; box = Float64[0 0 0 L/2 -Inf Inf], tolerance = tolerance)
+    for i in [1,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+# plane of symmetry perpendicular to Y
+    l1 = selectnode(fens; box = Float64[0 L/2 0 0 -Inf Inf], tolerance = tolerance)
+    for i in [2,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+# simple support
+    l1 = selectnode(fens; box = Float64[L/2 L/2 0 L/2 -Inf Inf], tolerance = tolerance)
+    for i in [3,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[0 L/2 L/2 L/2 -Inf Inf], tolerance = tolerance)
+    for i in [3,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+# in-plane
+    l1 = selectnode(fens; box = Float64[0 L/2 0 L/2 -Inf Inf], tolerance = tolerance)
+    for i in [1, 2]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+# Assemble the system matrix
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+
 # # Load
 # #   weight of the shell is 90 lb per square ft.
 # nl=fenode_select (fens,struct ('box',[0 0 0 0  -1000  1000],'inflate',0.1));
