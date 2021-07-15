@@ -10,8 +10,8 @@ include("VisUtilModule.jl")
 include("CrossSectionModule.jl")
 
 include("FESetCorotBeamModule.jl")
-include("FESetShellQ4SRIModule.jl")
-include("FESetShellDSG3Module.jl")
+include("FESetShellQ4Module.jl")
+include("FESetShellT3Module.jl")
 
 include("MeshFrameMemberModule.jl")
 
@@ -20,5 +20,6 @@ include("FEMMPointMassModule.jl")
 include("FEMMPointGroundedSpringModule.jl")
 include("FEMMShellQ4SRIModule.jl")
 include("FEMMShellDSG3Module.jl")
+include("FEMMShellT3Module.jl")
 
 end # module

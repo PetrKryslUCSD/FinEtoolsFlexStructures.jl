@@ -1,18 +1,18 @@
-module FEMMFESetShellQ4SRIModule
+module FEMMShellQ4SRIModule
 
 using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
 using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
-using ..FESetShellQ4SRIModule: FESetShellQ4SRI
+using ..FESetShellQ4Module: FESetShellQ4
 
 
 """
-    FEMMDeforLinear{MR<:AbstractDeforModelRed,  S<:AbstractFESet, F<:Function, M<:AbstractMatDeforLinearElastic} <: FEMMFESetShellQ4SRI
+    FEMMDeforLinear{MR<:AbstractDeforModelRed,  S<:AbstractFESet, F<:Function, M<:AbstractMatDeforLinearElastic} <: FEMMShellQ4SRI
 
 Class for linear deformation finite element modeling machine.
 """
-mutable struct FEMMFESetShellQ4SRI{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+mutable struct FEMMShellQ4SRI{S<:AbstractFESet, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::MatDeforElastIso # material object
     # The attributes below are buffers used in various operations.
@@ -44,7 +44,7 @@ mutable struct FEMMFESetShellQ4SRI{S<:AbstractFESet, F<:Function} <: AbstractFEM
     _OS::FFltMat
 end
 
-function FEMMFESetShellQ4SRI(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetShellQ4SRI, F<:Function}
+function FEMMShellQ4SRI(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetShellQ4, F<:Function}
     _ecoords0 = fill(0.0, 4, 3); 
     _ecoords1 = fill(0.0, 4, 3)
     _edisp1 = fill(0.0, 4, 3); 
@@ -71,7 +71,7 @@ function FEMMFESetShellQ4SRI(integdomain::IntegDomain{S, F}, material::MatDeforE
     _RI = fill(0.0, 3, 3);    
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
-    return FEMMFESetShellQ4SRI(integdomain, material,
+    return FEMMShellQ4SRI(integdomain, material,
      _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, 
      _dofnums, 
      _F0, _Ft, _FtI, _FtJ, _Te,
@@ -129,11 +129,11 @@ function _Bbmat!(Bb, gradN)
 end
 
 """
-    stiffness(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    stiffness(self::FEMMShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(self::FEMMShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -162,7 +162,7 @@ function stiffness(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{
     return makematrix!(assembler);
 end
 
-function stiffness(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function stiffness(self::FEMMShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
@@ -247,7 +247,7 @@ end
 
 
 """
-    distribloads_global(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}, fi) where {T<:Number}
+    distribloads_global(self::FEMMShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}, fi) where {T<:Number}
     
 Compute the load vector due to distributed loads.
 
@@ -258,7 +258,7 @@ in the configuration u1,Rfield1.
 Note: the force intensity must be uniform across the entire element.
 Note: the force intensity is given in the global coordinates.
 """
-function distribloads_global(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
+function distribloads_global(self::FEMMShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -303,13 +303,13 @@ function distribloads_global(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::N
     return makevector!(assembler);
 end
 
-function distribloads_global(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
+function distribloads_global(self::FEMMShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
     assembler = SysvecAssembler();
     return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi);
 end
 
 """
-    mass(self::FEMMFESetShellQ4SRI,  assembler::A,
+    mass(self::FEMMShellQ4SRI,  assembler::A,
       geom::NodalField{FFlt},
       u::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
 
@@ -317,7 +317,7 @@ Compute the consistent mass matrix
 
 This is a general routine for the abstract linear-deformation  FEMM.
 """
-function mass(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function mass(self::FEMMShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -346,7 +346,7 @@ function mass(self::FEMMFESetShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}
     return makematrix!(assembler);
 end
 
-function mass(self::FEMMFESetShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
+function mass(self::FEMMShellQ4SRI, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return mass(self, assembler, geom0, u1, Rfield1, dchi; mass_type = mass_type);
 end

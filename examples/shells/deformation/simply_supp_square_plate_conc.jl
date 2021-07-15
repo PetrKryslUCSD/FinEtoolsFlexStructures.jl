@@ -3,8 +3,9 @@ module simply_supp_square_plate_conc
 
 using FinEtools
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.FESetShellDSG3Module: FESetShellDSG3, local_frame!
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
 using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
+# using FinEtoolsFlexStructures.FEMMShellT3Module: FEMMShellT3, stiffness
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -18,15 +19,15 @@ function doit()
 
 # Mesh
     L= 10;
-    n = 4;
+    n = 8
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
 
-    sfes = FESetShellDSG3()
-    accepttodelegate(fes, sfes)
-
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
     femm = FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
 
 # Construct the requisite fields, geometry and displacement
@@ -77,7 +78,7 @@ function doit()
 # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, :]
+    @show dchi.values[nl, 3]/analyt_sol*100
 
 # Visualization
     scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
