@@ -19,7 +19,7 @@ function single_dsg3()
 # Mesh
     R = 300.0;
     L = 600.0;
-    n = 4;
+    n = 8;
     tolerance = R/n/1000
     fens, fes = T3block(90/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -78,7 +78,7 @@ function single_dsg3()
 # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, 3]/analyt_sol*100
+    @show dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
 
 # Visualization
     scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)

@@ -143,16 +143,6 @@ end
     _Bsmat!(Bs, gradN, N)
 
 Compute the linear transverse shear strain-displacement matrix.
-
-# Node 1
-addto(Bs, 1, 3, b-d);                                  addto(Bs, 1, 5, -Ae) 
-addto(Bs, 2, 3, c-a);    addto(Bs, 2, 4, -Ae); 
-# Node 2
-addto(Bs, 1, 6+3, d);    addto(Bs, 1, 6+4, -b*d/2);    addto(Bs, 1, 6+5, a*d/2) 
-addto(Bs, 2, 6+3, -c);   addto(Bs, 2, 6+4, b*c/2);     addto(Bs, 2, 6+5, -a*c/2) 
-# Node 3
-addto(Bs, 1, 12+3, -b);  addto(Bs, 1, 12+4, b*d/2);    addto(Bs, 1, 12+5, -b*c/2) 
-addto(Bs, 2, 12+3, a);   addto(Bs, 2, 12+4, -a*d/2);   addto(Bs, 2, 12+5, a*c/2) 
 """
 function _Bsmat!(Bs, lecoords)
     a, b = lecoords[2, :].-lecoords[1, :]
@@ -171,12 +161,6 @@ function _Bsmat!(Bs, lecoords)
     addto(Bs, 2, 12+3, a);   addto(Bs, 2, 12+4, -a*d/2);   addto(Bs, 2, 12+5, a*c/2) 
     # Scale
     Bs .*= (1/2/Ae)
-    # @show sum(Bs[1, 3:6:15])
-    # @show sum(Bs[1, 4:6:16])
-    # @show sum(Bs[1, 5:6:17])
-    # @show sum(Bs[2, 3:6:15])
-    # @show sum(Bs[2, 4:6:16])
-    # @show sum(Bs[2, 5:6:17])
     # for i in 1:__nn
     #     Bs[1,6*(i-1)+3] = gradN[i,1];
     #     Bs[1,6*(i-1)+5] = N[i];
@@ -251,7 +235,10 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
             _Bsmat!(Bs, lecoords0)
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
+            he = sqrt(Jac/2)
+            # The stabilization expression has a huge effect (at least for the
+            # pinched cylinder). What is the recommended multiplier of he^2?
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.85*he^2))*Jac*w[j], Dt, DtBs)
             complete_lt!(elmat)
             _transfmat!(Te, Ft)
             mul!(elmatTe, elmat, Transpose(Te))

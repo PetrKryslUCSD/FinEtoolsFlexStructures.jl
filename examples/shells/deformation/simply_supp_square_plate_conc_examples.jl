@@ -19,7 +19,7 @@ function single_dsg3()
 
 # Mesh
     L= 10;
-    n = 8
+    n = 2
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -99,3 +99,6 @@ function allrun()
 end # function allrun
 
 end # module
+
+using .simply_supp_square_plate_conc_examples
+simply_supp_square_plate_conc_examples.allrun()
