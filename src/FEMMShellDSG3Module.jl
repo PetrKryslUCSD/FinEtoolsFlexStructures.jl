@@ -235,10 +235,10 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
             _Bsmat!(Bs, lecoords0)
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            he = sqrt(Jac/2)
             # The stabilization expression has a huge effect (at least for the
             # pinched cylinder). What is the recommended multiplier of he^2?
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.85*he^2))*Jac*w[j], Dt, DtBs)
+            he = sqrt(Jac)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
             complete_lt!(elmat)
             _transfmat!(Te, Ft)
             mul!(elmatTe, elmat, Transpose(Te))
