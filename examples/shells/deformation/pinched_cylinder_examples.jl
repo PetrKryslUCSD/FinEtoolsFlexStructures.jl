@@ -1,5 +1,5 @@
-# disp('Simply supported square plate with center load');
-module simply_supp_square_plate_conc
+# Pinched cylinder with diagphram supports and concentrated force
+module pinched_cylinder_examples
 
 using FinEtools
 using FinEtoolsDeforLinear
@@ -9,21 +9,25 @@ using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function doit()
-    E = 30e6;
+function single_dsg3()
+    E = 3e6;
     nu = 0.3;
-    force = 40;
-    thickness = 0.1;
+    thickness = 3.0;
 # analytical solution for the vertical deflection under the load
-    analyt_sol=-0.0168;
+    analyt_sol=-1.82488e-5;
 
 # Mesh
-    L= 10;
-    n = 8
-    tolerance = L/n/1000
-    fens, fes = T3block(L/2,L/2,n,n);
+    R = 300.0;
+    L = 600.0;
+    n = 4;
+    tolerance = R/n/1000
+    fens, fes = T3block(90/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
-
+    for i in 1:count(fens)
+        a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
+        fens.xyz[i, :] .= (R*sin(a), y, R*cos(a))
+    end
+    
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
     sfes = FESetShellT3()
@@ -38,28 +42,24 @@ function doit()
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
 # Apply EBC's
-# plane of symmetry perpendicular to X
-    l1 = selectnode(fens; box = Float64[0 0 0 L/2 -Inf Inf], tolerance = tolerance)
-    for i in [1,5,6]
+# rigid diaphragm
+    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
+    for i in [1,3]
         setebc!(dchi, l1, true, i)
     end
 # plane of symmetry perpendicular to Y
-    l1 = selectnode(fens; box = Float64[0 L/2 0 0 -Inf Inf], tolerance = tolerance)
+    l1 = selectnode(fens; box = Float64[-Inf Inf L/2 L/2 -Inf Inf], inflate = tolerance)
     for i in [2,4,6]
         setebc!(dchi, l1, true, i)
     end
-# simple support
-    l1 = selectnode(fens; box = Float64[L/2 L/2 0 L/2 -Inf Inf], tolerance = tolerance)
-    for i in [3,4,6]
+# plane of symmetry perpendicular to X
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [1,5,6]
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 L/2 L/2 L/2 -Inf Inf], tolerance = tolerance)
-    for i in [3,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-# in-plane, rotations
-    l1 = selectnode(fens; box = Float64[0 L/2 0 L/2 -Inf Inf], tolerance = tolerance)
-    for i in [1, 2, 6]
+# plane of symmetry perpendicular to Z
+    l1 = selectnode(fens; box = Float64[-Inf Inf -Inf Inf 0.0 0.0], inflate = tolerance)
+    for i in [3,4,5]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -69,10 +69,10 @@ function doit()
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
 # Load
-    nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
+    nl = selectnode(fens; box = Float64[0 0 L/2 L/2 -Inf Inf], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, 0, -force/4, 0, 0, 0]);
+    fi = ForceIntensity(FFlt[0, 0, -1/4, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
 # Solve
@@ -81,7 +81,7 @@ function doit()
     @show dchi.values[nl, 3]/analyt_sol*100
 
 # Visualization
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),
@@ -90,6 +90,15 @@ function doit()
     pl = render(plots)
 end
 
-end # simply_supp_square_plate_conc
 
-simply_supp_square_plate_conc.doit()
+function allrun()
+    println("#####################################################")
+    println("# single_dsg3 ")
+    single_dsg3()
+    return true
+end # function allrun
+
+end # module
+
+using .pinched_cylinder_examples
+pinched_cylinder_examples.allrun()
