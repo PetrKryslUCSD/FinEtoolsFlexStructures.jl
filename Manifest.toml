@@ -12,9 +12,9 @@ version = "1.1.1"
 
 [[Arpack]]
 deps = ["Arpack_jll", "Libdl", "LinearAlgebra", "Logging"]
-git-tree-sha1 = "dadb9a82914224b22e5f2b73a82fd5de46d3cf16"
+git-tree-sha1 = "91ca22c4b8437da89b030f08d71db55a379ce958"
 uuid = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
-version = "0.5.2"
+version = "0.5.3"
 
 [[Arpack_jll]]
 deps = ["Libdl", "OpenBLAS_jll", "Pkg"]
@@ -163,13 +163,13 @@ version = "0.12.0"
 deps = ["Arpack", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
 path = "../FinEtools.jl"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.1.7"
+version = "5.2.0"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
-git-tree-sha1 = "18acc151e8a491a2b0fac001c556246c02c87704"
+git-tree-sha1 = "9361b68d571b74acc6a62c4eef6affc8f67c8e56"
 uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
-version = "1.0.1"
+version = "1.2.0"
 
 [[FixedPointNumbers]]
 deps = ["Statistics"]
@@ -402,9 +402,9 @@ version = "0.3.3"
 
 [[OffsetArrays]]
 deps = ["Adapt"]
-git-tree-sha1 = "2bf78c5fd7fa56d2bbf1efbadd45c1b8789e6f57"
+git-tree-sha1 = "4f825c6da64aebaa22cc058ecfceed1ab9af1c7e"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.10.2"
+version = "1.10.3"
 
 [[OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -447,15 +447,15 @@ version = "1.6.0"
 
 [[PlotlyBase]]
 deps = ["Base64", "Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "Kaleido_jll", "LaTeXStrings", "Logging", "Parameters", "Pkg", "REPL", "Requires", "Statistics", "UUIDs"]
-git-tree-sha1 = "b29c63ad0b1fb313bf42f6bb1260959cbaf57b8b"
+git-tree-sha1 = "96c1e98b848d9cb6cea5088f1ef1b008e17a45a9"
 uuid = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-version = "0.6.4"
+version = "0.7.0"
 
 [[PlotlyJS]]
 deps = ["Blink", "DelimitedFiles", "JSExpr", "JSON", "Markdown", "Pkg", "PlotlyBase", "REPL", "Reexport", "Requires", "WebIO"]
-git-tree-sha1 = "903c26098dd61e589b318a8433cfe72fc0ba1876"
+git-tree-sha1 = "01c2792d06ed46744f9a95c9d5b4b9810cbe3279"
 uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
-version = "0.16.2"
+version = "0.18.0"
 
 [[Polyester]]
 deps = ["ArrayInterface", "IfElse", "ManualMemory", "Requires", "Static", "StrideArraysCore", "ThreadingUtilities", "VectorizationBase"]
@@ -494,9 +494,9 @@ version = "1.1.3"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "2b95c41e53c8f429ef56de5c3718f01831141751"
+git-tree-sha1 = "410bbe13d9a7816e862ed72ac119bda7fb988c08"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.1.16"
+version = "3.1.17"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -550,9 +550,9 @@ version = "0.33.8"
 
 [[StrideArraysCore]]
 deps = ["ArrayInterface", "ManualMemory", "Requires", "ThreadingUtilities", "VectorizationBase"]
-git-tree-sha1 = "f25b9b62645d97ca5770015ad5d144c3e220fb47"
+git-tree-sha1 = "2525850b6887e217c3cc149ab29eb2a7a6360d37"
 uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
-version = "0.1.15"
+version = "0.1.16"
 
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
@@ -623,9 +623,9 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[VectorizationBase]]
 deps = ["ArrayInterface", "Hwloc", "IfElse", "Libdl", "LinearAlgebra", "Static"]
-git-tree-sha1 = "1b5a87cc55f5e4b072eca187b115f1c01c61e092"
+git-tree-sha1 = "4e371140521702bddc350ecd5ba1ab25f9797dc8"
 uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
-version = "0.20.20"
+version = "0.20.21"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
