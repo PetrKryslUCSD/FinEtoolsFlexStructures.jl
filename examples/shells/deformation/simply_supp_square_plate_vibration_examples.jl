@@ -34,7 +34,7 @@ function single_dsg3()
     L = 10.0*phun("m");
 
 # Mesh
-    n = 8
+    n = 32
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
     fens.xyz[:, 1] .-= L/2
