@@ -1,6 +1,7 @@
 module FEMMShellDSG3Module
 
-using LinearAlgebra: norm, Transpose, mul!
+using LinearAlgebra: norm, Transpose, mul!, diag
+using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
 using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
@@ -32,6 +33,7 @@ mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     # The attributes below are buffers used in various operations.
     _loc::FFltMat
     _J::FFltMat
+    _J0::FFltMat
     _ecoords0::FFltMat
     _ecoords1::FFltMat
     _edisp1::FFltMat
@@ -69,6 +71,7 @@ end
 function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     _loc = fill(0.0, 1, 3)
     _J = fill(0.0, 3, 2)
+    _J0 = fill(0.0, 3, 2)
     _ecoords0 = fill(0.0, __nn, 3); 
     _ecoords1 = fill(0.0, __nn, 3)
     _edisp1 = fill(0.0, __nn, 3); 
@@ -102,7 +105,7 @@ function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
     return FEMMShellDSG3(integdomain, material,
-        _loc, _J,
+        _loc, _J, _J0,
         _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, _lecoords0,
         _dofnums, 
         _F0, _Ft, _FtI, _FtJ, _Te,
@@ -111,6 +114,13 @@ function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
         _lloc, _lJ, _lgradN,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs, _LF, 
         _RI, _RJ, _OS)
+end
+
+function _compute_J0!(J0, ecoords)
+    x, y, z = ecoords[2, :].-ecoords[1, :]
+    J0[:, 1] .= (x, y, z)
+    x, y, z = ecoords[3, :].-ecoords[1, :]
+    J0[:, 2] .= (x, y, z)
 end
     
 function _shell_material_stiffness(material)
@@ -205,7 +215,7 @@ Compute the material stiffness matrix.
 function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    loc, J = self._loc, self._J
+    loc, J, J0 = self._loc, self._J, self._J0
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     lecoords0 = self._lecoords0
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -213,7 +223,7 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-   Dps, Dt = _shell_material_stiffness(self.material)
+    Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
@@ -221,12 +231,13 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
         ecoords1 .= ecoords0 .+ edisp1
+        _compute_J0!(J0, ecoords0)
+        local_frame!(delegateof(fes), Ft, J0)
         fill!(elmat,  0.0); # Initialize element matrix
         for j in 1:npts
             locjac!(loc, J, ecoords0, Ns[j], gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
             t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            local_frame!(delegateof(fes), Ft, J)
             mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
             locjac!(lloc, lJ, lecoords0, Ns[j], gradNparams[j])
             gradN!(fes, lgradN, gradNparams[j], lJ);
@@ -239,11 +250,17 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
             # pinched cylinder). What is the recommended multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-            complete_lt!(elmat)
-            _transfmat!(Te, Ft)
-            mul!(elmatTe, elmat, Transpose(Te))
-            mul!(elmat, Te, elmatTe)
         end
+        # Apply drilling-rotation artificial stiffness
+        kavg4 = mean(diag(elmat)[4:6:18])
+        kavg5 = mean(diag(elmat)[5:6:18])
+        elmat[6:6:18, 6:6:18] .+= (kavg4 + kavg5) / 1e4
+        complete_lt!(elmat)
+        # Transformation into global ordinates
+        _transfmat!(Te, Ft)
+        mul!(elmatTe, elmat, Transpose(Te))
+        mul!(elmat, Te, elmatTe)
+        # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i]); 
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
