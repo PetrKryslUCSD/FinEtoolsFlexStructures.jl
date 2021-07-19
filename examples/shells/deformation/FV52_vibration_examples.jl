@@ -21,7 +21,7 @@ using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
+using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness, mass
 # using FinEtoolsFlexStructures.FEMMShellT3Module: FEMMShellT3, stiffness
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
@@ -34,7 +34,7 @@ function single_dsg3()
     L = 10.0*phun("m");
 
 # Mesh
-    n = 32
+    n = 8
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
     fens.xyz[:, 1] .-= L/2
@@ -74,7 +74,7 @@ function single_dsg3()
     end
 # in-plane, rotations
     l1 = collect(1:count(fens))
-    for i in [1, 2, 6]
+    for i in [1, 2, ]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -82,8 +82,7 @@ function single_dsg3()
 
 # Assemble the system matrix
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
-    mfemm = FEMMDeforLinear(DeforModelRed3D, IntegDomain(fes, TriRule(1), thickness), mater)
-    M = mass(mfemm, geom0, dchi);
+    M = mass(femm, geom0, dchi);
 
 # Solve
     OmegaShift = 0.1*2*pi
@@ -94,7 +93,7 @@ function single_dsg3()
     @show fs
         
 # Visualization
-    U = v[:, 5]
+    U = v[:, 1]
     scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
