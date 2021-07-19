@@ -330,7 +330,7 @@ function mass(self::FEMMShellDSG3,  assembler::A,  geom0::NodalField{FFlt}, dchi
             end
             d = 6
             c = (k - 1) * __ndof + d
-            elmat[c, c] += rmss[k] / 1e4
+            elmat[c, c] += rmss[k] / 1e6
         end
         # Transformation into global ordinates
         _transfmat!(Te, Ft)
