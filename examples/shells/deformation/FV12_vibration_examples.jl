@@ -36,7 +36,7 @@ function single_dsg3()
     @show rho*L*L*thickness
 
 # Mesh
-    n = 64
+    n = 8
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
     fens.xyz[:, 1] .-= L/2
@@ -101,18 +101,16 @@ function single_dsg3()
     # end
         
 # Visualization
-    # for ev in 1:10
-    #     U = evecs[:, ev]
-    #     @show ev
-    #     @show argmax(abs.(U))
-    #     scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
-    #     update_rotation_field!(Rfield0, dchi)
-    #     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
-    #         plot_nodes(fens),
-    #         plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    #         dims = 1)
-    #     pl = render(plots; title="$(ev)")
-    # end
+    for ev in 1:10
+        U = evecs[:, ev]
+        scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+            plot_nodes(fens),
+            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            dims = 1)
+        pl = render(plots; title="$(ev)")
+    end
 end
 
 
