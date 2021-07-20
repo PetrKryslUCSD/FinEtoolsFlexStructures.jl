@@ -143,7 +143,7 @@ end
 
 function _transfmat!(Te, Ft)
     for i in 1:2*__nn
-        r = (i-1)*__nn .+ (1:3)
+        r = (i-1)*3 .+ (1:3)
         @. Te[r, r] = Ft
     end
     return Te
@@ -236,10 +236,12 @@ function stiffness(self::FEMMShellT3, assembler::ASS, geom0::NodalField{FFlt}, u
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
         end
         # Apply drilling-rotation artificial stiffness
-        kavg = mean(diag(elmat))
-        elmat[6, 6] += kavg / 1e2
-        elmat[12, 12] += kavg / 1e2
-        elmat[18, 18] += kavg / 1e2
+        kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
+        kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
+        kavg = (kavg4 + kavg5) / 1e5
+        elmat[6, 6] += kavg 
+        elmat[12, 12] += kavg 
+        elmat[18, 18] += kavg 
         complete_lt!(elmat)
         # Transformation into global ordinates
         _transfmat!(Te, Ft)

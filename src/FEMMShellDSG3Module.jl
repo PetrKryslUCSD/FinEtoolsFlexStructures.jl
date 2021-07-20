@@ -143,7 +143,7 @@ end
 
 function _transfmat!(Te, Ft)
     for i in 1:2*__nn
-        r = (i-1)*__nn .+ (1:3)
+        r = (i-1)*3 .+ (1:3)
         @. Te[r, r] = Ft
     end
     return Te

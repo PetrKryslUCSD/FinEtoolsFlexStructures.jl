@@ -6,7 +6,7 @@ import FinEtools.FESetModule: cat, subset, nodesperelem
 using FinEtools.MatrixUtilityModule: complete_lt! 
 using LinearAlgebra: norm, Transpose, mul!
 
-mutable struct FESetShellT3 <: AbstractFESet2Manifold{3} 
+struct FESetShellT3 <: AbstractFESet2Manifold{3} 
 end
 
 function local_frame!(fes::FESetShellT3, F0, J0)

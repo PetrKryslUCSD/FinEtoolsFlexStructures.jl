@@ -224,6 +224,12 @@ git-tree-sha1 = "28e837ff3e7a6c3cdb252ce49fb412c8eb3caeef"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.0"
 
+[[Infiltrator]]
+deps = ["REPL"]
+git-tree-sha1 = "2418a26375fb0fa5977bf4b2122b787d7097ceb2"
+uuid = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+version = "1.0.3"
+
 [[IniFile]]
 deps = ["Test"]
 git-tree-sha1 = "098e4d2c533924c921f9f9847274f2ad89e018b8"
@@ -323,9 +329,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[LoopVectorization]]
 deps = ["ArrayInterface", "DocStringExtensions", "IfElse", "LinearAlgebra", "OffsetArrays", "Polyester", "Requires", "SLEEFPirates", "Static", "StrideArraysCore", "ThreadingUtilities", "UnPack", "VectorizationBase"]
-git-tree-sha1 = "652a17092a160bb9677eefb18db31d717e7a4078"
+git-tree-sha1 = "0df87659132a077b3f7e9f7fca8c9c59d4965071"
 uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
-version = "0.12.50"
+version = "0.12.52"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
@@ -623,9 +629,9 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[VectorizationBase]]
 deps = ["ArrayInterface", "Hwloc", "IfElse", "Libdl", "LinearAlgebra", "Static"]
-git-tree-sha1 = "4e371140521702bddc350ecd5ba1ab25f9797dc8"
+git-tree-sha1 = "b609848b41158b8cc13a72dc6deb9511f9a96187"
 uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
-version = "0.20.21"
+version = "0.20.22"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
