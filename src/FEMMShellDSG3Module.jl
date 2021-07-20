@@ -254,7 +254,7 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
         # Apply drilling-rotation artificial stiffness
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) / 1e3
+        kavg = (kavg4 + kavg5) / 1e5
         elmat[6, 6] += kavg 
         elmat[12, 12] += kavg 
         elmat[18, 18] += kavg 

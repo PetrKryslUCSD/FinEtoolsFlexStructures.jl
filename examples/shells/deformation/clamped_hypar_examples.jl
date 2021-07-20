@@ -30,12 +30,14 @@ function single_dsg3()
     L = 1.0
     # Bathe, Iosilevich, and Chapelle (2000) with a refined mesh of
     # high-order element MITC16
-    thickness = L/100; 
-    analyt_sol=-9.3355e-5;
-    g = 80*0.1^0 * 1.17
-    # thickness = L/1000; 
-    # analyt_sol=-6.3941e-5;
-    # g = 80*0.1^3
+
+    # thickness = L/100; 
+    # analyt_sol=-9.3355e-5;
+    # g = 80*0.1^0
+
+    thickness = L/1000; 
+    analyt_sol=-6.3941e-5;
+    g = 80*0.1^3#
     
 # Mesh
     n = 8
