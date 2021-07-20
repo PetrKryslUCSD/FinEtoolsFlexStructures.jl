@@ -78,7 +78,7 @@ function single_dsg3()
 # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
+    @show n, dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
 
 # Visualization
     scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
