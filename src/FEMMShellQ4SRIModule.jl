@@ -121,7 +121,6 @@ end
 function element_size(J0)
     a = @view J0[:, 1]
     b = @view J0[:, 2]
-    @show 4*sqrt(sum((-a[3]*b[2]+a[2]*b[3], a[3]*b[1]-a[1]*b[3], -a[2]*b[1]+a[1]*b[2]).^2))
     sqrt(4*sqrt(sum((-a[3]*b[2]+a[2]*b[3], a[3]*b[1]-a[1]*b[3], -a[2]*b[1]+a[1]*b[2]).^2)))
 end
     
@@ -222,8 +221,8 @@ function stiffness(self::FEMMShellQ4SRI, assembler::ASS, geom0::NodalField{FFlt}
         _compute_J0!(J0, ecoords0)
         he = element_size(J0)
         t = self.integdomain.otherdimension(loc, fes.conn[i], N0)
-        @show J0, he, he/t
-        alpha = 1.0
+        # alpha = 6.91860e-02*2.51320e-01*4.63035e-01*0.615*0.7*0.7*0.8*0.8*0.8*0.5*0.5
+        alpha = 0.0003 * (t/he) / (1/200*8)
         local_frame!(delegateof(fes), Ft, J0)
         fill!(elmat,  0.0); # Initialize element matrix
         fill!(elmato,  0.0); # Initialize element matrix
