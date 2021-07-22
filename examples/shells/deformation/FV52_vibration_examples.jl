@@ -26,7 +26,7 @@ using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness, mas
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function single_dsg3()
+function test_dsg3()
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
@@ -106,8 +106,8 @@ end
 
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# test_dsg3 ")
+    test_dsg3()
     return true
 end # function allrun
 
