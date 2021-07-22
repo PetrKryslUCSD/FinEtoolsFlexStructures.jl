@@ -23,7 +23,7 @@ using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function single_dsg3()
+function test_dsg3()
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -33,16 +33,22 @@ function single_dsg3()
     # Bathe, Iosilevich, and Chapelle (2000) with a refined mesh of
     # high-order element MITC16
 
-    # thickness = L/100; 
-    # analyt_sol=-9.3355e-5;
-    # g = 80*0.1^0
+    thickness = L/100; 
+    analyt_sol=-9.3355e-5;
+    g = 80*0.1^0
 
     thickness = L/1000; 
     analyt_sol=-6.3941e-5;
     g = 80*0.1^3#
     
     # Mesh
-    n = 8
+    n = 32
+
+    formul = FEMMShellDSG3Module
+    # Report
+    @info "Clamped hypar, t/L=$(thickness/L), formulation=$(formul)"
+    @info "Mesh: $n elements per side"
+
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
     fens.xyz = xyz3(fens)
@@ -55,8 +61,8 @@ function single_dsg3()
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = FEMMShellDSG3Module.FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
-    stiffness = FEMMShellDSG3Module.stiffness
+    femm = formul.FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -94,10 +100,11 @@ function single_dsg3()
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
+    targetu = dchi.values[nl, 3][1]
+    @info "Target: $targetu,  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
-    # Visualization
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+        # Visualization
+    scattersysvec!(dchi, (L/4)/abs(targetu).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),
@@ -109,7 +116,7 @@ function single_dsg3()
 end
 
 
-function single_q4sri()
+function test_q4sri()
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -119,16 +126,22 @@ function single_q4sri()
     # Bathe, Iosilevich, and Chapelle (2000) with a refined mesh of
     # high-order element MITC16
 
-    # thickness = L/100; 
-    # analyt_sol=-9.3355e-5;
-    # g = 80*0.1^0
+    thickness = L/100; 
+    analyt_sol=-9.3355e-5;
+    g = 80*0.1^0
 
     thickness = L/1000; 
     analyt_sol=-6.3941e-5;
-    g = 80*0.1^3#
+    g = 80*0.1^3
     
     # Mesh
-    n = 4
+    n = 32
+
+    formul = FEMMShellQ4SRIModule
+    # Report
+    @info "Clamped hypar, t/L=$(thickness/L), formulation=$(formul)"
+    @info "Mesh: $n elements per side"
+
     tolerance = L/n/1000
     fens, fes = Q4block(L,L,n,n);
     fens.xyz = xyz3(fens)
@@ -141,8 +154,8 @@ function single_q4sri()
     
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = FEMMShellQ4SRIModule.FEMMShellQ4SRI(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    stiffness = FEMMShellQ4SRIModule.stiffness
+    femm = formul.FEMMShellQ4SRI(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
+    stiffness = formul.stiffness
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -180,10 +193,11 @@ function single_q4sri()
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
+    targetu = dchi.values[nl, 3][1]
+    @info "Target: $targetu,  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Visualization
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    scattersysvec!(dchi, (L/4)/abs(targetu).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),
@@ -196,11 +210,11 @@ end
 
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# test_dsg3 ")
+    test_dsg3()
     println("#####################################################")
-    println("# single_q4sri ")
-    single_q4sri()
+    println("# test_q4sri ")
+    test_q4sri()
     return true
 end # function allrun
 
