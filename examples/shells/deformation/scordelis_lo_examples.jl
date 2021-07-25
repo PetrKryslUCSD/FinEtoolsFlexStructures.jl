@@ -14,7 +14,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function single_dsg3()
+function test_dsg3(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -22,11 +22,9 @@ function single_dsg3()
     E=4.32e8;
     nu=0.0;
     thickness = 0.25; # geometrical dimensions are in feet
-
-    # Mesh
     R = 25.0;
     L = 50.0;
-    n = 16;
+    
     tolerance = R/n/1000
     fens, fes = T3block(40/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -96,7 +94,7 @@ function single_dsg3()
 end
 
 
-function single_q4sri()
+function test_q4sri(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -104,11 +102,9 @@ function single_q4sri()
     E=4.32e8;
     nu=0.0;
     thickness = 0.25; # geometrical dimensions are in feet
-
-    # Mesh
     R = 25.0;
     L = 50.0;
-    n = 16;
+    
     tolerance = R/n/1000
     fens, fes = Q4block(40/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -179,17 +175,38 @@ function single_q4sri()
 end
 
 
+function test_dsg3_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_dsg3(n, false)
+    end
+    return true
+end
+
+function test_q4sri_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_q4sri(n, false)
+    end
+    return true
+end
+
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# test_dsg3 ")
+    test_dsg3()
     println("#####################################################")
-    println("# single_q4sri ")
-    single_q4sri()
+    println("# test_q4sri ")
+    test_q4sri()
+    println("#####################################################")
+    println("# test_dsg3_convergence  ")
+    test_dsg3_convergence()
+    println("#####################################################")
+    println("# test_q4sri_convergence  ")
+    test_q4sri_convergence()
     return true
 end # function allrun
 
 end # module
 
 using .scordelis_lo_examples
-scordelis_lo_examples.allrun()
+scordelis_lo_examples.test_dsg3_convergence()
+scordelis_lo_examples.test_q4sri_convergence()

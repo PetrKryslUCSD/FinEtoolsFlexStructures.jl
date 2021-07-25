@@ -29,16 +29,13 @@ using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function test_dsg3()
+function test_dsg3(n = 8, visualize = true)
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
     thickness = 0.05*phun("m");
     L = 10.0*phun("m");
     
-    # Mesh
-    n = 8
-
     formul = FEMMShellDSG3Module
        # Report
     @info "FV12 free vibration, t/L=$(thickness/L), formulation=$(formul)"
@@ -82,10 +79,10 @@ function test_dsg3()
     OmegaShift = (0.5*2*pi)^2
     neigvs = 24
     evals, evecs, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
-    @show nconv
+    # @show nconv
     evals[:] = evals .- OmegaShift;
     fs = real(sqrt.(complex(evals)))/(2*pi)
-    @info "Frequencies: $(round.(fs, digits=4))"
+    @info "Frequencies: $(round.(fs[7:10], digits=4))"
 
     # sol = eigen(Matrix(K+OmegaShift*M), Matrix(M))
     # evals = sol.values
@@ -110,6 +107,9 @@ function test_dsg3()
     # end
         
     # Visualization
+    if !visualize
+        return true
+    end
     for ev in 1:10
         U = evecs[:, ev]
         scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
@@ -120,18 +120,16 @@ function test_dsg3()
             dims = 1)
         pl = render(plots; title="$(ev)")
     end
+    return true
 end
 
 
-function test_q4sri()
+function test_q4sri(n = 8, visualize = true)
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
     thickness = 0.05*phun("m");
     L = 10.0*phun("m");
-    
-    # Mesh
-    n = 16
     
     formul = FEMMShellQ4SRIModule
        # Report
@@ -176,10 +174,10 @@ function test_q4sri()
     OmegaShift = (0.5*2*pi)^2
     neigvs = 24
     evals, evecs, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
-    @show nconv
+    # @show nconv
     evals[:] = evals .- OmegaShift;
     fs = real(sqrt.(complex(evals)))/(2*pi)
-    @info "Frequencies: $(round.(fs, digits=4))"
+    @info "Frequencies: $(round.(fs[7:10], digits=4))"
 
     # sol = eigen(Matrix(K+OmegaShift*M), Matrix(M))
     # evals = sol.values
@@ -204,6 +202,9 @@ function test_q4sri()
     # end
         
     # Visualization
+    if !visualize
+        return true
+    end
     for ev in 1:10
         U = evecs[:, ev]
         scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
@@ -214,6 +215,7 @@ function test_q4sri()
             dims = 1)
         pl = render(plots; title="$(ev)")
     end
+    return true
 end
 
 function single_q4sri()
@@ -267,7 +269,7 @@ function single_q4sri()
     OmegaShift = (0.5*2*pi)^2
     neigvs = 10
     evals, evecs, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
-    @show nconv
+    # @show nconv
     evals[:] = evals .- OmegaShift;
     fs = real(sqrt.(complex(evals)))/(2*pi)
     @show fs
@@ -295,6 +297,9 @@ function single_q4sri()
     # end
         
     # Visualization
+    if !visualize
+        return true
+    end
     for ev in 7:neigvs
         U = evecs[:, ev]
         scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
@@ -305,6 +310,21 @@ function single_q4sri()
             dims = 1)
         pl = render(plots; title="$(ev)")
     end
+    return true
+end
+
+function test_dsg3_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_dsg3(n, false)
+    end
+    return true
+end
+
+function test_q4sri_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_q4sri(n, false)
+    end
+    return true
 end
 
 function allrun()
@@ -314,10 +334,17 @@ function allrun()
     println("#####################################################")
     println("# test_q4sri  ")
     test_q4sri()
+    println("#####################################################")
+    println("# test_dsg3_convergence  ")
+    test_dsg3_convergence()
+    println("#####################################################")
+    println("# test_q4sri_convergence  ")
+    test_q4sri_convergence()
     return true
 end # function allrun
 
 end # module
 
 using .FV12_vibration_examples
-FV12_vibration_examples.allrun()
+FV12_vibration_examples.test_dsg3_convergence()
+FV12_vibration_examples.test_q4sri_convergence()

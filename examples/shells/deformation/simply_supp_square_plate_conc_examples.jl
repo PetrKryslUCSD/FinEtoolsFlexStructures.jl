@@ -11,17 +11,15 @@ using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function single_dsg3()
+function test_dsg3(n = 8, visualize = true)
     E = 30e6;
     nu = 0.3;
     force = 40;
     thickness = 0.1;
+    L= 10;
     # analytical solution for the vertical deflection under the load
     analyt_sol=-0.0168;
 
-    # Mesh
-    L= 10;
-    n = 4
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -84,6 +82,9 @@ function single_dsg3()
     @show dchi.values[nl, 3]/analyt_sol*100
 
     # Visualization
+    if !visualize
+        return true
+    end
     scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
@@ -94,17 +95,15 @@ function single_dsg3()
     return true
 end
 
-function single_q4sri()
+function test_q4sri(n = 8, visualize = true)
     E = 30e6;
     nu = 0.3;
     force = 40;
     thickness = 0.1;
+    L= 10;
     # analytical solution for the vertical deflection under the load
     analyt_sol=-0.0168;
 
-    # Mesh
-    L= 10;
-    n = 4
     tolerance = L/n/1000
     fens, fes = Q4block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -167,6 +166,9 @@ function single_q4sri()
     @show dchi.values[nl, 3]/analyt_sol*100
 
     # Visualization
+    if !visualize
+        return true
+    end
     scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
@@ -177,17 +179,38 @@ function single_q4sri()
     return true
 end
 
+function test_dsg3_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_dsg3(n, false)
+    end
+    return true
+end
+
+function test_q4sri_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_q4sri(n, false)
+    end
+    return true
+end
+
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# test_dsg3 ")
+    test_dsg3()
     println("#####################################################")
-    println("# single_q4sri ")
-    single_q4sri()
+    println("# test_q4sri ")
+    test_q4sri()
+    println("#####################################################")
+    println("# test_dsg3_convergence  ")
+    test_dsg3_convergence()
+    println("#####################################################")
+    println("# test_q4sri_convergence  ")
+    test_q4sri_convergence()
     return true
 end # function allrun
 
 end # module
 
 using .simply_supp_square_plate_conc_examples
-simply_supp_square_plate_conc_examples.allrun()
+simply_supp_square_plate_conc_examples.test_dsg3_convergence()
+simply_supp_square_plate_conc_examples.test_q4sri_convergence()

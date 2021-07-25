@@ -23,7 +23,7 @@ using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function test_dsg3()
+function test_dsg3(n = 32, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -41,9 +41,6 @@ function test_dsg3()
     analyt_sol=-6.3941e-5;
     g = 80*0.1^3#
     
-    # Mesh
-    n = 32
-
     formul = FEMMShellDSG3Module
     # Report
     @info "Clamped hypar, t/L=$(thickness/L), formulation=$(formul)"
@@ -116,7 +113,7 @@ function test_dsg3()
 end
 
 
-function test_q4sri()
+function test_q4sri(n = 32, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -134,9 +131,6 @@ function test_q4sri()
     analyt_sol=-6.3941e-5;
     g = 80*0.1^3
     
-    # Mesh
-    n = 32
-
     formul = FEMMShellQ4SRIModule
     # Report
     @info "Clamped hypar, t/L=$(thickness/L), formulation=$(formul)"
@@ -208,6 +202,20 @@ function test_q4sri()
     return true
 end
 
+function test_dsg3_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_dsg3(n, false)
+    end
+    return true
+end
+
+function test_q4sri_convergence()
+    for n in [2, 4, 8, 16, 32, 64]
+        test_q4sri(n, false)
+    end
+    return true
+end
+
 function allrun()
     println("#####################################################")
     println("# test_dsg3 ")
@@ -215,10 +223,17 @@ function allrun()
     println("#####################################################")
     println("# test_q4sri ")
     test_q4sri()
+    println("#####################################################")
+    println("# test_dsg3_convergence  ")
+    test_dsg3_convergence()
+    println("#####################################################")
+    println("# test_q4sri_convergence  ")
+    test_q4sri_convergence()
     return true
 end # function allrun
 
 end # module
 
 using .clamped_hypar_examples
-clamped_hypar_examples.allrun()
+clamped_hypar_examples.test_dsg3_convergence()
+clamped_hypar_examples.test_q4sri_convergence()
