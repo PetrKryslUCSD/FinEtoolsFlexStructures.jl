@@ -360,4 +360,58 @@ function plot_midsurface(fens, fes; kwargs...)
     return t
 end
 
+"""
+    plot_triads(fens; kwargs...)
+
+Plot the node triads.
+"""
+function plot_triads(fens; kwargs...)
+    x = deepcopy(fens.xyz)
+    if :x in keys(kwargs)
+        x = kwargs[:x]; kwargs = removepair(kwargs, :x)
+    end
+    u = fill(0.0, size(x))
+    if :u in keys(kwargs)
+        u = kwargs[:u]; kwargs = removepair(kwargs, :u)
+    end
+    R = fill(0.0, size(x, 1), 9)
+    for j in 1:size(R, 1)
+        R[j, :] .= Matrix(1.0 * I, 3, 3)[:]
+    end
+    if :R in keys(kwargs)
+        R = kwargs[:R]; kwargs = removepair(kwargs, :R)
+    end
+    triad_length = 1.0
+    if :triad_length in keys(kwargs)
+        triad_length = kwargs[:triad_length]; kwargs = removepair(kwargs, :triad_length)
+    end
+    lwidth = 4
+    if :lwidth in keys(kwargs)
+        lwidth = kwargs[:lwidth]; kwargs = removepair(kwargs, :lwidth)
+    end
+
+    R1I = Matrix(1.0 * I, 3, 3)
+    
+    colors = ["rgb(255, 15, 25)", "rgb(15, 255, 25)", "rgb(25, 15, 255)"]
+    
+    t = PlotlyBase.GenericTrace[]
+    for i in 1:count(fens)
+        R1I[:] .= R[i, :]
+        for tv in 1:3
+            X = fill(0.0, 2)
+            Y = fill(0.0, 2)
+            Z = fill(0.0, 2)
+            X[1] = x[i, 1] .+ u[i, 1]
+            Y[1] = x[i, 2] .+ u[i, 2]
+            Z[1] = x[i, 3] .+ u[i, 3]
+            X[2] = X[1] .+ triad_length*R1I[1, tv]
+            Y[2] = Y[1] .+ triad_length*R1I[2, tv]
+            Z[2] = Z[1] .+ triad_length*R1I[3, tv]
+            push!(t, scatter3d(;x=X, y=Y, z=Z, mode="lines", line=attr(color=colors[tv], width=lwidth), kwargs...))
+        end
+    end
+    return t
+end
+
+
 end # FinEtoolsBeamsVis
