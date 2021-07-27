@@ -250,6 +250,7 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
             # pinched cylinder). What is the recommended multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+            # add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
         end
         # Apply drilling-rotation artificial stiffness
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))

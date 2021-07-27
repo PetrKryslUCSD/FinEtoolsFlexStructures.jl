@@ -37,14 +37,14 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2, visualize = true)
+function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 1, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
     
-    tolerance = W/n/10
-    fens, fes = T3block(L,W,6*n,2*n,:a);
+    tolerance = W/nW/10
+    fens, fes = T3block(L,W,nL,nW,:a);
     # conn = connasarray(fes)
     # for e in 1:size(conn, 1)
     #     c = rand(0:1:2)
@@ -342,14 +342,14 @@ function test_q4sri(n = 2, visualize = true)
 end
 
 function test_dsg3_convergence()
-    for n in [2, 4, 8, 16, 32,]
-        test_dsg3(params_thicker_dir_3..., n, false)
+    for n in [2, 4, 8, 16, ]
+        test_dsg3(params_thicker_dir_3..., 6*n, n, false)
     end
     return true
 end
 
 function test_csdsg3_convergence()
-    for n in [2, 4, 8, ]
+    for n in [2, 4, 8, 16]
         test_csdsg3(params_thicker_dir_3..., 6*n, n, false)
     end
     return true
@@ -394,8 +394,8 @@ end # function allrun
 end # module
 
 using .twisted_beam_examples
-# twisted_beam_examples.test_dsg3_convergence()
-twisted_beam_examples.test_csdsg3()
-# twisted_beam_examples.test_csdsg3_convergence()
+twisted_beam_examples.test_dsg3_convergence()
+# twisted_beam_examples.test_csdsg3()
+twisted_beam_examples.test_csdsg3_convergence()
 # twisted_beam_examples.test_t3_convergence()
 # twisted_beam_examples.test_q4sri_convergence()
