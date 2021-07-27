@@ -20,6 +20,7 @@ include("FEMMPointMassModule.jl")
 include("FEMMPointGroundedSpringModule.jl")
 include("FEMMShellQ4SRIModule.jl")
 include("FEMMShellDSG3Module.jl")
+include("FEMMShellCSDSG3Module.jl")
 include("FEMMShellT3Module.jl")
 
 end # module
