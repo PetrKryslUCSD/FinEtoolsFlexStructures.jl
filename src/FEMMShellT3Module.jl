@@ -15,17 +15,7 @@ const __ndof = 6 # number of degrees of freedom per node
 """
     FEMMShellT3{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
-Class for Discrete Shear Gap shell finite element modeling machine.
-
-Programming developed consistently with the paper
-[1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
-element method, Comput Mech (2010) 45:141–156
-DOI 10.1007/s00466-009-0429-9
-
-In this reference, the sign next to Ae in equation (44) is wrong.
-[2] A superconvergent alpha finite element method (S a FEM) for static and
-free vibration analysis of shell structures
-Chai et al. (2017).
+Class for plain-vanilla 3-node shell finite element modeling machine.
 """
 mutable struct FEMMShellT3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
@@ -114,6 +104,10 @@ function FEMMShellT3(integdomain::IntegDomain{S, F}, material::M) where {S<:Abst
         _lloc, _lJ, _lgradN,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs, _LF, 
         _RI, _RJ, _OS)
+end
+
+function make(integdomain, material)
+    return FEMMShellT3(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)

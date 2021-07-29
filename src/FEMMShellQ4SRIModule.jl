@@ -17,7 +17,7 @@ const __ndof = 6 # number of degrees of freedom per node
 """
     FEMMShellQ4SRI{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
-Class for selective-reduced-integration shell finite element modeling machine.
+Class for energy-sampling stabilized shell finite element modeling machine.
 
 """
 mutable struct FEMMShellQ4SRI{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
@@ -109,6 +109,10 @@ function FEMMShellQ4SRI(integdomain::IntegDomain{S, F}, material::M) where {S<:A
         _lloc, _lJ, _lgradN,
         _Bm, _Bb, _Bs, _Bsavg, _DpsBmb, _DtBs, _LF, 
         _RI, _RJ, _OS)
+end
+
+function make(integdomain, material)
+    return FEMMShellQ4SRI(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)

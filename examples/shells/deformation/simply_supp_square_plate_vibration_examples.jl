@@ -21,19 +21,20 @@ using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
-# using FinEtoolsFlexStructures.FEMMShellT3Module: FEMMShellT3, stiffness
+using FinEtoolsFlexStructures.FEMMShellDSG3Module
+using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
+using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function single_dsg3()
+function test_dsg3()
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
     thickness = 1.0*phun("m");
     L = 10.0*phun("m");
 
-# Mesh
+    # Mesh
     n = 32
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
@@ -43,19 +44,21 @@ function single_dsg3()
 
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
+    formul = FEMMShellDSG3Module
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
 
-# Construct the requisite fields, geometry and displacement
-# Initialize configuration variables
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
     u0 = NodalField(zeros(size(fens.xyz,1), 3))
     Rfield0 = initial_Rfield(fens)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
-# Apply EBC's
-# simple support
+    # Apply EBC's
+    # simple support
     l1 = selectnode(fens; box = Float64[L/2 L/2 -Inf Inf -Inf Inf], inflate = tolerance)
     for i in [3,4,6]
         setebc!(dchi, l1, true, i)
@@ -72,7 +75,7 @@ function single_dsg3()
     for i in [3,5,6]
         setebc!(dchi, l1, true, i)
     end
-# in-plane, rotations
+    # in-plane, rotations
     l1 = collect(1:count(fens))
     for i in [1, 2, 6]
         setebc!(dchi, l1, true, i)
@@ -80,12 +83,12 @@ function single_dsg3()
     applyebc!(dchi)
     numberdofs!(dchi);
 
-# Assemble the system matrix
+    # Assemble the system matrix
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
     mfemm = FEMMDeforLinear(DeforModelRed3D, IntegDomain(fes, TriRule(1), thickness), mater)
     M = mass(mfemm, geom0, dchi);
 
-# Solve
+    # Solve
     OmegaShift = 0.1*2*pi
     neigvs = 10
     d, v, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
@@ -93,22 +96,111 @@ function single_dsg3()
     fs = real(sqrt.(complex(d)))/(2*pi)
     @show fs
         
-# Visualization
-    U = v[:, 5]
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+    # Visualization
+    for ev in 1:6
+        U = v[:, ev]
+        scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
+            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            dims = 1)
+        pl = render(plots; title = "$formul, $ev")
+    end
+    true
+end
+
+function test_csdsg3()
+    E = 200e3*phun("MPa")
+    nu = 0.3;
+    rho= 8000*phun("KG/M^3");
+    thickness = 1.0*phun("m");
+    L = 10.0*phun("m");
+
+    # Mesh
+    n = 32
+    tolerance = L/n/1000
+    fens, fes = T3block(L,L,n,n);
+    fens.xyz[:, 1] .-= L/2
+    fens.xyz[:, 2] .-= L/2
+    fens.xyz = xyz3(fens)
+
+    mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+    
+    formul = FEMMShellCSDSG3Module
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # simple support
+    l1 = selectnode(fens; box = Float64[L/2 L/2 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [3,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[-L/2 -L/2 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [3,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[-Inf Inf L/2 L/2 -Inf Inf], inflate = tolerance)
+    for i in [3,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[-Inf Inf -L/2 -L/2 -Inf Inf], inflate = tolerance)
+    for i in [3,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    # in-plane, rotations
+    l1 = collect(1:count(fens))
+    for i in [1, 2, 6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    mfemm = FEMMDeforLinear(DeforModelRed3D, IntegDomain(fes, TriRule(1), thickness), mater)
+    M = mass(mfemm, geom0, dchi);
+
+    # Solve
+    OmegaShift = 0.1*2*pi
+    neigvs = 10
+    d, v, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+    d[:] = d .- OmegaShift;
+    fs = real(sqrt.(complex(d)))/(2*pi)
+    @show fs
+        
+    # Visualization
+    for ev in 1:6
+        U = v[:, ev]
+        scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        #plot_nodes(fens),
+            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            dims = 1)
+        pl = render(plots; title = "$formul, $ev")
+    end
+    true
 end
 
 
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# test_dsg3 ")
+    test_dsg3()
+    println("#####################################################")
+    println("# test_csdsg3 ")
+    test_csdsg3()
     return true
 end # function allrun
 

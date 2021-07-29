@@ -118,6 +118,10 @@ function FEMMShellCSDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:
         _RI, _RJ, _OS)
 end
 
+function make(integdomain, material)
+    return FEMMShellCSDSG3(integdomain, material)
+end
+
 function _compute_J0!(J0, ecoords)
     x, y, z = ecoords[2, :].-ecoords[1, :]
     J0[:, 1] .= (x, y, z)
