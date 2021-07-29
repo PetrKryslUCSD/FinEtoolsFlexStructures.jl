@@ -177,14 +177,14 @@ function test_csdsg3(n = 4, visualize = true)
 end
 
 function test_dsg3_convergence()
-    for n in [2, 4, 8, 16, 32, 64, 128]
+    for n in [8, 12, 16, 24]
         test_dsg3(n, false)
     end
     return true
 end
 
 function test_csdsg3_convergence()
-    for n in [2, 4, 8, 16, 32, 64, 128]
+    for n in [8, 12, 16, 24]
         test_csdsg3(n, false)
     end
     return true

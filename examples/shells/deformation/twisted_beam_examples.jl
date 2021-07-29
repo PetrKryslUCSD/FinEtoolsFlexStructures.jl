@@ -28,7 +28,7 @@ using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
-using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
 params_thicker_dir_3 = (t =  0.32, force = 1.0, dir = 3, uex = 0.005424534868469); 
 params_thicker_dir_2 = (t =  0.32, force = 1.0, dir = 2, uex = 0.001753248285256); 
@@ -117,7 +117,7 @@ function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL =
     return true
 end
 
-function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 1, visualize = true)
+function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 32, nW = 4, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
@@ -191,6 +191,7 @@ function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         plot_nodes(fens),
+        plot_triads(fens; triad_length = 0.14, x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
         plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
     dims = 1)
     pl = render(plots)
@@ -394,8 +395,8 @@ end # function allrun
 end # module
 
 using .twisted_beam_examples
-twisted_beam_examples.test_dsg3_convergence()
-# twisted_beam_examples.test_csdsg3()
-twisted_beam_examples.test_csdsg3_convergence()
+# twisted_beam_examples.test_dsg3_convergence()
+twisted_beam_examples.test_csdsg3()
+# twisted_beam_examples.test_csdsg3_convergence()
 # twisted_beam_examples.test_t3_convergence()
 # twisted_beam_examples.test_q4sri_convergence()

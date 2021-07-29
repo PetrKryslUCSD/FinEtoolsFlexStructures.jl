@@ -281,5 +281,5 @@ end # module
 using .cook_membrane_examples
 
 cook_membrane_examples.test_csdsg3_convergence()
-# cook_membrane_examples.test_dsg3_convergence()
+cook_membrane_examples.test_dsg3_convergence()
 # cook_membrane_examples.test_q4sri_convergence()

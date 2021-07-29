@@ -1,6 +1,6 @@
 module FEMMShellCSDSG3Module
 
-using LinearAlgebra: norm, Transpose, mul!, diag, rank
+using LinearAlgebra: norm, Transpose, mul!, diag, rank, eigen
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -8,6 +8,8 @@ using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3, local_frame!
+
+using Infiltrator
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -262,6 +264,76 @@ function _Bsmat!(Bs, lcentroid, lecoords, Ae)
     return Bs
 end
 
+function _Bsmat1!(Bs, lcentroid, lecoords, Ae)
+    Bs .= 0.0 
+
+    # Orientation 1
+    s, p, q = 3, 1, 2
+    a, b = lecoords[p, :] .- lecoords[s, :]
+    c, d = lecoords[q, :] .- lecoords[s, :]
+
+    # The first node in the triangle 
+    m = (1/2/Ae) * (1/3) # multiplier
+    # Node s
+    co = (s - 1) * 6 # column offset
+    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
+    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
+    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
+    # Node q
+    co = (q - 1) * 6 # column offset
+    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
+    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
+    
+    # Orientation 2
+    s, p, q = 1, 2, 3
+    a, b = lecoords[p, :] .- lecoords[s, :]
+    c, d = lecoords[q, :] .- lecoords[s, :]
+
+    # The first node in the triangle 
+    m = (1/2/Ae) * (1/3) # multiplier
+    # Node s
+    co = (s - 1) * 6 # column offset
+    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
+    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
+    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
+    # Node q
+    co = (q - 1) * 6 # column offset
+    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
+    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
+
+
+    # Orientation 3
+    s, p, q = 2, 3, 1
+    a, b = lecoords[p, :] .- lecoords[s, :]
+    c, d = lecoords[q, :] .- lecoords[s, :]
+    
+    # The first node in the triangle 
+    m = (1/2/Ae) * (1/3) # multiplier
+    # Node s
+    co = (s - 1) * 6 # column offset
+    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
+    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
+    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
+    # Node q
+    co = (q - 1) * 6 # column offset
+    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
+    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
+
+    return Bs
+end
+
 """
     _Bmmat!(Bm, gradN)
 
@@ -384,6 +456,50 @@ function _Bmmat!(Bm, lcentroid, lecoords, Ae)
 end
 
 """
+The matrices are identical:
+Bm1 = similar(Bm)
+_Bmmat1!(Bm1, lcentroid, lecoords0, Ae)
+@infiltrate
+infil> sum(abs.(Bm - Bm1))
+1.1102230246251565e-16  
+"""
+function _Bmmat1!(Bm, lcentroid, lecoords, Ae)
+    # for i in 1:__nn
+    #     Bm[1,6*(i-1)+1] = gradN[i,1];
+    #                                   Bm[2,6*(i-1)+2] = gradN[i,2];
+    #     Bm[3,6*(i-1)+1] = gradN[i,2]; Bm[3,6*(i-1)+2] = gradN[i,1];
+    # end
+
+    Bm .= 0.0 
+    
+    s, p, q = 1, 2, 3
+    a, b = lecoords[p, :] .- lecoords[s, :]
+    c, d = lecoords[q, :] .- lecoords[s, :]
+    
+    # The first node in the subtriangle (i.e. the centroid)
+    m = (1/2/Ae) # multiplier
+    # Node s
+    co = (s - 1) * 6 # column offset
+    Bm[1, co+1] += m*(b-d);  
+                            Bm[2, co+2] += m*(c-a); 
+    Bm[3, co+1] += m*(c-a); Bm[3, co+2] += m*(b-d); 
+    
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+    Bm[1, co+1] += m*(d);  
+                            Bm[2, co+2] += m*(-c); 
+    Bm[3, co+1] += m*(-c);  Bm[3, co+2] += m*(d); 
+    # Node q
+    co = (q - 1) * 6 # column offset
+    Bm[1, co+1] += m*(-b);  
+                            Bm[2, co+2] += m*(a); 
+    Bm[3, co+1] += m*(a);   Bm[3, co+2] += m*(-b); 
+        
+    return Bm
+end
+
+"""
     _Bbmat!(Bb, gradN)
 
 Compute the linear, displacement independent, curvature-displacement/rotation matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and rotations are in a local coordinate system.
@@ -500,8 +616,43 @@ function _Bbmat!(Bb, lcentroid, lecoords, Ae)
     Bb[2, co+4] += -m*(a); 
     Bb[3, co+4] += -m*(-b); Bb[3, co+5] += m*(a); 
     
-        return Bb
+    return Bb
+end
+
+function _Bbmat1!(Bb, lcentroid, lecoords, Ae)
+    # for i in 1:__nn
+    #                                    Bb[1,6*(i-1)+5] = gradN[i,1];
+    #     Bb[2,6*(i-1)+4] = -gradN[i,2];
+    #     Bb[3,6*(i-1)+4] = -gradN[i,1]; Bb[3,6*(i-1)+5] = gradN[i,2];
+    # end
+    Bb .= 0.0 
+
+    # Subtriangle 1
+    s, p, q = 1, 2, 3
+    a, b = lecoords[p, :] .- lecoords[s, :]
+    c, d = lecoords[q, :] .- lecoords[s, :]
     
+    # The first node in the subtriangle (i.e. the centroid)
+    m = (1/2/Ae)   # multiplier
+    # Node s
+    co = (s - 1) * 6 # column offset
+                             Bb[1, co+5] += m*(b-d);  
+    Bb[2, co+4] += -m*(c-a); 
+    Bb[3, co+4] += -m*(b-d); Bb[3, co+5] += m*(c-a); 
+    
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+                             Bb[1, co+5] += m*(d);  
+    Bb[2, co+4] += -m*(-c); 
+    Bb[3, co+4] += -m*(d); Bb[3, co+5] += m*(-c); 
+    # Node q
+    co = (q - 1) * 6 # column offset
+                             Bb[1, co+5] += m*(-b);  
+    Bb[2, co+4] += -m*(a); 
+    Bb[3, co+4] += -m*(-b); Bb[3, co+5] += m*(a); 
+        
+    return Bb
 end
 
 """
@@ -535,18 +686,18 @@ function stiffness(self::FEMMShellCSDSG3, assembler::ASS, geom0::NodalField{FFlt
         t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[1])
         mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
         lcentroid, Ae = _triangle_centroid_area(lecoords0)
-            _Bmmat!(Bm, lcentroid, lecoords0, Ae)
-            _Bbmat!(Bb, lcentroid, lecoords0, Ae)
-            add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
-            add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
-            # Transverse shear
-            _Bsmat!(Bs, lcentroid, lecoords0, Ae)
-            # The stabilization expression has a huge effect (at least for the
-            # pinched cylinder). What is the recommended multiplier of he^2?
-            he = sqrt(Ae)
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
-            # add_btdb_ut_only!(elmat, Bs, t*Ae, Dt, DtBs)
-        
+        _Bmmat1!(Bm, lcentroid, lecoords0, Ae)
+        _Bbmat1!(Bb, lcentroid, lecoords0, Ae)
+        add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
+        add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
+        # Transverse shear
+        _Bsmat1!(Bs, lcentroid, lecoords0, Ae)
+        # The stabilization expression has a huge effect (at least for the
+        # pinched cylinder). What is the recommended multiplier of he^2?
+        he = sqrt(Ae)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
+        # add_btdb_ut_only!(elmat, Bs, t*Ae, Dt, DtBs)
+    
         # Apply drilling-rotation artificial stiffness
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
@@ -555,6 +706,9 @@ function stiffness(self::FEMMShellCSDSG3, assembler::ASS, geom0::NodalField{FFlt
         elmat[12, 12] += kavg 
         elmat[18, 18] += kavg 
         complete_lt!(elmat)
+        # d = [-0.2887, -0.2887, 0.5774, -0.2887, -0.2887, 0.5774]
+        # d = fill(0.0, 18)
+        # @infiltrate
         # Transformation into global ordinates
         _transfmat!(Te, Ft)
         mul!(elmatTe, elmat, Transpose(Te))

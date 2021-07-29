@@ -8,8 +8,9 @@ using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellDSG3Module: FEMMShellDSG3, stiffness
-    # using FinEtoolsFlexStructures.FEMMShellT3Module: FEMMShellT3, stiffness
+using FinEtoolsFlexStructures.FEMMShellDSG3Module
+using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
+using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
@@ -34,9 +35,11 @@ function single_dsg3()
 
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
+    formul = FEMMShellCSDSG3Module
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = FEMMShellDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.FEMMShellCSDSG3(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
