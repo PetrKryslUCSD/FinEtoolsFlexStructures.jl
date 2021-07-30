@@ -8,7 +8,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellDSG3Module
 using FinEtoolsFlexStructures.FEMMShellDSG3IModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellT3Module
+using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
@@ -299,19 +299,19 @@ function test_t3(n = 8, tL_ratio = 0.01, visualize = true)
     analyt_sol=-4.062e-3*p*L^4/D;
 
     tolerance = L/n/1000
-    fens, fes = T3block(L/2,L/2,n,n);
+    fens, fes = T6block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
 
-    formul = FEMMShellT3Module
+    formul = FEMMShellIsoPModule
     # Report
     @info "SS sq. plate with unif. distr. load, t/L=$(tL_ratio), formulation=$(formul)"
     @info "Mesh: $n elements per side"
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.FEMMShellT3(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(3), thickness), mater)
     stiffness = formul.stiffness
 
     # Construct the requisite fields, geometry and displacement
@@ -486,7 +486,7 @@ end
 
 function test_t3_convergence()
     for n in [2, 4, 8, 16, 32, 64]
-        test_t3(n, 0.0001, false)
+        test_t3(n, 0.01, false)
     end
     return true
 end
@@ -518,8 +518,8 @@ end # module
 
 using .simply_supp_square_plate_udl_examples
 # simply_supp_square_plate_udl_examples.test_csdsg3()
-simply_supp_square_plate_udl_examples.test_dsg3_convergence()
-simply_supp_square_plate_udl_examples.test_dsg3i_convergence()
+# simply_supp_square_plate_udl_examples.test_dsg3_convergence()
+# simply_supp_square_plate_udl_examples.test_dsg3i_convergence()
 # simply_supp_square_plate_udl_examples.test_csdsg3_convergence()
-# simply_supp_square_plate_udl_examples.test_t3_convergence()
+simply_supp_square_plate_udl_examples.test_t3_convergence()
 # simply_supp_square_plate_udl_examples.test_q4sri_convergence()
