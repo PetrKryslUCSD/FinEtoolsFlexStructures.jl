@@ -66,9 +66,9 @@ version = "1.21.0+0"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
-git-tree-sha1 = "8ad457cfeb0bca98732c97958ef81000a543e73e"
+git-tree-sha1 = "9aa8a5ebb6b5bf469a7e0e2b5202cf6f8c291104"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.0.5"
+version = "1.0.6"
 
 [[CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -90,9 +90,9 @@ version = "0.12.8"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "dc7dedc2c2aa9faf59a55c622760a25cbefbe941"
+git-tree-sha1 = "344f143fa0ec67e47917848795ab19c6a455f32c"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.31.0"
+version = "3.32.0"
 
 [[CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -154,16 +154,16 @@ version = "1.4.0"
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[FillArrays]]
-deps = ["LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "25b9cc23ba3303de0ad2eac03f840de9104c9253"
+deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
+git-tree-sha1 = "8c8eac2af06ce35973c3eadb4ab3243076a408e7"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.12.0"
+version = "0.12.1"
 
 [[FinEtools]]
 deps = ["Arpack", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
 path = "../FinEtools.jl"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.2.0"
+version = "5.2.1"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
@@ -185,9 +185,9 @@ version = "0.5.0"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
-git-tree-sha1 = "1d18a48a037b14052ca462ea9d05dee3ac607d23"
+git-tree-sha1 = "83173193dc242ce4b037f0263a7cc45afb5a0b85"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.15.5"
+version = "0.15.6"
 
 [[HDF5_jll]]
 deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
@@ -265,9 +265,9 @@ version = "0.21.1"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "31c2eee64c1eee6e8e3f30d5a03d4b5b7086ab29"
+git-tree-sha1 = "76112882a210564b616dbdf371fc0fbbae28d31f"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.8.18"
+version = "0.8.19"
 
 [[Kaleido_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -329,9 +329,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[LoopVectorization]]
 deps = ["ArrayInterface", "DocStringExtensions", "IfElse", "LinearAlgebra", "OffsetArrays", "Polyester", "Requires", "SLEEFPirates", "Static", "StrideArraysCore", "ThreadingUtilities", "UnPack", "VectorizationBase"]
-git-tree-sha1 = "0df87659132a077b3f7e9f7fca8c9c59d4965071"
+git-tree-sha1 = "86c3f10e851e4863cd12107cf1f78e7874e2f75e"
 uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
-version = "0.12.52"
+version = "0.12.57"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
@@ -452,22 +452,22 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.6.0"
 
 [[PlotlyBase]]
-deps = ["Base64", "Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "Kaleido_jll", "LaTeXStrings", "Logging", "Parameters", "Pkg", "REPL", "Requires", "Statistics", "UUIDs"]
-git-tree-sha1 = "96c1e98b848d9cb6cea5088f1ef1b008e17a45a9"
+deps = ["Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "LaTeXStrings", "Logging", "Parameters", "Pkg", "REPL", "Requires", "Statistics", "UUIDs"]
+git-tree-sha1 = "b01e7bbb151634e81171339407b6ff255122620a"
 uuid = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-version = "0.7.0"
+version = "0.8.2"
 
 [[PlotlyJS]]
-deps = ["Blink", "DelimitedFiles", "JSExpr", "JSON", "Markdown", "Pkg", "PlotlyBase", "REPL", "Reexport", "Requires", "WebIO"]
-git-tree-sha1 = "01c2792d06ed46744f9a95c9d5b4b9810cbe3279"
+deps = ["Base64", "Blink", "DelimitedFiles", "JSExpr", "JSON", "Kaleido_jll", "Markdown", "Pkg", "PlotlyBase", "REPL", "Reexport", "Requires", "WebIO"]
+git-tree-sha1 = "998a4bfd48ac4d77159bf082258a06d824420ad6"
 uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
-version = "0.18.0"
+version = "0.18.1"
 
 [[Polyester]]
 deps = ["ArrayInterface", "IfElse", "ManualMemory", "Requires", "Static", "StrideArraysCore", "ThreadingUtilities", "VectorizationBase"]
-git-tree-sha1 = "f5a74523ebc205723baefb95874f708741199d70"
+git-tree-sha1 = "4b692c8ce1912bae5cd3b90ba22d1b54eb581195"
 uuid = "f517fe37-dbe3-4b94-8317-1923a5111588"
-version = "0.3.4"
+version = "0.3.7"
 
 [[Preferences]]
 deps = ["TOML"]
@@ -509,9 +509,9 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [[SLEEFPirates]]
 deps = ["IfElse", "Static", "VectorizationBase"]
-git-tree-sha1 = "da6d214ffc85b1292f300649ef86d3c4f9aaf25d"
+git-tree-sha1 = "bfdf9532c33db35d2ce9df4828330f0e92344a52"
 uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
-version = "0.6.22"
+version = "0.6.25"
 
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
@@ -550,15 +550,15 @@ version = "1.0.0"
 
 [[StatsBase]]
 deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "2f6792d523d7448bbe2fec99eca9218f06cc746d"
+git-tree-sha1 = "fed1ec1e65749c4d96fc20dd13bea72b55457e62"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.8"
+version = "0.33.9"
 
 [[StrideArraysCore]]
 deps = ["ArrayInterface", "ManualMemory", "Requires", "ThreadingUtilities", "VectorizationBase"]
-git-tree-sha1 = "2525850b6887e217c3cc149ab29eb2a7a6360d37"
+git-tree-sha1 = "e1c37dd3022ba6aaf536541dd607e8d5fb534377"
 uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
-version = "0.1.16"
+version = "0.1.17"
 
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
@@ -594,9 +594,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[ThreadingUtilities]]
 deps = ["ManualMemory"]
-git-tree-sha1 = "593009385e6536dc50baedc2c8bc1a3717ef358f"
+git-tree-sha1 = "03013c6ae7f1824131b2ae2fc1d49793b51e8394"
 uuid = "8290d209-cae3-49c0-8002-c8c24d57dab5"
-version = "0.4.5"
+version = "0.4.6"
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
@@ -629,9 +629,9 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[VectorizationBase]]
 deps = ["ArrayInterface", "Hwloc", "IfElse", "Libdl", "LinearAlgebra", "Static"]
-git-tree-sha1 = "b609848b41158b8cc13a72dc6deb9511f9a96187"
+git-tree-sha1 = "a4bc1b406dcab1bc482ce647e6d3d53640defee3"
 uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
-version = "0.20.22"
+version = "0.20.25"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
