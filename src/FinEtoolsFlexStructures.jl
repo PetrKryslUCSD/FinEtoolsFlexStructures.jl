@@ -22,6 +22,6 @@ include("FEMMShellQ4SRIModule.jl")
 include("FEMMShellDSG3Module.jl")
 include("FEMMShellDSG3IModule.jl")
 include("FEMMShellCSDSG3Module.jl")
-include("FEMMShellT3Module.jl")
+include("FEMMShellIsoPModule.jl")
 
 end # module
