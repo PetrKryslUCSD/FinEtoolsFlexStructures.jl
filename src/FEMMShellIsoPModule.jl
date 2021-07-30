@@ -1,6 +1,6 @@
 module FEMMShellIsoPModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag
+using LinearAlgebra: norm, Transpose, mul!, diag, rank
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -59,7 +59,7 @@ mutable struct FEMMShellIsoP{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
 end
 
 function FEMMShellIsoP(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
-     __nn = nodesperelem(integdomain.fes) # number of nodes
+    __nn = nodesperelem(integdomain.fes) # number of nodes
     _loc = fill(0.0, 1, 3)
     _J = fill(0.0, 3, 2)
     _J0 = fill(0.0, 3, 2)
@@ -216,12 +216,12 @@ function stiffness(self::FEMMShellIsoP, assembler::ASS, geom0::NodalField{FFlt},
         ecoords1 .= ecoords0 .+ edisp1
         _compute_J0!(J0, ecoords0)
         local_frame!(delegateof(fes), Ft, J0)
+        mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
         fill!(elmat,  0.0); # Initialize element matrix
         for j in 1:npts
             locjac!(loc, J, ecoords0, Ns[j], gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
             t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
             locjac!(lloc, lJ, lecoords0, Ns[j], gradNparams[j])
             gradN!(fes, lgradN, gradNparams[j], lJ);
             _Bmmat!(Bm, lgradN)
@@ -235,17 +235,20 @@ function stiffness(self::FEMMShellIsoP, assembler::ASS, geom0::NodalField{FFlt},
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
         end
         # Apply drilling-rotation artificial stiffness
-        kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
-        kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) / 1e5
+        kavg = 0.0
+        for di in 4:__ndof:__nn*__ndof
+            kavg += elmat[di, di]
+            kavg += elmat[di+1, di+1]
+        end
+        kavg = kavg / 1e5
         for di in 1:__nn
             elmat[(di-1)*__nn+6, (di-1)*__nn+6] += kavg 
-        end                
+        end   
         complete_lt!(elmat)
         # Transformation into global ordinates
         _transfmat!(__nn, Te, Ft)
         mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        mul!(elmat, Te, elmatTe)    
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i]); 
         assemble!(assembler, elmat, dofnums, dofnums); 
@@ -268,6 +271,7 @@ This is a general routine for the shell FEMM.
 """
 function mass(self::FEMMShellIsoP,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     fes = self.integdomain.fes
+    __nn = nodesperelem(self.integdomain.fes) # number of nodes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
@@ -277,9 +281,8 @@ function mass(self::FEMMShellIsoP,  assembler::A,  geom0::NodalField{FFlt}, dchi
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     rho::FFlt = massdensity(self.material); # mass density
-    npe = nodesperelem(fes)
-    tmss = fill(0.0, npe);# basis f. matrix -- buffer
-    rmss = fill(0.0, npe);# basis f. matrix -- buffer
+    tmss = fill(0.0, __nn);# basis f. matrix -- buffer
+    rmss = fill(0.0, __nn);# basis f. matrix -- buffer
     ndn = ndofs(dchi)
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
@@ -296,13 +299,13 @@ function mass(self::FEMMShellIsoP,  assembler::A,  geom0::NodalField{FFlt}, dchi
             mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
             tfactor = rho*(t*Jac*w[j]);
             rfactor = rho*(t^3/12*Jac*w[j]);
-            for k in 1:npe
+            for k in 1:__nn
                 tmss[k] += tfactor*(Ns[j][k])
                 rmss[k] += rfactor*(Ns[j][k])
             end
         end # Loop over quadrature pointsnd
         fill!(elmat,  0.0); # Initialize element matrix
-        for k in 1:npe
+        for k in 1:__nn
             for d in 1:3
                 c = (k - 1) * __ndof + d
                 elmat[c, c] += tmss[k]
@@ -316,7 +319,7 @@ function mass(self::FEMMShellIsoP,  assembler::A,  geom0::NodalField{FFlt}, dchi
             elmat[c, c] += rmss[k] / 1e6
         end
         # Transformation into global ordinates
-        _transfmat!(Te, Ft)
+        _transfmat!(__nn, Te, Ft)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
         # Assemble
