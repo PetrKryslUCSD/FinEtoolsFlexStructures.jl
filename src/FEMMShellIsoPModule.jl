@@ -242,7 +242,7 @@ function stiffness(self::FEMMShellIsoP, assembler::ASS, geom0::NodalField{FFlt},
         end
         kavg = kavg / 1e5
         for di in 1:__nn
-            elmat[(di-1)*__nn+6, (di-1)*__nn+6] += kavg 
+            elmat[(di-1)*__ndof+6, (di-1)*__ndof+6] += kavg 
         end   
         complete_lt!(elmat)
         # Transformation into global ordinates

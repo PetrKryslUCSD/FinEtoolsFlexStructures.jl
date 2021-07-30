@@ -23,5 +23,6 @@ include("FEMMShellDSG3Module.jl")
 include("FEMMShellDSG3IModule.jl")
 include("FEMMShellCSDSG3Module.jl")
 include("FEMMShellIsoPModule.jl")
+include("FEMMShellT3Module.jl")
 
 end # module

@@ -327,7 +327,7 @@ function test_t6(n = 8, visualize = true)
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, 3],  dchi.values[nl, 3]/analyt_sol*100
+    @show dchi.values[nl, 3]/analyt_sol*100
 
     # Visualization
     if visualize

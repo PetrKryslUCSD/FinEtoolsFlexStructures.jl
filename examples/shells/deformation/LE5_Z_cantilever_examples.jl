@@ -10,6 +10,7 @@ using FinEtoolsFlexStructures.FEMMShellDSG3Module
 using FinEtoolsFlexStructures.FEMMShellDSG3IModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
+using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
@@ -303,9 +304,11 @@ function test_t6(input = "nle5xf3c.inp", visualize = true)
     fens, new_numbering = compactnodes(fens, connected);
     fes = renumberconn!(fes, new_numbering);
 
+    # fens, fes = T3refine(fens, fes)
+    # fens, fes = T3refine(fens, fes)
+    
     fens, fes = T3toT6(fens, fes)
 
-    # fens, fes = T3refine(fens, fes)
     # fens, fes = T3refine(fens, fes)
     # fens, fes = T3refine(fens, fes)
     # fens, fes = T3refine(fens, fes)
