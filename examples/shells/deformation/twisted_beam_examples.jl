@@ -25,7 +25,7 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellDSG3Module
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellT3Module
+using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
@@ -205,7 +205,7 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     L = 12.0;
     
     tolerance = W/n/100
-    fens, fes = T3block(L,W,6*n,2*n,:a);
+    fens, fes = T6block(L,W,6*n,2*n,:a);
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
@@ -216,8 +216,8 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    formul = FEMMShellT3Module
-    femm = formul.FEMMShellT3(IntegDomain(fes, TriRule(1), t), mater)
+    formul = FEMMShellIsoPModule
+    femm = formul.make(IntegDomain(fes, TriRule(3), t), mater)
     stiffness = formul.stiffness
 
     # Construct the requisite fields, geometry and displacement
@@ -357,7 +357,7 @@ function test_csdsg3_convergence()
 end
 
 function test_t3_convergence()
-    for n in [2, 4, 8, 16, 32,]
+    for n in [2, 4, 8, 16, ]
         test_t3(params_thicker_dir_3..., n, false)
     end
     return true
@@ -396,7 +396,7 @@ end # module
 
 using .twisted_beam_examples
 # twisted_beam_examples.test_dsg3_convergence()
-twisted_beam_examples.test_csdsg3()
+# twisted_beam_examples.test_csdsg3()
 # twisted_beam_examples.test_csdsg3_convergence()
-# twisted_beam_examples.test_t3_convergence()
+twisted_beam_examples.test_t3_convergence()
 # twisted_beam_examples.test_q4sri_convergence()
