@@ -1,6 +1,6 @@
 module FEMMShellIsoPModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag, rank
+using LinearAlgebra: norm, Transpose, mul!, diag, rank, eigen
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -231,8 +231,9 @@ function stiffness(self::FEMMShellIsoP, assembler::ASS, geom0::NodalField{FFlt},
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
             # The stabilization expression has a huge effect (at least for the
             # pinched cylinder). What is the recommended multiplier of he^2?
-            he = sqrt(Jac)
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+            # he = sqrt(Jac)
+            # add_btdb_ut_only!(elmat, Bs, 10000000*(t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
         end
         # Apply drilling-rotation artificial stiffness
         kavg = 0.0
@@ -240,11 +241,12 @@ function stiffness(self::FEMMShellIsoP, assembler::ASS, geom0::NodalField{FFlt},
             kavg += elmat[di, di]
             kavg += elmat[di+1, di+1]
         end
-        kavg = kavg / 1e5
+        kavg = kavg / 1e9
         for di in 1:__nn
             elmat[(di-1)*__ndof+6, (di-1)*__ndof+6] += kavg 
         end   
         complete_lt!(elmat)
+        # @show eigen(elmat).values
         # Transformation into global ordinates
         _transfmat!(__nn, Te, Ft)
         mul!(elmatTe, elmat, Transpose(Te))

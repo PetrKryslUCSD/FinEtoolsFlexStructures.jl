@@ -160,32 +160,6 @@ end
 
 Compute the linear transverse shear strain-displacement matrix.
 """
-function _Bsmat!_old(Bs, lecoords)
-    a, b = lecoords[2, :].-lecoords[1, :]
-    c, d = lecoords[3, :].-lecoords[1, :]
-    Ae = (a*d - b*c)/2
-    addto(B, r, c, v) = (B[r, c] += v)
-    Bs .= 0.0 
-    # Node 1
-    addto(Bs, 1, 3, b-d);                                  addto(Bs, 1, 5, Ae) 
-    addto(Bs, 2, 3, c-a);    addto(Bs, 2, 4, -Ae); 
-    # Node 2
-    addto(Bs, 1, 6+3, d);    addto(Bs, 1, 6+4, -b*d/2);    addto(Bs, 1, 6+5, a*d/2) 
-    addto(Bs, 2, 6+3, -c);   addto(Bs, 2, 6+4, b*c/2);     addto(Bs, 2, 6+5, -a*c/2) 
-    # Node 3
-    addto(Bs, 1, 12+3, -b);  addto(Bs, 1, 12+4, b*d/2);    addto(Bs, 1, 12+5, -b*c/2) 
-    addto(Bs, 2, 12+3, a);   addto(Bs, 2, 12+4, -a*d/2);   addto(Bs, 2, 12+5, a*c/2) 
-    # Scale
-    Bs .*= (1/2/Ae)
-    # for i in 1:__nn
-    #     Bs[1,6*(i-1)+3] = gradN[i,1];
-    #     Bs[1,6*(i-1)+5] = N[i];
-    #     Bs[2,6*(i-1)+3] = gradN[i,2];
-    #     Bs[2,6*(i-1)+4] = -N[i];
-    # end
-end
-
-
 function _Bsmat!(Bs, lecoords)
     Bs .= 0.0 
 
