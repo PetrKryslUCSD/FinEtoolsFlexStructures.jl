@@ -24,6 +24,8 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellDSG3Module
+using FinEtoolsFlexStructures.FEMMShellDSG3IModule
+using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -37,24 +39,14 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 1, visualize = true)
+function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
     
-    tolerance = W/nW/10
+    tolerance = W/nW/100
     fens, fes = T3block(L,W,nL,nW,:a);
-    # conn = connasarray(fes)
-    # for e in 1:size(conn, 1)
-    #     c = rand(0:1:2)
-    #     if c == 1
-    #         conn[e, :] = conn[e, [2, 3, 1]]
-    #     elseif c == 2
-    #         conn[e, :] = conn[e, [3, 1, 2]]
-    #     end
-    # end
-    # fes = fromarray!(fes, conn)
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
@@ -65,9 +57,10 @@ function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL =
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    formul = FEMMShellDSG3Module
-    femm = formul.FEMMShellDSG3(IntegDomain(fes, TriRule(1), t), mater)
+    formul = FEMMShellDSG3IFModule
+    femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
     stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -77,8 +70,7 @@ function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL =
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # Clamped end]
-
+    # Clamped end
     l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
     for i in 1:6
         setebc!(dchi, l1, true, i)
@@ -87,6 +79,7 @@ function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL =
     numberdofs!(dchi);
 
     # Assemble the system matrix
+    associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load
@@ -117,24 +110,14 @@ function test_dsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL =
     return true
 end
 
-function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 32, nW = 4, visualize = true)
+function test_dsg3i(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
     
-    tolerance = W/nW/10
-    fens, fes = T3block(L,W,nL,2*nW,:a);
-    # conn = connasarray(fes)
-    # for e in 1:size(conn, 1)
-    #     c = rand(0:1:2)
-    #     if c == 1
-    #         conn[e, :] = conn[e, [2, 3, 1]]
-    #     elseif c == 2
-    #         conn[e, :] = conn[e, [3, 1, 2]]
-    #     end
-    # end
-    # fes = fromarray!(fes, conn)
+    tolerance = W/nW/100
+    fens, fes = T3block(L,W,nL,nW,:a);
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
@@ -145,9 +128,10 @@ function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    formul = FEMMShellCSDSG3Module
-    femm = formul.FEMMShellCSDSG3(IntegDomain(fes, TriRule(1), t), mater)
+    formul = FEMMShellDSG3IModule
+    femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
     stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -157,8 +141,7 @@ function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # Clamped end]
-
+    # Clamped end
     l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
     for i in 1:6
         setebc!(dchi, l1, true, i)
@@ -167,6 +150,7 @@ function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     numberdofs!(dchi);
 
     # Assemble the system matrix
+    associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load
@@ -191,7 +175,6 @@ function test_csdsg3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         plot_nodes(fens),
-        plot_triads(fens; triad_length = 0.14, x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
         plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
     dims = 1)
     pl = render(plots)
@@ -411,37 +394,9 @@ function test_q4sri(n = 2, visualize = true)
     return true
 end
 
-function test_dsg3_convergence()
-    for n in [2, 4, 8, 16, ]
-        test_dsg3(params_thicker_dir_3..., 6*n, n, false)
-    end
-    return true
-end
-
-function test_csdsg3_convergence()
-    for n in [2, 4, 8, 16]
-        test_csdsg3(params_thicker_dir_3..., 6*n, n, false)
-    end
-    return true
-end
-
-function test_t3_convergence()
-    for n in [2, 4, 8, 16, ]
-        test_t3(params_thicker_dir_3..., n, false)
-    end
-    return true
-end
-
-function test_t6_convergence()
-    for n in [2, 4, 8, 16, ]
-        test_t6(params_thicker_dir_2..., n, false)
-    end
-    return true
-end
-
-function test_q4sri_convergence()
-    for n in [2, 4, 8, ]
-        test_q4sri(n, false)
+function test_convergence(t)
+    for n in [2, 4, 8, 16, 32]
+        t(params_thicker_dir_3..., 6*n, n, false)
     end
     return true
 end
@@ -453,18 +408,7 @@ function allrun()
     println("#####################################################")
     println("# test_q4sri ")
     test_q4sri()
-    println("#####################################################")
-    println("# test_dsg3_convergence  ")
-    test_dsg3_convergence()
-    println("#####################################################")
-    println("# test_csdsg3_convergence  ")
-    test_csdsg3_convergence()
-    println("#####################################################")
-    println("# test_t3_convergence  ")
-    test_t3_convergence()
-    println("#####################################################")
-    println("# test_q4sri_convergence  ")
-    test_q4sri_convergence()
+    
     return true
 end # function allrun
 
@@ -473,6 +417,9 @@ end # module
 using .twisted_beam_examples
 # twisted_beam_examples.test_dsg3_convergence()
 # twisted_beam_examples.test_csdsg3()
+# twisted_beam_examples.test_dsg3if()
+twisted_beam_examples.test_convergence(twisted_beam_examples.test_dsg3i)
+twisted_beam_examples.test_convergence(twisted_beam_examples.test_dsg3if)
 # twisted_beam_examples.test_csdsg3_convergence()
-twisted_beam_examples.test_t6_convergence()
+# twisted_beam_examples.test_t6_convergence()
 # twisted_beam_examples.test_q4sri_convergence()
