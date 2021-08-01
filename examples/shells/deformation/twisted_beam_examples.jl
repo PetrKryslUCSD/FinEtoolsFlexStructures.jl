@@ -267,6 +267,75 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     return true
 end
 
+function test_t6(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2, visualize = true)
+    E = 0.29e8;
+    nu = 0.22;
+    W = 1.1;
+    L = 12.0;
+    
+    tolerance = W/n/100
+    fens, fes = T6block(L,W,6*n,2*n,:a);
+    fens.xyz = xyz3(fens)
+    for i in 1:count(fens)
+        a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
+        fens.xyz[i,:]=[fens.xyz[i,1],y*cos(a)-z*sin(a),y*sin(a)+z*cos(a)];
+    end
+    
+    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+    formul = FEMMShellIsoPModule
+    femm = formul.make(IntegDomain(fes, TriRule(3), t), mater)
+    stiffness = formul.stiffness
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Clamped end
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in 1:6
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Load
+    nl = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = tolerance)
+    loadbdry = FESetP1(reshape(nl, 1, 1))
+    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+    v = FFlt[0, 0, 0, 0, 0, 0]
+    v[dir] = force
+    fi = ForceIntensity(v);
+    F = distribloads(lfemm, geom0, dchi, fi, 3);
+
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    @show dchi.values[nl, dir][1]/uex*100
+
+    # Visualization
+    if !visualize
+        return true
+    end
+    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    update_rotation_field!(Rfield0, dchi)
+    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        plot_nodes(fens),
+        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    dims = 1)
+    pl = render(plots)
+    return true
+end
+
 function test_q4sri(n = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
@@ -363,6 +432,13 @@ function test_t3_convergence()
     return true
 end
 
+function test_t6_convergence()
+    for n in [2, 4, 8, 16, ]
+        test_t6(params_thicker_dir_2..., n, false)
+    end
+    return true
+end
+
 function test_q4sri_convergence()
     for n in [2, 4, 8, ]
         test_q4sri(n, false)
@@ -398,5 +474,5 @@ using .twisted_beam_examples
 # twisted_beam_examples.test_dsg3_convergence()
 # twisted_beam_examples.test_csdsg3()
 # twisted_beam_examples.test_csdsg3_convergence()
-twisted_beam_examples.test_t3_convergence()
+twisted_beam_examples.test_t6_convergence()
 # twisted_beam_examples.test_q4sri_convergence()
