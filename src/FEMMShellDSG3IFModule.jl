@@ -290,6 +290,19 @@ function _Bbmat!(Bb, gradN)
     end
 end
 
+"""
+    _Brmat!(Bb, gradN, N:)
+
+Compute the linear, displacement independent, curvature-displacement/rotation matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and rotations are in a local coordinate system.
+"""
+function _Brmat!(Br, gradN, N)
+    for i in 1:__nn
+        Br[1,6*(i-1)+1] = -1/2*gradN[i,2];
+        Br[1,6*(i-1)+2] =  1/2*gradN[i,1];
+        Br[1,6*(i-1)+6] =  -N[i];
+    end
+end
+
 function associategeometry!(self::FEMMShellDSG3IF,  geom::NodalField{FFlt})
     J0 = self._J0
     F0 = self._F0
@@ -330,7 +343,9 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    Br = fill(0.0, 1, size(elmat, 1))
     Dps, Dt = _shell_material_stiffness(self.material)
+    # Dr = Dt[1,1] / 1e2
     scf=5/6;  # shear correction factor
     Dt .*= scf
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
@@ -356,13 +371,15 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
             # The stabilization expression has a huge effect (at least for the
             # pinched cylinder). What is the recommended multiplier of he^2?
             he = sqrt(Jac)
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-            # add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
+            # add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
+            # _Brmat!(Br, lgradN, Ns[j])
+            # elmat += Br' * (Br * (Dr*t*Jac*w[j]))
         end
         complete_lt!(elmat)
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) / 1e5
+        kavg = (kavg4 + kavg5) / 1e4
         # Project out contributions in the normal direction
         # @show Ft
         ln1 = Ft'*vec(normals[fes.conn[i][1],:])
@@ -371,10 +388,12 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
         # @show ln2
         ln3 = Ft'*vec(normals[fes.conn[i][3],:])
         # @show ln3
+        @show ln1, ln2, ln3
         _projmat!(Te, ln1, ln2, ln3)
+        # @show round.(Te, digits = 6)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
-        # Apply drilling-rotation artificial stiffness
+        # # Apply drilling-rotation artificial stiffness
         elmat[4:6, 4:6] .+= kavg .* ln1*ln1'
         elmat[10:12, 10:12] .+= kavg .* ln2*ln2'
         elmat[16:18, 16:18] .+= kavg .* ln3*ln3'
