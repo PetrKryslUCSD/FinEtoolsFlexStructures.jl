@@ -44,7 +44,7 @@ function test_dsg3if(input = "raasch_s4_1x9.inp", visualize = !true)
     analyt_sol = 5.02;
     R = 46.0;
 
-    output = import_ABAQUS(input)
+    output = import_ABAQUS(joinpath("examples/shells/deformation", input))
     fens = output["fens"]
     fes = output["fesets"][1]
 
@@ -132,7 +132,7 @@ function test_dsg3i(input = "raasch_s4_1x9.inp", visualize = !true)
     analyt_sol = 5.02;
     R = 46.0;
 
-    output = import_ABAQUS(input)
+    output = import_ABAQUS(joinpath("examples/shells/deformation", input))
     fens = output["fens"]
     fes = output["fesets"][1]
 
@@ -220,7 +220,7 @@ function test_csdsg3(input = "raasch_s4_10x72.inp", visualize = true)
     analyt_sol = 5.02;
     R = 46.0;
 
-    output = import_ABAQUS(input)
+    output = import_ABAQUS(joinpath("examples/shells/deformation", input))
     fens = output["fens"]
     fes = output["fesets"][1]
 
@@ -297,7 +297,7 @@ function test_csdsg3(input = "raasch_s4_10x72.inp", visualize = true)
     return true
 end
 
-function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
+function test_t6(input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;1
     nu = 0.35;
     thickness  =  2.0;
@@ -306,7 +306,7 @@ function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
     analyt_sol = 5.02;
     R = 46.0;
 
-    output = import_ABAQUS(input)
+    output = import_ABAQUS(joinpath("examples/shells/deformation", input))
     fens = output["fens"]
     fes = output["fesets"][1]
 
@@ -316,6 +316,7 @@ function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
 
     fens, fes = Q4toT3(fens, fes)
     fens, fes = T3toT6(fens, fes)
+
 
     # plots = cat(plot_space_box([[0 0 -R/2]; [R/2 R/2 R/2]]),
     #     plot_nodes(fens),
@@ -334,6 +335,7 @@ function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(3), thickness), mater)
     stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -353,6 +355,7 @@ function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
     numberdofs!(dchi);
 
     # Assemble the system matrix
+    associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load
@@ -385,7 +388,7 @@ function test_t6(input = "raasch_s4_10x72.inp", visualize = true)
 end
 
 function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
-    E = 3300.0;
+    E = 3300.0;1
     nu = 0.35;
     thickness  =  2.0;
     tolerance = thickness/2
@@ -393,7 +396,7 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     analyt_sol = 5.02;
     R = 46.0;
 
-    output = import_ABAQUS(input)
+    output = import_ABAQUS(joinpath("examples/shells/deformation", input))
     fens = output["fens"]
     fes = output["fesets"][1]
 
@@ -402,9 +405,13 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     fes = renumberconn!(fes, new_numbering);
 
     fens, fes = Q4toT3(fens, fes)
+    # fens, fes = T3refine(fens, fes)
+    # fens, fes = T3refine(fens, fes)
+
 
     # plots = cat(plot_space_box([[0 0 -R/2]; [R/2 R/2 R/2]]),
     #     plot_nodes(fens),
+    #     plot_midsurface(fens, fes);
     #     plot_midsurface(fens, fes);
     # dims = 1)
     # pl = render(plots)
@@ -418,8 +425,9 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(3), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
     stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -439,9 +447,10 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     numberdofs!(dchi);
 
     # Assemble the system matrix
+    associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    # Load
+    # Loadb
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [97.9615 97.9615 -16 -16 0 20], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
@@ -470,44 +479,9 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     return true
 end
 
-function test_dsg3_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_dsg3(n, false)
-    end
-    return true
-end
-
-function test_dsg3i_convergence()
+function test_convergence(t)
     for m in ["1x9", "3x18", "5x36", "10x72"]
-        test_dsg3i("raasch_s4_" * m * ".inp", false)
-    end
-    return true
-end
-
-function test_dsg3if_convergence()
-    for m in ["1x9", "3x18", "5x36", "10x72"]
-        test_dsg3if("raasch_s4_" * m * ".inp", false)
-    end
-    return true
-end
-
-function test_csdsg3_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_csdsg3(n, false)
-    end
-    return true
-end
-
-function test_t6_convergence()
-    for m in ["1x9", "3x18", "5x36", "10x72"]
-        test_t6("raasch_s4_" * m * ".inp", false)
-    end
-    return true
-end
-
-function test_q4sri_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_q4sri(n, false)
+        t("raasch_s4_" * m * ".inp", false)
     end
     return true
 end
@@ -531,15 +505,6 @@ end # function allrun
 end # module
 
 using .raasch_examples
-# raasch_examples.test_csdsg3()
-# raasch_examples.test_dsg3if()
-raasch_examples.test_dsg3if_convergence()
-raasch_examples.test_dsg3i_convergence()
-# raasch_examples.test_t3()
-# raasch_examples.test_t6_convergence()
-# raasch_examples.test_dsg3()
-# raasch_examples.test_dsg3_convergence()
-# raasch_examples.test_dsg3i_convergence()# 
-# raasch_examples.test_csdsg3_convergence()
-# raasch_examples.test_t6_convergence()
-# raasch_examples.test_q4sri_convergence()
+m = raasch_examples
+m.test_t6()
+m.test_convergence(m.test_t6)

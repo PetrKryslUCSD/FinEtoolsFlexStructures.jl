@@ -181,14 +181,14 @@ function test_dsg3i(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL 
     return true
 end
 
-function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2, visualize = true)
+function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 8, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
     
     tolerance = W/n/100
-    fens, fes = T6block(L,W,6*n,2*n,:a);
+    fens, fes = T3block(L,W,6*n,2*n,:a);
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
@@ -200,8 +200,9 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     formul = FEMMShellIsoPModule
-    femm = formul.make(IntegDomain(fes, TriRule(3), t), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
     stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -220,6 +221,7 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     numberdofs!(dchi);
 
     # Assemble the system matrix
+    associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load
@@ -237,6 +239,8 @@ function test_t3(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, n = 2,
     @show dchi.values[nl, dir][1]/uex*100
 
     # Visualization
+    v = FinEtools.MeshExportModule.VTK
+    v.vtkexportmesh("twisted-$n" * ".vtk", fens, fes;   vectors=[("u", deepcopy(dchi.values[:, 1:3]))], scalars=[("ux", deepcopy(dchi.values[:, 1])), ("uy", deepcopy(dchi.values[:, 2])), ("uz", deepcopy(dchi.values[:, 3])), ("rx", deepcopy(dchi.values[:, 4])), ("ry", deepcopy(dchi.values[:, 5])), ("rz", deepcopy(dchi.values[:, 6]))])
     if !visualize
         return true
     end
@@ -395,8 +399,8 @@ function test_q4sri(n = 2, visualize = true)
 end
 
 function test_convergence(t)
-    for n in [2, 4, 8, 16, 32]
-        t(params_thicker_dir_3..., 6*n, n, false)
+    for n in [2, 4, 8, 16, 32, 64]
+        t(params_thinner_dir_2..., 6*n, n, false)
     end
     return true
 end
@@ -415,11 +419,5 @@ end # function allrun
 end # module
 
 using .twisted_beam_examples
-# twisted_beam_examples.test_dsg3_convergence()
-# twisted_beam_examples.test_csdsg3()
-# twisted_beam_examples.test_dsg3if()
-twisted_beam_examples.test_convergence(twisted_beam_examples.test_dsg3i)
-twisted_beam_examples.test_convergence(twisted_beam_examples.test_dsg3if)
-# twisted_beam_examples.test_csdsg3_convergence()
-# twisted_beam_examples.test_t6_convergence()
-# twisted_beam_examples.test_q4sri_convergence()
+m = twisted_beam_examples
+m.test_t3()
