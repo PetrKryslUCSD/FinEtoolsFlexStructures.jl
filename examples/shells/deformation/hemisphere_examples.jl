@@ -28,6 +28,7 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellDSG3Module
 using FinEtoolsFlexStructures.FEMMShellDSG3IModule
+using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellT3Module
@@ -36,6 +37,95 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotat
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 using Infiltrator
+
+function test_dsg3if(n = 2, visualize = true)
+    E = 6.825e7;
+    nu = 0.3;
+    thickness  =  0.04;
+    # analytical solution for the vertical deflection under the load
+    analyt_sol = 0.0924;
+    R = 10.0;
+
+    tolerance = R/n/1000
+    fens, fes = Q4spheren(R, n)
+    fens, fes = Q4toT3(fens, fes)
+
+    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    
+    formul = FEMMShellDSG3IFModule
+    # Report
+    @info "Hemisphere, formulation=$(formul)"
+    @info "Mesh: $n elements per side"
+
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # plane of symmetry perpendicular to X
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [1,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    # plane of symmetry perpendicular to Y
+    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
+    for i in [2,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+    # top
+    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
+    for i in [1,2,3,4,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    associategeometry!(femm, geom0)
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Load
+    nl = selectnode(fens; box = Float64[0 0 R R 0 0], tolerance = tolerance)
+    loadbdry = FESetP1(reshape(nl, 1, 1))
+    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    nl = selectnode(fens; box = Float64[R R 0 0 0 0], tolerance = tolerance)
+    loadbdry = FESetP1(reshape(nl, 1, 1))
+    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
+    F += distribloads(lfemm, geom0, dchi, fi, 3);
+
+
+    # @infiltrate
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    targetu =  dchi.values[nl, 1][1]
+    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+
+    # Visualization
+    if !visualize
+        return true
+    end
+    scattersysvec!(dchi, (R/4)/maximum(abs.(U)).*U)
+    update_rotation_field!(Rfield0, dchi)
+    plots = cat(plot_space_box([[0 0 -R]; [R R R]]),
+        #plot_nodes(fens),
+        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    dims = 1)
+    pl = render(plots)
+    return true
+end
 
 function test_dsg3(n = 8, visualize = true)
     E = 6.825e7;
@@ -386,37 +476,9 @@ function test_t6(n = 8, visualize = true)
     return true
 end
 
-function test_dsg3_convergence()
+function test_convergence(t)
     for n in [2, 4, 8, 16, 32, 64]
-        test_dsg3(n, false)
-    end
-    return true
-end
-
-function test_dsg3i_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_dsg3i(n, false)
-    end
-    return true
-end
-
-function test_csdsg3_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_csdsg3(n, false)
-    end
-    return true
-end
-
-function test_t6_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_t6(n, false)
-    end
-    return true
-end
-
-function test_q4sri_convergence()
-    for n in [2, 4, 8, 16, 32, 64]
-        test_q4sri(n, false)
+        t(n, false)
     end
     return true
 end
@@ -440,10 +502,6 @@ end # function allrun
 end # module
 
 using .hemisphere_examples
-# hemisphere_examples.test_dsg3i()
-# hemisphere_examples.test_dsg3()
-hemisphere_examples.test_dsg3_convergence()
-hemisphere_examples.test_dsg3i_convergence()
-hemisphere_examples.test_csdsg3_convergence()
-hemisphere_examples.test_t6_convergence()
-# hemisphere_examples.test_q4sri_convergence()
+m = hemisphere_examples
+m.test_convergence(m.test_dsg3if)
+# m.test_dsg3if()

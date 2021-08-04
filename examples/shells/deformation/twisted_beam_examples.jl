@@ -39,7 +39,7 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 2, visualize = true)
+function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
@@ -100,7 +100,7 @@ function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     if !visualize
         return true
     end
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    scattersysvec!(dchi, (L/4)/dchi.values[nl, dir][1].*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         plot_nodes(fens),
@@ -399,7 +399,7 @@ function test_q4sri(n = 2, visualize = true)
 end
 
 function test_convergence(t)
-    for n in [2, 4, 8, 16, 32, 64]
+    for n in [2, 4, 8, 16, ]
         t(params_thinner_dir_2..., 6*n, n, false)
     end
     return true
@@ -420,4 +420,5 @@ end # module
 
 using .twisted_beam_examples
 m = twisted_beam_examples
-m.test_t3()
+m.test_dsg3if()
+m.test_convergence(m.test_dsg3i)

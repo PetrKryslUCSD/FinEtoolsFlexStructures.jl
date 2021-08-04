@@ -263,30 +263,9 @@ function test_csdsg3(n = 4, visualize = true)
     pl = render(plots)
 end
 
-function test_dsg3_convergence()
+function test_convergence(t)
     for n in [8, 12, 16, 24]
-        test_dsg3(n, false)
-    end
-    return true
-end
-
-function test_dsg3if_convergence()
-    for n in [8, 12, 16, 24]
-        test_dsg3if(n, false)
-    end
-    return true
-end
-
-function test_csdsg3_convergence()
-    for n in [8, 12, 16, 24]
-        test_csdsg3(n, false)
-    end
-    return true
-end
-
-function test_q4sri_convergence()
-    for n in [2, 4, 8, 16, 32, 64, 128]
-        test_q4sri(n, false)
+        t(n, false)
     end
     return true
 end
@@ -307,6 +286,5 @@ end # function allrun
 end # module
 
 using .pinched_cylinder_examples
-pinched_cylinder_examples.test_dsg3_convergence()
-pinched_cylinder_examples.test_dsg3if_convergence()
-# pinched_cylinder_examples.test_csdsg3_convergence()
+m = pinched_cylinder_examples
+m.test_convergence(m.test_dsg3if)

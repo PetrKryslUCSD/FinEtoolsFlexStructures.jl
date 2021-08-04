@@ -35,7 +35,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(input = "raasch_s4_1x9.inp", visualize = !true)
+function test_dsg3if(input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;
     nu = 0.35;
     thickness  =  2.0;
@@ -506,5 +506,6 @@ end # module
 
 using .raasch_examples
 m = raasch_examples
-m.test_t6()
-m.test_convergence(m.test_t6)
+# m.test_dsg3if()#
+m.test_convergence(m.test_dsg3i)
+# 

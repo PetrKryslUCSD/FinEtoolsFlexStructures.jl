@@ -198,7 +198,7 @@ function test_dsg3i(n = 8, tL_ratio = 0.01, visualize = true)
     return true
 end
 
-function test_dsg3if(n = 8, tL_ratio = 0.01, visualize = true)
+function test_dsg3if(n = 2, tL_ratio = 0.01, visualize = true)
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -290,6 +290,7 @@ function test_dsg3if(n = 8, tL_ratio = 0.01, visualize = true)
     pl = render(plots)
     return true
 end
+
 function test_csdsg3(n = 8, tL_ratio = 0.01, visualize = true)
     E = 30e6;
     nu = 0.3;
@@ -578,3 +579,4 @@ end # module
 using .simply_supp_square_plate_udl_examples
 m = simply_supp_square_plate_udl_examples
 m.test_convergence(m.test_dsg3if)
+# m.test_dsg3if()

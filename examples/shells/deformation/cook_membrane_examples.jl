@@ -132,6 +132,10 @@ function test_dsg3if(n = 8, visualize = true)
     for i in [1,2,3,4,5,6]
         setebc!(dchi, l1, true, i)
     end
+    l1 = collect(1:count(fens))
+    for i in [3,4,5,6]
+        setebc!(dchi, l1, true, i)
+    end
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -409,15 +413,6 @@ function allrun()
     println("#####################################################")
     println("# test_q4sri ")
     test_q4sri()
-    println("#####################################################")
-    println("# test_dsg3_convergence  ")
-    test_dsg3_convergence()
-    println("#####################################################")
-    println("# test_csdsg3_convergence  ")
-    test_csdsg3_convergence()
-    println("#####################################################")
-    println("# test_q4sri_convergence  ")
-    test_q4sri_convergence()
     return true
 end # function allrun
 
@@ -425,4 +420,4 @@ end # module
 
 using .cook_membrane_examples
 m = cook_membrane_examples
-m.test_convergence(m.test_dsg3if)
+m.test_convergence(m.test_dsg3i)

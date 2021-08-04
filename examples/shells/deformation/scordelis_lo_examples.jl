@@ -514,47 +514,13 @@ function test_t6(n = 8, visualize = true)
     return true
 end
 
-function test_dsg3_convergence()
+function test_convergence(t)
     for n in [4, 8, 10, 12, 16]
-        test_dsg3(n, false)
+        t(n, false)
     end
     return true
 end
 
-function test_dsg3if_convergence()
-    for n in [4, 8, 10, 12, 16]
-        test_dsg3if(n, false)
-    end
-    return true
-end
-
-function test_dsg3i_convergence()
-    for n in [4, 8, 10, 12, 16]
-        test_dsg3i(n, false)
-    end
-    return true
-end
-
-function test_csdsg3_convergence()
-    for n in [4, 8, 10, 12, 16]
-        test_csdsg3(n, false)
-    end
-    return true
-end
-
-function test_t6_convergence()
-    for n in [4, 8, 10, 12, 16]
-        test_t6(n, false)
-    end
-    return true
-end
-
-function test_q4sri_convergence()
-    for n in [4, 8, 10, 12, 16]
-        test_q4sri(n, false)
-    end
-    return true
-end
 
 function allrun()
     println("#####################################################")
@@ -578,10 +544,5 @@ end # function allrun
 end # module
 
 using .scordelis_lo_examples
-# scordelis_lo_examples.test_t6_convergence()
-# scordelis_lo_examples.test_dsg3_convergence()
-scordelis_lo_examples.test_dsg3i_convergence()
-scordelis_lo_examples.test_dsg3if_convergence()
-# scordelis_lo_examples.test_dsg3if(32)
-# scordelis_lo_examples.test_csdsg3_convergence()
-# scordelis_lo_examples.test_q4sri_convergence()
+m = scordelis_lo_examples
+m.test_convergence(m.test_dsg3if)
