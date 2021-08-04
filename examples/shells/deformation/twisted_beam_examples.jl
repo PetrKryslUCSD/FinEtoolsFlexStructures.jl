@@ -39,7 +39,19 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
+function test_dsg3if(args...)
+    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+end
+
+function test_dsg3i(args...)
+  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+end
+
+function test_dsg3(args...)
+  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+end
+
+function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
@@ -57,7 +69,6 @@ function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    formul = FEMMShellDSG3IFModule
     femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -101,77 +112,6 @@ function test_dsg3if(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL
         return true
     end
     scattersysvec!(dchi, (L/4)/dchi.values[nl, dir][1].*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
-        plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
-end
-
-function test_dsg3i(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 2, nW = 2, visualize = true)
-    E = 0.29e8;
-    nu = 0.22;
-    W = 1.1;
-    L = 12.0;
-    
-    tolerance = W/nW/100
-    fens, fes = T3block(L,W,nL,nW,:a);
-    fens.xyz = xyz3(fens)
-    for i in 1:count(fens)
-        a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3];
-        fens.xyz[i,:]=[fens.xyz[i,1],y*cos(a)-z*sin(a),y*sin(a)+z*cos(a)];
-    end
-    
-    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-    
-    sfes = FESetShellT3()
-    accepttodelegate(fes, sfes)
-    formul = FEMMShellDSG3IModule
-    femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
-    stiffness = formul.stiffness
-    associategeometry! = formul.associategeometry!
-
-    # Construct the requisite fields, geometry and displacement
-    # Initialize configuration variables
-    geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
-    Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
-
-    # Apply EBC's
-    # Clamped end
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in 1:6
-        setebc!(dchi, l1, true, i)
-    end
-    applyebc!(dchi)
-    numberdofs!(dchi);
-
-    # Assemble the system matrix
-    associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
-
-    # Load
-    nl = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    v = FFlt[0, 0, 0, 0, 0, 0]
-    v[dir] = force
-    fi = ForceIntensity(v);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
-
-    # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, dir][1]/uex*100
-
-    # Visualization
-    if !visualize
-        return true
-    end
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         plot_nodes(fens),
@@ -400,7 +340,7 @@ end
 
 function test_convergence(t)
     for n in [2, 4, 8, 16, ]
-        t(params_thinner_dir_2..., 6*n, n, false)
+        t(params_thicker_dir_2..., 2*n, n, false)
     end
     return true
 end
@@ -421,4 +361,4 @@ end # module
 using .twisted_beam_examples
 m = twisted_beam_examples
 m.test_dsg3if()
-m.test_convergence(m.test_dsg3i)
+m.test_convergence(m.test_dsg3if)

@@ -38,7 +38,23 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(n = 2, visualize = true)
+function test_dsg3if(args...)
+    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+end
+
+function test_dsg3i(args...)
+  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+end
+
+function test_dsg3(args...)
+  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+end
+
+function test_csdsg3(args...)
+  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
+end
+
+function _execute_dsg_model(formul, n = 2, visualize = true)
     E = 6.825e7;
     nu = 0.3;
     thickness  =  0.04;
@@ -52,7 +68,6 @@ function test_dsg3if(n = 2, visualize = true)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
-    formul = FEMMShellDSG3IFModule
     # Report
     @info "Hemisphere, formulation=$(formul)"
     @info "Mesh: $n elements per side"
@@ -91,267 +106,6 @@ function test_dsg3if(n = 2, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
-
-    # Load
-    nl = selectnode(fens; box = Float64[0 0 R R 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
-    nl = selectnode(fens; box = Float64[R R 0 0 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
-
-
-    # @infiltrate
-    # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
-    targetu =  dchi.values[nl, 1][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
-
-    # Visualization
-    if !visualize
-        return true
-    end
-    scattersysvec!(dchi, (R/4)/maximum(abs.(U)).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -R]; [R R R]]),
-        #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
-end
-
-function test_dsg3(n = 8, visualize = true)
-    E = 6.825e7;
-    nu = 0.3;
-    thickness  =  0.04;
-    # analytical solution for the vertical deflection under the load
-    analyt_sol = 0.0924;
-    R = 10.0;
-
-    tolerance = R/n/1000
-    fens, fes = Q4spheren(R, n)
-    fens, fes = Q4toT3(fens, fes)
-
-    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-    
-    formul = FEMMShellDSG3Module
-    # Report
-    @info "Hemisphere, formulation=$(formul)"
-    @info "Mesh: $n elements per side"
-
-    sfes = FESetShellT3()
-    accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    stiffness = formul.stiffness
-
-    # Construct the requisite fields, geometry and displacement
-    # Initialize configuration variables
-    geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
-    Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
-
-    # Apply EBC's
-    # plane of symmetry perpendicular to X
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # plane of symmetry perpendicular to Y
-    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,4,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # top
-    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,4,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    applyebc!(dchi)
-    numberdofs!(dchi);
-
-    # Assemble the system matrix
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
-
-    # Load
-    nl = selectnode(fens; box = Float64[0 0 R R 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
-    nl = selectnode(fens; box = Float64[R R 0 0 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
-
-
-    # @infiltrate
-    # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
-    targetu =  dchi.values[nl, 1][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
-
-    # Visualization
-    if !visualize
-        return true
-    end
-    scattersysvec!(dchi, (R/4)/maximum(abs.(U)).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -R]; [R R R]]),
-        #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
-end
-
-function test_dsg3i(n = 8, visualize = true)
-    E = 6.825e7;
-    nu = 0.3;
-    thickness  =  0.04;
-    # analytical solution for the vertical deflection under the load
-    analyt_sol = 0.0924;
-    R = 10.0;
-
-    tolerance = R/n/1000
-    fens, fes = Q4spheren(R, n)
-    fens, fes = Q4toT3(fens, fes)
-
-    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-    
-    formul = FEMMShellDSG3IModule
-    # Report
-    @info "Hemisphere, formulation=$(formul)"
-    @info "Mesh: $n elements per side"
-
-    sfes = FESetShellT3()
-    accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    stiffness = formul.stiffness
-
-    # Construct the requisite fields, geometry and displacement
-    # Initialize configuration variables
-    geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
-    Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
-
-    # Apply EBC's
-    # plane of symmetry perpendicular to X
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # plane of symmetry perpendicular to Y
-    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,4,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # top
-    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,4,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    applyebc!(dchi)
-    numberdofs!(dchi);
-
-    # Assemble the system matrix
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
-
-    # Load
-    nl = selectnode(fens; box = Float64[0 0 R R 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
-    nl = selectnode(fens; box = Float64[R R 0 0 0 0], tolerance = tolerance)
-    loadbdry = FESetP1(reshape(nl, 1, 1))
-    lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
-
-
-    # @infiltrate
-    # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
-    targetu =  dchi.values[nl, 1][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
-
-    # Visualization
-    if !visualize
-        return true
-    end
-    scattersysvec!(dchi, (R/4)/maximum(abs.(U)).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -R]; [R R R]]),
-        #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
-end
-
-function test_csdsg3(n = 8, visualize = true)
-    E = 6.825e7;
-    nu = 0.3;
-    thickness  =  0.04;
-    # analytical solution for the vertical deflection under the load
-    analyt_sol = 0.0924;
-    R = 10.0;
-
-    tolerance = R/n/1000
-    fens, fes = Q4spheren(R, n)
-    fens, fes = Q4toT3(fens, fes)
-
-    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-    
-    formul = FEMMShellCSDSG3Module
-    # Report
-    @info "Hemisphere, formulation=$(formul)"
-    @info "Mesh: $n elements per side"
-
-    sfes = FESetShellT3()
-    accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    stiffness = formul.stiffness
-
-    # Construct the requisite fields, geometry and displacement
-    # Initialize configuration variables
-    geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
-    Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
-
-    # Apply EBC's
-    # plane of symmetry perpendicular to X
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # plane of symmetry perpendicular to Y
-    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,4,6]
-        setebc!(dchi, l1, true, i)
-    end
-    # top
-    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,4,5,6]
-        setebc!(dchi, l1, true, i)
-    end
-    applyebc!(dchi)
-    numberdofs!(dchi);
-
-    # Assemble the system matrix
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load

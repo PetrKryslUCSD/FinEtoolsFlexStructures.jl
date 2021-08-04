@@ -20,6 +20,10 @@ Class for Discrete Shear Gap shell finite element modeling machine. With
 averaging of the transverse strain-displacement matrix to provide isotropic
 transverse shear response.
 
+The formulation is developed to correctly handle the coupling of twisting
+moments and transverse shear (such as in the twisted beam or the Raasch hook
+problems).
+
 Programming developed consistently with the paper
 [1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
 element method, Comput Mech (2010) 45:141–156
@@ -29,6 +33,11 @@ In this reference, the sign next to Ae in equation (44) is wrong.
 [2] A superconvergent alpha finite element method (S a FEM) for static and
 free vibration analysis of shell structures
 Chai et al. (2017).
+
+TO DO: 
+- Take into account the possibility of a crease in the surface.
+In that case the normal should not be averaged across the crease.
+Along the crease every element should use the normal to its surface.
 """
 mutable struct FEMMShellDSG3IF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
