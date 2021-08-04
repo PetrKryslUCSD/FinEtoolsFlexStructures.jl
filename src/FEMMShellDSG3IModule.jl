@@ -1,6 +1,6 @@
 module FEMMShellDSG3IModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag
+using LinearAlgebra: norm, Transpose, mul!, diag, eigen
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
