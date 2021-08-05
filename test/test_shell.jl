@@ -1,5 +1,5 @@
 # Pinched cylinder with diagphram supports and concentrated force
-module scordelis_lo__dsg3_verification
+module scordelis_lo_dsg3_verification
 
 using Test
 using LinearAlgebra
@@ -319,7 +319,7 @@ Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically
 
 
 """
-module twisted_beam_examples
+module twisted_beam_dsg3_verification
 
 using Test
 using FinEtools
@@ -440,14 +440,14 @@ test_convergence(test_dsg3if, [54.64381168194862
 91.14293575791413                                  
 96.58985595218654                                  
 98.66116466318049                                  
-68.78326551886569                                  
-85.06734683656741                                  
-92.79623471964817                                  
-96.50986488444092                                  
-79.23331115523263                                  
-88.44430639472728                                  
-93.60167377948054                                  
-96.63868822689857 ])
+68.78329703527952
+85.06739918101329                                  
+92.79651734583757                               
+96.51004023953843
+79.23340078402887
+88.4444050673403
+93.60212106778023                                 
+96.63919884543652 ])
 
 end # module
 
