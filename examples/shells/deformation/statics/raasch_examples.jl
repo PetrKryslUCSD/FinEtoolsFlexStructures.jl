@@ -79,7 +79,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
         # Report
-    @info "Raasch hook, formulation=$(formul)"
+    
     @info "Mesh: $input"
 
     sfes = FESetShellT3()
@@ -122,7 +122,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     scattersysvec!(dchi, U[:])
     nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 0], inflate = tolerance)
     targetu =  dchi.values[nl, 3][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Visualization
     if !visualize
@@ -169,7 +169,7 @@ function test_t6(input = "raasch_s4_1x9.inp", visualize = true)
     
     formul = FEMMShellIsoPModule
     # Report
-    @info "Hemisphere, formulation=$(formul)"
+    
     @info "Mesh: $input"
 
     sfes = FESetShellT3()
@@ -212,7 +212,7 @@ function test_t6(input = "raasch_s4_1x9.inp", visualize = true)
     scattersysvec!(dchi, U[:])
     nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 0], inflate = tolerance)
     targetu =  dchi.values[nl, 3][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Visualization
     if !visualize
@@ -261,7 +261,7 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     
     formul = FEMMShellIsoPModule
     # Report
-    @info "Hemisphere, formulation=$(formul)"
+    
     @info "Mesh: $input"
 
     sfes = FESetShellT3()
@@ -304,7 +304,7 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
     scattersysvec!(dchi, U[:])
     nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 0], inflate = tolerance)
     targetu =  dchi.values[nl, 3][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Visualization
     if !visualize
@@ -321,6 +321,8 @@ function test_t3(input = "raasch_s4_1x9.inp", visualize = true)
 end
 
 function test_convergence(t)
+    @info "Raasch hook, formulation=$(t)"
+
     for m in ["1x9", "3x18", "5x36", "10x72"]
         t("raasch_s4_" * m * ".inp", false)
     end
@@ -348,5 +350,7 @@ end # module
 using .raasch_examples
 m = raasch_examples
 # m.test_dsg3if()#
+m.test_convergence(m.test_dsg3)
+m.test_convergence(m.test_dsg3i)
 m.test_convergence(m.test_dsg3if)
 # 
