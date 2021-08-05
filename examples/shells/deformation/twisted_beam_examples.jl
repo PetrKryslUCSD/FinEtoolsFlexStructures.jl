@@ -12,10 +12,23 @@ Zupan D, Saje M (2004) On "A proposed standard set of problems to test
 finite element accuracy": the twisted beam. Finite Elements in Analysis
 and Design 40: 1445-1451.  
 
+Thicker cross section (t = 0.32)
 #     Loading in the Z direction
 dir = 3; uex = 0.005424534868469; # Harder: 5.424e-3;
 #     Loading in the Y direction
 dir = 2; uex = 0.001753248285256; # Harder: 1.754e-3;
+
+Thinner cross section (t = 0.0032)
+#     Loading in the Z direction
+dir = 3; uex = 0.005256;
+#     Loading in the Y direction
+dir = 2; uex = 0.001294;
+
+MacNeal,  R. H., and R. L. Harder, “A Proposed Standard Set of Problems to Test Finite Element Accuracy,” Finite Elements in Analysis Design, vol. 11, pp. 3–20, 1985.
+
+Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically Exact Shell Model. Part II: The Linear Theory; Computational Aspects,” Computational Methods in Applied Mechanical Engineering, vol. 73, pp. 53–92, 1989.
+
+
 """
 module twisted_beam_examples
 
@@ -342,6 +355,15 @@ function test_convergence(t)
     for n in [2, 4, 8, 16, ]
         t(params_thicker_dir_2..., 2*n, n, false)
     end
+    for n in [2, 4, 8, 16, ]
+        t(params_thicker_dir_3..., 2*n, n, false)
+    end
+    for n in [2, 4, 8, 16, ]
+        t(params_thinner_dir_2..., 2*n, n, false)
+    end
+    for n in [2, 4, 8, 16, ]
+        t(params_thinner_dir_3..., 2*n, n, false)
+    end
     return true
 end
 
@@ -360,5 +382,6 @@ end # module
 
 using .twisted_beam_examples
 m = twisted_beam_examples
-m.test_dsg3if()
+# m.test_dsg3if()
 m.test_convergence(m.test_dsg3if)
+# m.test_convergence(m.test_dsg3if)
