@@ -19,6 +19,7 @@ dir = 3; uex = 0.005424534868469; # Harder: 5.424e-3;
 dir = 2; uex = 0.001753248285256; # Harder: 1.754e-3;
 
 Thinner cross section (t = 0.0032)
+TO DO What is the reference for the thinner section?
 #     Loading in the Z direction
 dir = 3; uex = 0.005256;
 #     Loading in the Y direction
@@ -27,8 +28,6 @@ dir = 2; uex = 0.001294;
 MacNeal,  R. H., and R. L. Harder, “A Proposed Standard Set of Problems to Test Finite Element Accuracy,” Finite Elements in Analysis Design, vol. 11, pp. 3–20, 1985.
 
 Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically Exact Shell Model. Part II: The Linear Theory; Computational Aspects,” Computational Methods in Applied Mechanical Engineering, vol. 73, pp. 53–92, 1989.
-
-
 """
 module twisted_beam_examples
 
