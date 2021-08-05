@@ -18,11 +18,9 @@ const __ndof = 6 # number of degrees of freedom per node
 
 Class for Discrete Shear Gap shell finite element modeling machine. With
 averaging of the transverse strain-displacement matrix to provide isotropic
-transverse shear response.
-
-The formulation is developed to correctly handle the coupling of twisting
-moments and transverse shear (such as in the twisted beam or the Raasch hook
-problems).
+transverse shear response. Also, the formulation is developed to correctly
+handle the coupling of twisting moments and transverse shear (such as in the
+twisted beam or the Raasch hook problems).
 
 Programming developed consistently with the paper
 [1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
@@ -189,6 +187,8 @@ function _compute_nodal_triads_e!(lTn, ln)
 end
 
 function _compute_nodal_triads_g!(Tn, lTn, F0)
+    # The nodal triads expressed on the element basis are pushed forward with the
+    # element rotation matrix.
     for k in 1:length(Tn)
         mul!(Tn[k], F0, lTn[k])
     end
@@ -205,10 +205,6 @@ function _g_n_transfmat!(Te, Tn, F0)
         r = offset+4:offset+6
         @. Te[r, r] = Tn[i]
     end
-    # for i in 1:2*__nn
-    #     r = (i-1)*3 .+ (1:3)
-    #     @. Te[r, r] = F0
-    # end
     return Te
 end
 
@@ -224,14 +220,15 @@ function _n_e_transfmat!(Te, lTn, F0, lgradN)
         r = roffset+1:roffset+3
         Te[r, r] .= lTn[i]' # this needs to be inverse
     end
-    # @show round.(Te, digits = 4)
-    # Rotation degrees of freedom
+    # Rotation degrees of freedom. The drilling rotation of the mid surface
+    # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
+    # rotations.
     for i in 1:__nn
         roffset = (i-1)*__ndof
         invlTn = inv(lTn[i][1:2, 1:2]') 
         Te[roffset.+(4:5), roffset.+(4:5)] .= invlTn
         Te[roffset+6, roffset+6] = 1/lTn[i][3, 3]
-        r = invlTn * vec(lTn[i][1:2, 3])
+        r = invlTn * vec(lTn[i][1:2, 3]) # TO DO avoid the temporary
         for j in 1:__nn
             coffset = (j-1)*__ndof
             Te[coffset+1, roffset+4] = (-r[1] * 1/2 * lgradN[j, 2])
@@ -240,7 +237,6 @@ function _n_e_transfmat!(Te, lTn, F0, lgradN)
             Te[coffset+2, roffset+5] = (+r[2] * 1/2 * lgradN[j, 1])
         end
     end
-    # @show round.(Te, digits = 4)
     return Te
 end
 
@@ -428,36 +424,32 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
             _Bsmat!(Bs, lecoords0)
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            # The stabilization expression has a huge effect (at least for the
-            # pinched cylinder). What is the recommended multiplier of he^2?
+            # TO DO The stabilization expression has a significant effect
+            # (at least for the pinched cylinder). What is the recommended
+            # multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
             # add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
         end
+        # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Bending diagonal stiffness coefficients
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) / 1e5
+        kavg = (kavg4 + kavg5) / 1e0
+        # Add the artificial drilling stiffness
         elmat[6,6] += kavg
         elmat[12,12] += kavg
         elmat[18,18] += kavg
+        # Now treat the transformation from the nodal to the element triad
         _gather_normals!(n, normals, fes.conn[i])
         _compute_normals_e!(ln, n, F0)
         _compute_nodal_triads_e!(lTn, ln)
         _n_e_transfmat!(Te, lTn, F0, lgradN)
-        # @show n, ln
+        # Transform the elementwise matrix into the nodal coordinates
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
-        complete_lt!(elmat)
-        # # Apply drilling-rotation artificial stiffness
-        # elmat[4:6, 4:6] .+= kavg .* ln[1]*ln[1]'
-        # elmat[10:12, 10:12] .+= kavg .* ln[2]*ln[2]'
-        # elmat[16:18, 16:18] .+= kavg .* ln[3]*ln[3]'
-        # complete_lt!(elmat)
-        # @show norm(elmat - elmat0)
-        
-        # Transformation into global ordinates
+        # Transform into global coordinates
         _compute_nodal_triads_g!(Tn, lTn, F0)
         _g_n_transfmat!(Te, Tn, F0)
         mul!(elmatTe, elmat, Transpose(Te))
