@@ -1,16 +1,19 @@
 using Test
-@time @testset "Section" begin
+@time @testset "Beam section" begin
     include("test_section.jl")
 end
-@time @testset "Mesh" begin
+@time @testset "Beam mesh" begin
     include("test_mesh.jl")
 end
-@time @testset "Modal" begin
+@time @testset "Beam modal" begin
     include("test_modal.jl")
 end
-@time @testset "Buckling" begin
+@time @testset "Beam buckling" begin
     include("test_buckling.jl")
 end
-@time @testset "Transient dynamics" begin
+@time @testset "Beam transient dynamics" begin
     include("test_dyn.jl")
+end
+@time @testset "Shell statics" begin
+    include("test_shell.jl")
 end
