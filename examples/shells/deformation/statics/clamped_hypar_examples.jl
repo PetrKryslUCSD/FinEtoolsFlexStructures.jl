@@ -92,7 +92,7 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     U = K\F
     scattersysvec!(dchi, U[:])
     targetu = dchi.values[nl, 3][1]
-    @info "Target: $targetu,  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
 
         # Visualization
     if !visualize
