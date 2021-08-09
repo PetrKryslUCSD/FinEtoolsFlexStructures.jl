@@ -475,13 +475,14 @@ Compute the consistent mass matrix
 This is a general routine for the shell FEMM.
 """
 function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
+    normals = self._normals
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     lecoords0 = self._lecoords0
-    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    
+    F0, Tn, lTn, n, ln, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     rho::FFlt = massdensity(self.material); # mass density
@@ -493,7 +494,7 @@ function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dc
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         _compute_J0!(J0, ecoords0)
-        local_frame!(delegateof(fes), Ft, J0)
+        local_frame!(delegateof(fes), F0, J0)
         fill!(tmss, 0.0)
         fill!(rmss, 0.0)
         # Compute the translational and rotational masses corresponding to nodes
@@ -501,7 +502,7 @@ function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dc
             locjac!(loc, J, ecoords0, Ns[j], gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
             t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            mul!(lecoords0, ecoords0, view(Ft, :, 1:2))
+            mul!(lecoords0, ecoords0, view(F0, :, 1:2))
             tfactor = rho*(t*Jac*w[j]);
             rfactor = rho*(t^3/12*Jac*w[j]);
             for k in 1:npe
@@ -523,8 +524,17 @@ function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dc
             c = (k - 1) * __ndof + d
             elmat[c, c] += rmss[k] / 1e6
         end
-        # Transformation into global ordinates
-        _transfmat!(Te, Ft)
+        # Now treat the transformation from the nodal to the element triad
+        _gather_normals!(n, normals, fes.conn[i])
+        _compute_normals_e!(ln, n, F0)
+        _compute_nodal_triads_e!(lTn, ln)
+        _n_e_transfmat!(Te, lTn, F0, lgradN)
+        # Transform the elementwise matrix into the nodal coordinates
+        mul!(elmatTe, elmat, Transpose(Te))
+        mul!(elmat, Te, elmatTe)
+        # Transform into global coordinates
+        _compute_nodal_triads_g!(Tn, lTn, F0)
+        _g_n_transfmat!(Te, Tn, F0)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
         # Assemble
