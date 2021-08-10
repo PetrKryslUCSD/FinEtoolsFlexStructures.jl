@@ -710,9 +710,6 @@ function stiffness(self::FEMMShellCSDSG3, assembler::ASS, geom0::NodalField{FFlt
         elmat[12, 12] += kavg 
         elmat[18, 18] += kavg 
         complete_lt!(elmat)
-        # d = [-0.2887, -0.2887, 0.5774, -0.2887, -0.2887, 0.5774]
-        # d = fill(0.0, 18)
-        # @infiltrate
         # Transformation into global ordinates
         _transfmat!(Te, Ft)
         mul!(elmatTe, elmat, Transpose(Te))
