@@ -1,6 +1,6 @@
 module FEMMShellDSG3IFModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I
+using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -42,6 +42,7 @@ mutable struct FEMMShellDSG3IF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     material::M # material object
     _associatedgeometry::Bool
     _normals::FFltMat
+    _normal_valid::Vector{Bool}
     # The attributes below are buffers used in various operations.
     _loc::FFltMat
     _J::FFltMat
@@ -58,6 +59,7 @@ mutable struct FEMMShellDSG3IF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _lTn::Vector{FFltMat} # transformation nodal-element matrices  
     _n::Vector{FFltVec} # nodal normals
     _ln::Vector{FFltVec} # nodal normals
+    _nvalid::Vector{Bool}
     _Te::FFltMat
     _elmat::FFltMat
     _elmatTe::FFltMat
@@ -79,6 +81,7 @@ function FEMMShellDSG3IF(integdomain::IntegDomain{S, F}, material::M) where {S<:
         end
     end
     _normals = fill(0.0, _nnmax, 3)
+    _normal_valid = fill(true, _nnmax)
     # Allocate the buffers2
     _loc = fill(0.0, 1, 3)
     _J = fill(0.0, 3, 2)
@@ -95,6 +98,7 @@ function FEMMShellDSG3IF(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _lTn = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]; 
     _n = [fill(0.0, 3), fill(0.0, 3), fill(0.0, 3)]; 
     _ln = [fill(0.0, 3), fill(0.0, 3), fill(0.0, 3)]; 
+    _nvalid = fill(false, 3)
     _Te = fill(0.0, __nn*__ndof, __nn*__ndof)
     _elmat = fill(0.0, __nn*__ndof, __nn*__ndof);    
     _elmatTe = fill(0.0, __nn*__ndof, __nn*__ndof); 
@@ -109,11 +113,11 @@ function FEMMShellDSG3IF(integdomain::IntegDomain{S, F}, material::M) where {S<:
     
     return FEMMShellDSG3IF(integdomain, material,
         false,
-        _normals,
+        _normals, _normal_valid,
         _loc, _J, _J0,
         _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, _lecoords0,
         _dofnums, 
-        _F0, _Tn, _lTn, _n, _ln, _Te,
+        _F0, _Tn, _lTn, _n, _ln, _nvalid, _Te,
         _elmat, _elmatTe, 
         _lloc, _lJ, _lgradN,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
@@ -124,6 +128,7 @@ function make(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)
+    # Compute the Jacobian: the Jacobian is constant within the triangle
     x, y, z = ecoords[2, :].-ecoords[1, :]
     J0[:, 1] .= (x, y, z)
     x, y, z = ecoords[3, :].-ecoords[1, :]
@@ -131,6 +136,8 @@ function _compute_J0!(J0, ecoords)
 end
     
 function _shell_material_stiffness(material)
+    # Compute the two material stiffness matrices: the plane stress matrix, and
+    # the transverse shear matrix
     D = fill(0.0, 6, 6)
     t::FFlt, dt::FFlt, loc::FFltMat, label::FInt = 0.0, 0.0, [0.0 0.0 0.0], 0
     tangentmoduli!(material,  D,  t, dt, loc, label)
@@ -148,19 +155,29 @@ function _shell_material_stiffness(material)
     return Dps, Dt
 end
 
-function _gather_normals!(n, normals, c)
+function _gather_normals!(n, nvalid, normals, normal_valid, c)
+    # Gather the local data for the element: for each of its nodes we collect
+    # the information from the global arrays
     for k in 1:length(n)
         n[k] .= vec(view(normals, c[k], :))
+        nvalid[k] = normal_valid[c[k]]
     end
     return n
 end
 
-function _compute_normals_e!(ln, n, F0)
-    # The nodal normal is projected onto the vectors of the element cartesian
-    # coordinate system. The normals are expressed using components on the
-    # element basis.
+function _compute_normals_e!(ln, n, nvalid, F0)
+    # The nodal normal is projected onto the basis vectors of the element
+    # cartesian coordinate system. The normals are expressed using components
+    # on the element basis.
     for k in 1:length(ln)
-        ln[k] .= F0'*vec(view(n[k], :))
+        nk = vec(view(n[k], :))
+        if nvalid[k] 
+            # If the nodal normal is valid, pull it back into the element frame.
+            ln[k] .= F0'*nk
+        else
+            # Otherwise the element normal replaces the nodal normal.
+            ln[k] .= 0.0; ln[k][3] = 1.0
+        end
     end
     return ln
 end
@@ -169,8 +186,8 @@ function _compute_nodal_triads_e!(lTn, ln)
     # Components of a cartesian ordinate system such that the third direction is
     # the direction of the nodal normal, and the angle to rotate one into the
     # other is as short as possible; these components are given on the local
-    # element coordinate system basis vectors. 
-    # These triads are the element-to-nodal transformation matrices.
+    # element coordinate system basis vectors. These triads are the
+    # element-to-nodal transformation matrices.
 
     # TO DO Get rid of the temporaries
     r = similar(ln[1])
@@ -362,7 +379,7 @@ end
 function associategeometry!(self::FEMMShellDSG3IF,  geom::NodalField{FFlt})
     J0 = self._J0
     F0 = self._F0
-    normals = self._normals
+    normals, normal_valid = self._normals, self._normal_valid
     # Compute the normals at the nodes
     for el in 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
@@ -373,12 +390,43 @@ function associategeometry!(self::FEMMShellDSG3IF,  geom::NodalField{FFlt})
         normals[j, :] .+= F0[:, 3]
         normals[k, :] .+= F0[:, 3]
     end
+    # Normalize to unit length
     for j in 1:size(normals, 1)
         nn = norm(normals[j, :])
         if nn > 0.0
             normals[j, :] ./= nn
         end
     end
+    # Now perform a second pass. If the nodal normal differs by a substantial
+    # amount from the element normals, zero out the nodal normal to indicate
+    # that the nodal normal should not be used at that vertex.
+    ntolerance = 1 - sqrt(1 - sin(30/180*pi)^2)
+    for el in 1:count(self.integdomain.fes)
+        i, j, k = self.integdomain.fes.conn[el]
+        J0[:, 1] = geom.values[j, :] - geom.values[i, :]
+        J0[:, 2] = geom.values[k, :] - geom.values[i, :]
+        local_frame!(delegateof(self.integdomain.fes), F0, J0)
+        en = view(F0, :, 3)
+        nd = dot(normals[i, :], en)
+        if nd < 1 - ntolerance
+            normal_valid[i] = false
+        end
+        nd = dot(normals[j, :], en)
+        if nd < 1 - ntolerance
+            normal_valid[j] = false
+        end
+        nd = dot(normals[k, :], en)
+        if nd < 1 - ntolerance
+            normal_valid[k] = false
+        end
+    end
+    nz = 0
+    for j in 1:size(normals, 1)
+        if !normal_valid[j]
+            nz += 1
+        end
+    end
+    # @show size(normals, 1) , nz
     self._associatedgeometry = true
     return self
 end
@@ -392,11 +440,11 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    normals = self._normals
+    normals, normal_valid = self._normals, self._normal_valid
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     lecoords0 = self._lecoords0
-    F0, Tn, lTn, n, ln, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._Te
+    F0, Tn, lTn, n, ln, nvalid, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._nvalid, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
@@ -433,19 +481,20 @@ function stiffness(self::FEMMShellDSG3IF, assembler::ASS, geom0::NodalField{FFlt
         end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
+        # Now treat the transformation from the nodal to the element triad
+        _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
+        _compute_normals_e!(ln, n, nvalid, F0)
+        _compute_nodal_triads_e!(lTn, ln)
+        _n_e_transfmat!(Te, lTn, F0, lgradN)
         # Bending diagonal stiffness coefficients
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
         kavg = (kavg4 + kavg5) / 1e0
-        # Add the artificial drilling stiffness
-        elmat[6,6] += kavg
-        elmat[12,12] += kavg
-        elmat[18,18] += kavg
-        # Now treat the transformation from the nodal to the element triad
-        _gather_normals!(n, normals, fes.conn[i])
-        _compute_normals_e!(ln, n, F0)
-        _compute_nodal_triads_e!(lTn, ln)
-        _n_e_transfmat!(Te, lTn, F0, lgradN)
+        # Add the artificial drilling stiffness: only if the nodal normal is
+        # valid. It is not valid when the note is located at a crease. 
+        nvalid[1] && (elmat[6,6] += kavg)
+        nvalid[2] && (elmat[12,12] += kavg)
+        nvalid[3] && (elmat[18,18] += kavg)
         # Transform the elementwise matrix into the nodal coordinates
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
@@ -478,11 +527,11 @@ function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dc
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    normals = self._normals
+    normals, normal_valid = self._normals, self._normal_valid
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     lecoords0 = self._lecoords0
-    F0, Tn, lTn, n, ln, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._Te
+    F0, Tn, lTn, n, ln, nvalid, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._nvalid, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     rho::FFlt = massdensity(self.material); # mass density
@@ -510,25 +559,31 @@ function mass(self::FEMMShellDSG3IF,  assembler::A,  geom0::NodalField{FFlt}, dc
                 rmss[k] += rfactor*(Ns[j][k])
             end
         end # Loop over quadrature points
+        # Now treat the transformation from the nodal to the element triad
+        _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
+        _compute_normals_e!(ln, n, nvalid, F0)
+        _compute_nodal_triads_e!(lTn, ln)
+        _n_e_transfmat!(Te, lTn, F0, lgradN)
+        # Fill the elementwise matrix
         fill!(elmat,  0.0); # Initialize element matrix
         for k in 1:npe
+            # Translation degrees of freedom
             for d in 1:3
                 c = (k - 1) * __ndof + d
                 elmat[c, c] += tmss[k]
             end
+            # Bending degrees of freedom
             for d in 4:5
                 c = (k - 1) * __ndof + d
                 elmat[c, c] += rmss[k]
             end
-            d = 6
-            c = (k - 1) * __ndof + d
-            elmat[c, c] += rmss[k] / 1e6
+            # Drilling rotations
+            if nvalid[k]
+                d = 6
+                c = (k - 1) * __ndof + d
+                elmat[c, c] += rmss[k] / 1e6
+            end
         end
-        # Now treat the transformation from the nodal to the element triad
-        _gather_normals!(n, normals, fes.conn[i])
-        _compute_normals_e!(ln, n, F0)
-        _compute_nodal_triads_e!(lTn, ln)
-        _n_e_transfmat!(Te, lTn, F0, lgradN)
         # Transform the elementwise matrix into the nodal coordinates
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
