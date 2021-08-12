@@ -8,12 +8,9 @@ The plate is discretized with shell elements. Because no displacements are
 prevented, the structure has six rigid body modes (six zero vibration
 frequencies).
 
-The mass matrix is computed without consideration for the rotations. Hence, the
-frequencies are underestimated.    
-
 The nonzero benchmark frequencies are (in hertz): 
 
-1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.6b68.
+1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668.
 """
 module FV12_vibration_examples
 
