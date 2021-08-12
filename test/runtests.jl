@@ -15,5 +15,8 @@ end
     include("test_dyn.jl")
 end
 @time @testset "Shell statics" begin
-    include("test_shell.jl")
+    include("test_shell_statics.jl")
+end
+@time @testset "Shell dynamics" begin
+    include("test_shell_dynamics.jl")
 end
