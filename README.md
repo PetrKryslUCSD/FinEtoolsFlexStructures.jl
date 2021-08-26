@@ -6,7 +6,7 @@
 
 # FinEtoolsFlexStructures.jl
 
-FinEtools used for 
+[`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl) used for 
 - Simulations of large-displacement response of three-dimensional flexible-beam structures. Linear static analysis, modal analysis, linear buckling analysis. Nonlinear statics and dynamics;
 - Simulations of shell structures. Linear static analysis, modal analysis.
 
