@@ -415,19 +415,19 @@ end
 function test_convergence(t, results)
     for n in [2, 4, 8, 16, ]
         v = t(params_thicker_dir_2..., 2*n, n, false)
-        @test v ≈ popat!(results, 1)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thicker_dir_3..., 2*n, n, false)
-        @test v ≈ popat!(results, 1)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thinner_dir_2..., 2*n, n, false)
-        @test v ≈ popat!(results, 1)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thinner_dir_3..., 2*n, n, false)
-        @test v ≈ popat!(results, 1)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
     end
     return true
 end
