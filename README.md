@@ -15,6 +15,7 @@ FinEtools used for
 - Only elastic structures can be modeled.
 - Only simple solid beam cross sections are implemented. Open thin-walled beams cannot be simulated at this point since the warping of the section is not enabled.
 - Shells need to be homogeneous. The layered model suitable for laminates and such is not implemented yet.
+- Neither beams nor shells can be attached with an offset (eccentricity).
 
 ## News
 
