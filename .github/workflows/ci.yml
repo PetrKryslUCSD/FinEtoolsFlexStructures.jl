@@ -44,6 +44,8 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
+        env:
+          CODECOV_TOKEN='80caa54b-e682-450c-a7dd-904d616dbb5e'
   docs:
     name: Documentation
     runs-on: ubuntu-latest
