@@ -7,6 +7,12 @@ clamped along one side and free on three edges and loaded by self-weight
 hard test for locking behaviour as suggested in References (Chapelle and Bathe,
 1998; Bathe, Iosilevich, and Chapelle, 2000). 
 
+See also the table in  
+An Improved Quadrilateral Flat Element with Drilling
+Degrees of Freedom for Shell Structural Analysis
+H. Nguyen-Van1 , N. Mai-Duy1 and T. Tran-Cong1
+CMES, vol.49, no.2, pp.81-110, 2009.
+
 The shell geometry is described by the
 equation: z = x^2 −y^2 ; (x,y) ∈ − L/2 ; L/2
 """
