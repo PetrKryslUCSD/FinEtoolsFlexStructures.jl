@@ -7,6 +7,12 @@ clamped along one side and free on three edges and loaded by self-weight
 hard test for locking behaviour as suggested in References (Chapelle and Bathe,
 1998; Bathe, Iosilevich, and Chapelle, 2000). 
 
+Table 2 in Bathe, Iosilevich, and Chapelle, 2000 (computed with MITC16).
+t/L   Strain energy  Displacement
+1/100 1.6790e-3 9.3355e-5
+1/1000 1.1013e-2 6.3941e-3
+1/10,000 8.9867e-2 5.2988e-1
+
 See also the table in  
 An Improved Quadrilateral Flat Element with Drilling
 Degrees of Freedom for Shell Structural Analysis
