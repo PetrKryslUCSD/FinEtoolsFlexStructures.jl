@@ -107,18 +107,17 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     @info "Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
 
         # Visualization
-    if !visualize
-        return true
-    end
-    scattersysvec!(dchi, (L/4)/abs(targetu).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+    if visualize
+        scattersysvec!(dchi, (L/4)/abs(targetu).*U)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, facecolor = "rgb(12, 12, 123)"),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
+            plot_midsurface(fens, fes; x = geom0.values, facecolor = "rgb(12, 12, 123)"),
+            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            dims = 1)
+        pl = render(plots)
+    end
+    return targetu
 end
 
 function test_dsg3if(args...)
@@ -244,6 +243,28 @@ function test_convergence(t)
     return true
 end
 
+
+function test_dependence_on_thickness(t)
+    
+    tL_ratios = [1/100, 1/1000, 1/10000]; 
+    gs = [80*0.1^0, 80*0.1^1, 80*0.1^2]
+    analyt_sols = [-9.3355e-5, -6.3941e-3, -5.2988e-1];
+
+    @info "Clamped hypar, t/L=$(tL_ratio), formulation=$(t)"
+    
+    for (tL_ratio, g, analyt_sol) in zip(tL_ratios, gs, analyt_sols)
+        results = []
+        for n in [4, 8, 16, 32, 64, 128, 256, 512]
+            r = t(tL_ratio, g, analyt_sol, n, false)
+            push!(results, r/analyt_sol)
+        end   
+        @show results
+    end
+
+    return true
+end
+
+
 function allrun()
     println("#####################################################")
     println("# test_dsg3 ")
@@ -264,6 +285,7 @@ end # module
 
 using .clamped_hypar_examples
 m = clamped_hypar_examples
-m.test_convergence(m.test_dsg3)
-m.test_convergence(m.test_dsg3i)
-m.test_convergence(m.test_dsg3if)
+# m.test_convergence(m.test_dsg3)
+# m.test_convergence(m.test_dsg3i)
+# m.test_convergence(m.test_dsg3if)
+m.test_dependence_on_thickness(m.test_dsg3if)
