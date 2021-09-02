@@ -6,9 +6,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -17,16 +17,16 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -315,6 +315,6 @@ end # module
 using .scordelis_lo_examples
 m = scordelis_lo_examples
 m.test_convergence(m.test_dsg3)
-m.test_convergence(m.test_dsg3i)
-m.test_convergence(m.test_dsg3if)
+m.test_convergence(m.test_st3dsgic)
+m.test_convergence(m.test_st3dsg)
 m.test_convergence(m.test_csdsg3)

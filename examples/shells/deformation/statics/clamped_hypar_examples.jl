@@ -29,9 +29,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 # using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
@@ -120,16 +120,16 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     return targetu
 end
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -264,15 +264,15 @@ function test_dependence_on_thickness(t)
     return true
 end
 
-using Gnuplot
+# using Gnuplot
 
-ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, 512]
-results = [0.8571252448599641, 0.8665242340654647, 0.9178272403908829, 0.9613361100770298, 0.9854577511292909, 0.9954878630275767, 0.9992902287331279, 1.0007228233464933]    
-@gp ns results "with lp"      :-           
-results = [1.0075109452933262, 0.918680499178048, 0.9336875438959243, 0.9558938174582949, 0.9762891817704417, 0.9902400506734798, 0.9968806281803028, 0.9993845760976003]  
-@gp :- ns results "with lp"    :-                             
-results = [1.2091137985344178, 1.0002021765631814, 0.9641514478788299, 0.971027447847773, 0.9811117321314542, 0.9889056459333478, 0.9953395935946254, 0.999163974846612]  
-@gp :- ns results "with lp"
+# ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, 512]
+# results = [0.8571252448599641, 0.8665242340654647, 0.9178272403908829, 0.9613361100770298, 0.9854577511292909, 0.9954878630275767, 0.9992902287331279, 1.0007228233464933]    
+# @gp ns results "with lp"      :-           
+# results = [1.0075109452933262, 0.918680499178048, 0.9336875438959243, 0.9558938174582949, 0.9762891817704417, 0.9902400506734798, 0.9968806281803028, 0.9993845760976003]  
+# @gp :- ns results "with lp"    :-                             
+# results = [1.2091137985344178, 1.0002021765631814, 0.9641514478788299, 0.971027447847773, 0.9811117321314542, 0.9889056459333478, 0.9953395935946254, 0.999163974846612]  
+# @gp :- ns results "with lp"
 
 
 function allrun()
@@ -296,6 +296,6 @@ end # module
 using .clamped_hypar_examples
 m = clamped_hypar_examples
 # m.test_convergence(m.test_dsg3)
-# m.test_convergence(m.test_dsg3i)
-# m.test_convergence(m.test_dsg3if)
-m.test_dependence_on_thickness(m.test_dsg3if)
+# m.test_convergence(m.test_st3dsgic)
+# m.test_convergence(m.test_st3dsg)
+m.test_dependence_on_thickness(m.test_st3dsgic)

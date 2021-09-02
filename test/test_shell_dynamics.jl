@@ -21,24 +21,24 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 # using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-    return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+    return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-    return _execute_dsg_model(FEMMShellDSG3Module, args...)
+    return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -128,7 +128,7 @@ end
 
 # 1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668.
 reffs = [0.0, 0.0, 2.604869127850317e-7, 4.698288861559094e-6, 6.749716652051837e-6, 9.829373450823236e-6, 1.572130183778014, 2.2424585076387427, 2.8079394352847316, 3.883763676656034, 4.039123204140305, 6.787320617260535, 6.920636670319986, 7.127888889722697] 
-fs = test_dsg3if()
+fs = test_st3dsg()
 for j in eachindex(reffs)
     @test isapprox(fs[j], reffs[j], atol = 1.0e-8, rtol = 1.0e-6)
 end

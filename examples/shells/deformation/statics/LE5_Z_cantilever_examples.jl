@@ -23,9 +23,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellT3Module
@@ -35,16 +35,16 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -260,6 +260,6 @@ end # module
 
 using .LE5_Z_cantilever_examples
 m = LE5_Z_cantilever_examples
-# m.test_convergence(m.test_dsg3if)
-# m.test_convergence(m.test_dsg3if)
-m.test_dsg3if("nle5xf3c.inp", 3, true)
+# m.test_convergence(m.test_st3dsg)
+# m.test_convergence(m.test_st3dsg)
+m.test_st3dsg("nle5xf3c.inp", 3, true)

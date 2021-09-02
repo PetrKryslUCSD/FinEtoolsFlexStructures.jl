@@ -1,4 +1,4 @@
-module FEMMShellDSG3IModule
+module FEMMShellT3DSGICModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen
 using Statistics: mean

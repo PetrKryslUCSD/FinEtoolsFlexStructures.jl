@@ -7,9 +7,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -18,16 +18,16 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -120,13 +120,13 @@ test_convergence(test_dsg3, [64.3167759233874,
 93.32599689114275,                                                              
 96.82533584021382,                                                              
 99.91041942923614])
-test_convergence(test_dsg3i, [68.93400706852107,                             
+test_convergence(test_st3dsgic, [68.93400706852107,                             
 89.31902528662164,                                                              
 94.05006970072284,                                                              
 97.03680208373054,                                                              
 100.46625686052543,                                                             
 103.64317681989752])
-test_convergence(test_dsg3if, [66.64995973373549,                       
+test_convergence(test_st3dsg, [66.64995973373549,                       
     85.59194662963257,                                                              
     89.88220350622672,                                                              
     92.52849163603474,                                                              
@@ -167,9 +167,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellT3Module
@@ -179,16 +179,16 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -281,8 +281,8 @@ end
 
  
 test_convergence(test_dsg3, [197.07225021939522, 122.29375814892506, 131.7397746827515, 166.9855842073799])
-test_convergence(test_dsg3i, [98.93041135486558, 107.56727708008175, 121.0279541750594, 160.55183716024845])
-test_convergence(test_dsg3if, [96.51445461618886, 96.48046436369553, 97.30091092942541, 98.41519147885221])
+test_convergence(test_st3dsgic, [98.93041135486558, 107.56727708008175, 121.0279541750594, 160.55183716024845])
+test_convergence(test_st3dsg, [96.51445461618886, 96.48046436369553, 97.30091092942541, 98.41519147885221])
 test_convergence(test_csdsg3, [90.09510193432982, 101.2652927601732, 114.4122860334214, 155.13736181762695])
        
 end # module
@@ -326,9 +326,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -342,16 +342,16 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
@@ -432,7 +432,7 @@ function test_convergence(t, results)
     return true
 end
 
-test_convergence(test_dsg3if, [54.64381168194862                                  
+test_convergence(test_st3dsg, [54.64381168194862                                  
 73.44131219368768                                  
 87.32404900158092                                  
 95.46324216331342                                  
@@ -477,9 +477,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellT3Module
@@ -489,16 +489,16 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function test_csdsg3(args...)
@@ -591,7 +591,7 @@ function test_convergence(t)
     return true
 end
 
-res = test_dsg3if("nle5xf3c.inp", 0, false)
+res = test_st3dsg("nle5xf3c.inp", 0, false)
 @test res[1] ≈ (-0.01568028415401719, 0.015401663810490641)[1]
 @test res[2] ≈ (-0.01568028415401719, 0.015401663810490641)[2]
 

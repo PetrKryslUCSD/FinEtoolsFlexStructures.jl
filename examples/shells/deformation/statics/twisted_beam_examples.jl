@@ -35,9 +35,9 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -51,16 +51,16 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function test_dsg3if(args...)
-    return _execute_dsg_model(FEMMShellDSG3IFModule, args...)
+function test_st3dsg(args...)
+    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
 end
 
-function test_dsg3i(args...)
-  return _execute_dsg_model(FEMMShellDSG3IModule, args...)
+function test_st3dsgic(args...)
+  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellDSG3Module, args...)
+  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
 end
 
 function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
@@ -381,6 +381,6 @@ end # module
 
 using .twisted_beam_examples
 m = twisted_beam_examples
-# m.test_dsg3if()
-m.test_convergence(m.test_dsg3if)
-# m.test_convergence(m.test_dsg3if)
+# m.test_st3dsg()
+m.test_convergence(m.test_st3dsg)
+# m.test_convergence(m.test_st3dsg)

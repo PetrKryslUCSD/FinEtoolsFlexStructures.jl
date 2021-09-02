@@ -1,4 +1,4 @@
-module FEMMShellDSG3Module
+module FEMMShellT3ODSGModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag
 using Statistics: mean

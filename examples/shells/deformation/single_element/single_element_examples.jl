@@ -8,9 +8,9 @@ using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellDSG3Module
-using FinEtoolsFlexStructures.FEMMShellDSG3IModule
-using FinEtoolsFlexStructures.FEMMShellDSG3IFModule
+using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellT3Module
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
@@ -38,7 +38,7 @@ function standard_single_dsg3()
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
     formul = FEMMShellCSDSG3Module
-    formul = FEMMShellDSG3IFModule
+    formul = FEMMShellT3DSGModule
 
     # @show Bb[:, [4, 5, 10, 11, 16, 17]]
     # @show Bs[:, [4, 5, 10, 11, 16, 17]]
@@ -144,7 +144,7 @@ function distorted_single_dsg3()
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
     formul = FEMMShellCSDSG3Module
-    formul = FEMMShellDSG3IFModule
+    formul = FEMMShellT3DSGModule
 
     # @show Bb[:, [4, 5, 10, 11, 16, 17]]
     # @show Bs[:, [4, 5, 10, 11, 16, 17]]
