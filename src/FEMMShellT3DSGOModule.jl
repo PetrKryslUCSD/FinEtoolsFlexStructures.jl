@@ -1,4 +1,4 @@
-module FEMMShellT3Module
+module FEMMShellT3DSGOModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag
 using Statistics: mean
@@ -13,11 +13,21 @@ const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
 
 """
-    FEMMShellT3{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMShellDSG3{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
-Class for plain-vanilla 3-node shell finite element modeling machine.
+Class for Discrete Shear Gap shell finite element modeling machine.
+
+Programming developed consistently with the paper
+[1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
+element method, Comput Mech (2010) 45:141–156
+DOI 10.1007/s00466-009-0429-9
+
+In the above reference, the sign next to Ae in equation (44) is wrong.
+[2] A superconvergent alpha finite element method (S a FEM) for static and
+free vibration analysis of shell structures
+Chai et al. (2017).
 """
-mutable struct FEMMShellT3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
+mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::M # material object
     # The attributes below are buffers used in various operations.
@@ -58,7 +68,7 @@ mutable struct FEMMShellT3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _OS::FFltMat
 end
 
-function FEMMShellT3(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     _loc = fill(0.0, 1, 3)
     _J = fill(0.0, 3, 2)
     _J0 = fill(0.0, 3, 2)
@@ -94,7 +104,7 @@ function FEMMShellT3(integdomain::IntegDomain{S, F}, material::M) where {S<:Abst
     _RI = fill(0.0, 3, 3);    
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
-    return FEMMShellT3(integdomain, material,
+    return FEMMShellDSG3(integdomain, material,
         _loc, _J, _J0,
         _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, _lecoords0,
         _dofnums, 
@@ -107,7 +117,7 @@ function FEMMShellT3(integdomain::IntegDomain{S, F}, material::M) where {S<:Abst
 end
 
 function make(integdomain, material)
-    return FEMMShellT3(integdomain, material)
+    return FEMMShellDSG3(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)
@@ -147,14 +157,33 @@ end
     _Bsmat!(Bs, gradN, N)
 
 Compute the linear transverse shear strain-displacement matrix.
+
+Notice that the matrix has preferential directions, and the results will depend
+on the numbering of the nodes.
 """
-function _Bsmat!(Bs, gradN, N)
-    for i in 1:__nn
-        Bs[1,6*(i-1)+3] = gradN[i,1];
-        Bs[1,6*(i-1)+5] = N[i];
-        Bs[2,6*(i-1)+3] = gradN[i,2];
-        Bs[2,6*(i-1)+4] = -N[i];
-    end
+function _Bsmat!(Bs, lecoords)
+    a, b = lecoords[2, :].-lecoords[1, :]
+    c, d = lecoords[3, :].-lecoords[1, :]
+    Ae = (a*d - b*c)/2
+    addto(B, r, c, v) = (B[r, c] += v)
+    Bs .= 0.0 
+    # Node 1
+    addto(Bs, 1, 3, b-d);                                  addto(Bs, 1, 5, Ae) 
+    addto(Bs, 2, 3, c-a);    addto(Bs, 2, 4, -Ae); 
+    # Node 2
+    addto(Bs, 1, 6+3, d);    addto(Bs, 1, 6+4, -b*d/2);    addto(Bs, 1, 6+5, a*d/2) 
+    addto(Bs, 2, 6+3, -c);   addto(Bs, 2, 6+4, b*c/2);     addto(Bs, 2, 6+5, -a*c/2) 
+    # Node 3
+    addto(Bs, 1, 12+3, -b);  addto(Bs, 1, 12+4, b*d/2);    addto(Bs, 1, 12+5, -b*c/2) 
+    addto(Bs, 2, 12+3, a);   addto(Bs, 2, 12+4, -a*d/2);   addto(Bs, 2, 12+5, a*c/2) 
+    # Scale
+    Bs .*= (1/2/Ae)
+    # for i in 1:__nn
+    #     Bs[1,6*(i-1)+3] = gradN[i,1];
+    #     Bs[1,6*(i-1)+5] = N[i];
+    #     Bs[2,6*(i-1)+3] = gradN[i,2];
+    #     Bs[2,6*(i-1)+4] = -N[i];
+    # end
 end
 
 """
@@ -186,11 +215,11 @@ function _Bbmat!(Bb, gradN)
 end
 
 """
-    stiffness(self::FEMMShellT3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMShellT3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
     loc, J, J0 = self._loc, self._J, self._J0
@@ -221,13 +250,14 @@ function stiffness(self::FEMMShellT3, assembler::ASS, geom0::NodalField{FFlt}, u
             gradN!(fes, lgradN, gradNparams[j], lJ);
             _Bmmat!(Bm, lgradN)
             _Bbmat!(Bb, lgradN)
-            _Bsmat!(Bs, lgradN, Ns[j])
+            _Bsmat!(Bs, lecoords0)
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
             # The stabilization expression has a huge effect (at least for the
             # pinched cylinder). What is the recommended multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+            # add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
         end
         # Apply drilling-rotation artificial stiffness
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
@@ -248,20 +278,20 @@ function stiffness(self::FEMMShellT3, assembler::ASS, geom0::NodalField{FFlt}, u
     return makematrix!(assembler);
 end
 
-function stiffness(self::FEMMShellT3, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function stiffness(self::FEMMShellDSG3, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 
 """
-    mass(self::FEMMShellT3,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    mass(self::FEMMShellDSG3,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
 
 Compute the consistent mass matrix
 
 This is a general routine for the shell FEMM.
 """
-function mass(self::FEMMShellT3,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+function mass(self::FEMMShellDSG3,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
     loc, J, J0 = self._loc, self._J, self._J0
@@ -295,7 +325,7 @@ function mass(self::FEMMShellT3,  assembler::A,  geom0::NodalField{FFlt}, dchi::
                 tmss[k] += tfactor*(Ns[j][k])
                 rmss[k] += rfactor*(Ns[j][k])
             end
-        end # Loop over quadrature pointsnd
+        end # Loop over quadrature points
         fill!(elmat,  0.0); # Initialize element matrix
         for k in 1:npe
             for d in 1:3
@@ -321,10 +351,9 @@ function mass(self::FEMMShellT3,  assembler::A,  geom0::NodalField{FFlt}, dchi::
     return makematrix!(assembler);
 end
 
-function mass(self::FEMMShellT3,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
+function mass(self::FEMMShellDSG3,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return mass(self, assembler, geom, u);
 end
 
 end # module
-

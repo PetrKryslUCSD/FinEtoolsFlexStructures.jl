@@ -4,7 +4,7 @@ module pinched_cylinder_examples
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
@@ -20,7 +20,7 @@ function test_st3dsgic(args...)
 end
 
 function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
+  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
 end
 
 function test_csdsg3(args...)

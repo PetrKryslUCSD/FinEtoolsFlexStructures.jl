@@ -1,37 +1,19 @@
-# Clamped circular plate with uniform distributed load
-
+"""
+Clamped circular plate with uniform distributed load
+"""
 module clamped_circular_plate_udl_examples
 
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3ODSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 using Infiltrator
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3ODSGModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
 
 function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
     E = 200*phun("GPa");
@@ -128,12 +110,13 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
     return true
 end
 
-function test_convergence(t)
+function test_convergence()
+    t = FEMMShellT3DSGModule
     t_radius_ratio = 0.00001
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio formulation=$(t)"
     for n in [2, 4, 8, 16, 32, 64]
-        t(:q4_t3, n, t_radius_ratio, false)
+        _execute_dsg_model(t, :q4_t3, n, t_radius_ratio, false)
     end
     return true
 end
@@ -142,7 +125,4 @@ end # module
 
 using .clamped_circular_plate_udl_examples
 m = clamped_circular_plate_udl_examples
-m.test_convergence(m.test_dsg3)
-m.test_convergence(m.test_st3dsgic)
-m.test_convergence(m.test_st3dsg)
-# m.test_st3dsg()
+m.test_convergence()
