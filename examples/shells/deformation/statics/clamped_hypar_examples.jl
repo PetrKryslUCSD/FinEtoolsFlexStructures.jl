@@ -254,7 +254,7 @@ function test_dependence_on_thickness(t)
     
     for (tL_ratio, g, analyt_sol) in zip(tL_ratios, gs, analyt_sols)
         results = []
-        for n in [4, 8, 16, 32, 64, 128, 256, 512]
+        for n in [4, 8, 16, 32, 64, 128, 256, ]
             r = t(tL_ratio, g, analyt_sol, n, false)
             push!(results, r/analyt_sol)
         end   
@@ -263,6 +263,16 @@ function test_dependence_on_thickness(t)
 
     return true
 end
+
+using Gnuplot
+
+ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, 512]
+results = [0.8571252448599641, 0.8665242340654647, 0.9178272403908829, 0.9613361100770298, 0.9854577511292909, 0.9954878630275767, 0.9992902287331279, 1.0007228233464933]    
+@gp ns results "with lp"      :-           
+results = [1.0075109452933262, 0.918680499178048, 0.9336875438959243, 0.9558938174582949, 0.9762891817704417, 0.9902400506734798, 0.9968806281803028, 0.9993845760976003]  
+@gp :- ns results "with lp"    :-                             
+results = [1.2091137985344178, 1.0002021765631814, 0.9641514478788299, 0.971027447847773, 0.9811117321314542, 0.9889056459333478, 0.9953395935946254, 0.999163974846612]  
+@gp :- ns results "with lp"
 
 
 function allrun()
