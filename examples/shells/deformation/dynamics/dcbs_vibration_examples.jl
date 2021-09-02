@@ -1,5 +1,8 @@
 """
 Vibration analysis of double-cell box structure
+
+Reference values: 20.280 25.43 28.79 30.62 [Hz]
+From: Fan, Luah, Free vibration analysis of arbitrary thin shall structures by using spline finite element, Journal Sound Vib, (179), 763-776, 1995.
 """
 module dbcs_vibration_examples
 

@@ -29,22 +29,6 @@ using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-    return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-    return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-    return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
-
 function _execute_dsg_model(formul, n, visualize)
     E = 200e3*phun("MPa")
     nu = 0.3;
@@ -128,23 +112,17 @@ function _execute_dsg_model(formul, n, visualize)
 end
 
 
-function test_convergence(t)
-    @info "FV12 free vibration, formulation=$(t)"
+function test_convergence()
+    formul = FEMMShellT3DSGModule
+    @info "FV12 free vibration, formulation=$(formul)"
     for n in [2, 4, 8, 16, 32, 64]
-        t(n, false)
+        _execute_dsg_model(formul, n, false)
     end
     return true
 end
-
-function allrun()
-    println("#####################################################")
-    println("# test_dsg3 ")
-    test_dsg3()
-    return true
-end # function allrun
 
 end # module
 
 using .FV52_vibration_examples
 m = FV52_vibration_examples
-m.test_convergence(m.test_st3dsg)
+m.test_convergence()
