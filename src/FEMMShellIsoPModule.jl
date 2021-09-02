@@ -15,7 +15,10 @@ const __ndof = 6 # number of degrees of freedom per node
 """
     FEMMShellIsoP{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
-Class for plain-vanilla 3-node shell finite element modeling machine.
+Class for plain-vanilla isoparametric flat shell triangle
+finite element modeling machine.
+
+BEWARE: Not finished yet.
 """
 mutable struct FEMMShellIsoP{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
