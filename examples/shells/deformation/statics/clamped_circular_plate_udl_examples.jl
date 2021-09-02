@@ -111,12 +111,12 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
 end
 
 function test_convergence()
-    t = FEMMShellT3DSGModule
+    formul = FEMMShellT3DSGModule
     t_radius_ratio = 0.00001
     @info "Simply supported square plate with uniform load,"
-    @info "thickness/length = $t_radius_ratio formulation=$(t)"
+    @info "thickness/length = $t_radius_ratio formulation=$(formul)"
     for n in [2, 4, 8, 16, 32, 64]
-        _execute_dsg_model(t, :q4_t3, n, t_radius_ratio, false)
+        _execute_dsg_model(formul, :q4_t3, n, t_radius_ratio, false)
     end
     return true
 end

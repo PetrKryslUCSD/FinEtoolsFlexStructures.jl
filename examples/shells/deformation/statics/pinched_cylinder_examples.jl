@@ -1,4 +1,6 @@
-# Pinched cylinder with diagphram supports and concentrated force
+"""
+Pinched cylinder with diagphram supports and concentrated force
+"""
 module pinched_cylinder_examples
 
 using FinEtools
@@ -10,22 +12,6 @@ using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
 
 function _execute_dsg_model(formul, n = 2, visualize = true)
     E = 3e6;
@@ -118,31 +104,17 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     return true
 end
 
-function test_convergence(t)
-    @info "Pinched cylinder, formulation=$(t)"
+function test_convergence()
+    formul = FEMMShellT3DSGModule
+    @info "Pinched cylinder, formulation=$(formul)"
     for n in [8, 12, 16, 24]
-        t(n, false)
+        _execute_dsg_model(formul, n, false)
     end
     return true
 end
-
-function allrun()
-    println("#####################################################")
-    println("# test_dsg3 ")
-    test_dsg3()
-    println("#####################################################")
-    println("# test_dsg3_convergence  ")
-    test_dsg3_convergence()
-    println("#####################################################")
-    println("# test_q4sri_convergence  ")
-    # test_q4sri_convergence()
-    return true
-end # function allrun
 
 end # module
 
 using .pinched_cylinder_examples
 m = pinched_cylinder_examples
-m.test_convergence(m.test_st3dsg)
-m.test_convergence(m.test_st3dsgic)
-m.test_convergence(m.test_dsg3)
+m.test_convergence()

@@ -93,46 +93,18 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return resultpercent
 end
 
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
-
-function test_convergence(t)
-
-    @info "Cook, formulation=$(t)"
+function test_convergence()
+    formul = FEMMShellT3DSGModule
+    @info "Cook, formulation=$(formul)"
        
     for n in [2, 4, 8, 16, 32, 64, 128]
-        t(n, false)
+        _execute_dsg_model(formul, n, false)
     end
     return true
 end
-
-
-function allrun()
-    println("#####################################################")
-    println("# test_dsg3 ")
-    test_dsg3()
-    println("#####################################################")
-    println("# test_q4sri ")
-    test_q4sri()
-    return true
-end # function allrun
 
 end # module
 
 using .cook_membrane_examples
 m = cook_membrane_examples
-m.test_convergence(m.test_st3dsgic)
-m.test_convergence(m.test_st3dsg)
+m.test_convergence()
