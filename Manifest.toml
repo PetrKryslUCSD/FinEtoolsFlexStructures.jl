@@ -81,6 +81,12 @@ git-tree-sha1 = "ded953804d019afa9a3f98981d99b33e3db7b6da"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.7.0"
 
+[[ColorSchemes]]
+deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random"]
+git-tree-sha1 = "9995eb3977fbf67b86d0a0a0508e83017ded03f2"
+uuid = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+version = "3.14.0"
+
 [[ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
 git-tree-sha1 = "024fe24d83e4a5bf5fc80501a314ce0d1aa35597"
@@ -185,6 +191,12 @@ deps = ["Test"]
 git-tree-sha1 = "04cb9cfaa6ba5311973994fe3496ddec19b6292a"
 uuid = "de31a74c-ac4f-5751-b3fd-e18cd04993ca"
 version = "0.5.0"
+
+[[Gnuplot]]
+deps = ["ColorSchemes", "ColorTypes", "Colors", "DataStructures", "REPL", "ReplMaker", "StatsBase", "StructC14N", "Test"]
+git-tree-sha1 = "637ee67f78c4adb222ee11c590bd1d0a1a50ba88"
+uuid = "dc211083-a33a-5b79-959f-2ff34033469d"
+version = "1.4.0"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
@@ -492,6 +504,12 @@ git-tree-sha1 = "5f6c21241f0f655da3952fd60aa18477cf96c220"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.1.0"
 
+[[ReplMaker]]
+deps = ["REPL", "Unicode"]
+git-tree-sha1 = "76098218397ec93b925b70ce355144d539b1a8b4"
+uuid = "b873ce64-0db9-51f5-a568-4457d8e49576"
+version = "0.2.5"
+
 [[Requires]]
 deps = ["UUIDs"]
 git-tree-sha1 = "4036a3bd08ac7e968e27c203d45f5fff15020621"
@@ -559,6 +577,12 @@ deps = ["ArrayInterface", "ManualMemory", "Requires", "ThreadingUtilities", "Vec
 git-tree-sha1 = "9ab16bda5fe1212e0af0bea80f1d11096aeb3248"
 uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
 version = "0.1.18"
+
+[[StructC14N]]
+deps = ["Test"]
+git-tree-sha1 = "932b930747486efdc5f78297480c311d58374d04"
+uuid = "d2514e9c-36c4-5b8e-97e2-51e7675c221c"
+version = "0.3.0"
 
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
