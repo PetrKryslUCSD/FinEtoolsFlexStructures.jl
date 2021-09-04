@@ -13,9 +13,13 @@ const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
 
 """
-    FEMMShellDSG3{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMShellT3DSGO{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
 Class for Discrete Shear Gap shell finite element modeling machine.
+
+- Original formulation, the shear matrix depends on the numbering of the element
+  nodes. 
+- Inconsistent treatment of normals between elements.
 
 Programming developed consistently with the paper
 [1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
@@ -27,7 +31,7 @@ In the above reference, the sign next to Ae in equation (44) is wrong.
 free vibration analysis of shell structures
 Chai et al. (2017).
 """
-mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
+mutable struct FEMMShellT3DSGO{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::M # material object
     # The attributes below are buffers used in various operations.
@@ -68,7 +72,7 @@ mutable struct FEMMShellDSG3{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _OS::FFltMat
 end
 
-function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellT3DSGO(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     _loc = fill(0.0, 1, 3)
     _J = fill(0.0, 3, 2)
     _J0 = fill(0.0, 3, 2)
@@ -104,7 +108,7 @@ function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
     _RI = fill(0.0, 3, 3);    
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
-    return FEMMShellDSG3(integdomain, material,
+    return FEMMShellT3DSGO(integdomain, material,
         _loc, _J, _J0,
         _ecoords0, _ecoords1, _edisp1, _evel1, _evel1f, _lecoords0,
         _dofnums, 
@@ -117,7 +121,7 @@ function FEMMShellDSG3(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
 end
 
 function make(integdomain, material)
-    return FEMMShellDSG3(integdomain, material)
+    return FEMMShellT3DSGO(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)
@@ -215,11 +219,11 @@ function _Bbmat!(Bb, gradN)
 end
 
 """
-    stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    stiffness(self::FEMMShellT3DSGO, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(self::FEMMShellT3DSGO, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
     loc, J, J0 = self._loc, self._J, self._J0
@@ -278,20 +282,20 @@ function stiffness(self::FEMMShellDSG3, assembler::ASS, geom0::NodalField{FFlt},
     return makematrix!(assembler);
 end
 
-function stiffness(self::FEMMShellDSG3, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function stiffness(self::FEMMShellT3DSGO, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 
 """
-    mass(self::FEMMShellDSG3,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    mass(self::FEMMShellT3DSGO,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
 
 Compute the consistent mass matrix
 
 This is a general routine for the shell FEMM.
 """
-function mass(self::FEMMShellDSG3,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+function mass(self::FEMMShellT3DSGO,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
     loc, J, J0 = self._loc, self._J, self._J0
@@ -351,7 +355,7 @@ function mass(self::FEMMShellDSG3,  assembler::A,  geom0::NodalField{FFlt}, dchi
     return makematrix!(assembler);
 end
 
-function mass(self::FEMMShellDSG3,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
+function mass(self::FEMMShellT3DSGO,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return mass(self, assembler, geom, u);
 end
