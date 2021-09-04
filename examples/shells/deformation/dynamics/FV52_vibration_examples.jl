@@ -25,7 +25,6 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
 using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-# using FinEtoolsFlexStructures.FEMMShellT3Module: FEMMShellT3, stiffness
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
