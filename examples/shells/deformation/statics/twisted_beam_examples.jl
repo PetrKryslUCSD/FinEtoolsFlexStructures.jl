@@ -38,6 +38,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -121,14 +122,15 @@ function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.0054
     return true
 end
 
-function test_convergence()
-    formul = FEMMShellT3DSGModule
+function test_convergence(formul)
+    @info "Twisted, thicker, formulation=$(formul)"
     for n in [2, 4, 8, 16, ]
         _execute_dsg_model(formul, params_thicker_dir_2..., 2*n, n, false)
     end
     for n in [2, 4, 8, 16, ]
         _execute_dsg_model(formul, params_thicker_dir_3..., 2*n, n, false)
     end
+    @info "Twisted, thinner, formulation=$(formul)"
     for n in [2, 4, 8, 16, ]
         _execute_dsg_model(formul, params_thinner_dir_2..., 2*n, n, false)
     end
@@ -141,5 +143,7 @@ end
 end # module
 
 using .twisted_beam_examples
-m = twisted_beam_examples
-m.test_convergence()
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
+twisted_beam_examples.test_convergence(FEMMShellT3DSGaltModule)
+twisted_beam_examples.test_convergence(FEMMShellT3DSGModule)

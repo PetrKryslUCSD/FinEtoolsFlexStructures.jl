@@ -1,4 +1,4 @@
-module FEMMShellT3DSGModule
+module FEMMShellT3DSGaltModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot
 using Statistics: mean
@@ -14,7 +14,7 @@ const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
 
 """
-    FEMMShellT3DSG{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMShellT3DSGalt{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
 Class for Discrete Shear Gap shell finite element modeling machine. With
 averaging of the transverse strain-displacement matrix to provide isotropic
@@ -37,7 +37,7 @@ TO DO:
 In that case the normal should not be averaged across the crease.
 Along the crease every element should use the normal to its surface.
 """
-mutable struct FEMMShellT3DSG{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
+mutable struct FEMMShellT3DSGalt{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::M # material object
     _associatedgeometry::Bool
@@ -70,7 +70,7 @@ mutable struct FEMMShellT3DSG{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _DtBs::FFltMat
 end
 
-function FEMMShellT3DSG(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellT3DSGalt(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -105,7 +105,7 @@ function FEMMShellT3DSG(integdomain::IntegDomain{S, F}, material::M) where {S<:A
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
     
-    return FEMMShellT3DSG(integdomain, material,
+    return FEMMShellT3DSGalt(integdomain, material,
         false,
         _normals, _normal_valid,
         _loc, _J, _J0,
@@ -118,7 +118,7 @@ function FEMMShellT3DSG(integdomain::IntegDomain{S, F}, material::M) where {S<:A
 end
 
 function make(integdomain, material)
-    return FEMMShellT3DSG(integdomain, material)
+    return FEMMShellT3DSGalt(integdomain, material)
 end
 
 function _compute_J0!(J0, ecoords)
@@ -228,24 +228,27 @@ function _n_e_transfmat!(Te, lTn, F0, lgradN)
     # Translation degrees of freedom
     for i in 1:__nn
         roffset = (i-1)*__ndof
+        lTnT = lTn[i]'
         r = roffset+1:roffset+3
-        Te[r, r] .= lTn[i]' # this needs to be inverse
+        Te[r, r] .= lTnT # this needs to be inverse
+        r = roffset+4:roffset+5
+        Te[r, r] .= lTnT[1:2, 1:2] - (1/lTnT[3, 3]).*(vec(lTnT[3, 1:2])*vec(lTnT[1:2, 3])') # this needs to be inverse
+        Te[roffset+6, roffset+6]  = lTnT[3, 3]
     end
     # Rotation degrees of freedom. The drilling rotation of the mid surface
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
     for i in 1:__nn
         coffst = (i-1)*__ndof
-        invlTn = inv(lTn[i][1:2, 1:2]') 
-        Te[coffst.+(4:5), coffst.+(4:5)] .= invlTn
-        Te[coffst+6, coffst+6] = 1/lTn[i][3, 3]
-        r = invlTn * vec(lTn[i][1:2, 3]) # TO DO avoid the temporary
+        lTnT = lTn[i]'
+        a1 = (1/lTnT[3, 3])*lTnT[3, 1]
+        a2 = (1/lTnT[3, 3])*lTnT[3, 2]
         for j in 1:__nn
             roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-r[1] * 1/2 * lgradN[j, 2])
-            Te[roffst+2, coffst+4] = (+r[1] * 1/2 * lgradN[j, 1])
-            Te[roffst+1, coffst+5] = (-r[2] * 1/2 * lgradN[j, 2])
-            Te[roffst+2, coffst+5] = (+r[2] * 1/2 * lgradN[j, 1])
+            Te[roffst+1, coffst+4] = (-a1 * 1/2 * lgradN[j, 2])
+            Te[roffst+2, coffst+4] = (+a1 * 1/2 * lgradN[j, 1])
+            Te[roffst+1, coffst+5] = (-a2 * 1/2 * lgradN[j, 2])
+            Te[roffst+2, coffst+5] = (+a2 * 1/2 * lgradN[j, 1])
         end
     end
     return Te
@@ -370,7 +373,7 @@ function _Brmat!(Br, gradN, N)
     end
 end
 
-function associategeometry!(self::FEMMShellT3DSG,  geom::NodalField{FFlt})
+function associategeometry!(self::FEMMShellT3DSGalt,  geom::NodalField{FFlt})
     J0 = self._J0
     F0 = self._F0
     normals, normal_valid = self._normals, self._normal_valid
@@ -427,11 +430,11 @@ function associategeometry!(self::FEMMShellT3DSG,  geom::NodalField{FFlt})
 end
 
 """
-    stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    stiffness(self::FEMMShellT3DSGalt, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(self::FEMMShellT3DSGalt, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
@@ -503,20 +506,20 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
     return makematrix!(assembler);
 end
 
-function stiffness(self::FEMMShellT3DSG, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function stiffness(self::FEMMShellT3DSGalt, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 
 """
-    mass(self::FEMMShellT3DSG,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    mass(self::FEMMShellT3DSGalt,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
 
 Compute the consistent mass matrix
 
 This is a general routine for the shell FEMM.
 """
-function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+function mass(self::FEMMShellT3DSGalt,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
@@ -592,7 +595,7 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
     return makematrix!(assembler);
 end
 
-function mass(self::FEMMShellT3DSG,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
+function mass(self::FEMMShellT3DSGalt,  geom::NodalField{FFlt},  u::NodalField{T}) where {T<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return mass(self, assembler, geom, u);
 end
@@ -625,7 +628,7 @@ Inspect integration point quantities.
 ### Return
 The updated inspector data is returned.
 """
-function inspectintegpoints(self::FEMMShellT3DSG, geom::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
+function inspectintegpoints(self::FEMMShellT3DSGalt, geom::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
     fes = self.integdomain.fes
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
@@ -723,7 +726,7 @@ function inspectintegpoints(self::FEMMShellT3DSG, geom::NodalField{FFlt},  u::No
     return idat; # return the updated inspector data
 end
 
-function inspectintegpoints(self::FEMMShellT3DSG, geom::NodalField{FFlt},  u::NodalField{T}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
+function inspectintegpoints(self::FEMMShellT3DSGalt, geom::NodalField{FFlt},  u::NodalField{T}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
     dT = NodalField(fill(zero(FFlt), nnodes(geom), 1)) # zero difference in temperature
     return inspectintegpoints(self, geom, u, dT, felist, inspector, idat, quantity; context...);
 end

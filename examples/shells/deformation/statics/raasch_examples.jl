@@ -26,6 +26,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -121,8 +122,8 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     return true
 end
 
-function test_convergence()
-    formul = FEMMShellT3DSGModule
+function test_convergence(formul)
+    
     @info "Raasch hook, formulation=$(formul)"
 
     for m in ["1x9", "3x18", "5x36", "10x72"]
@@ -134,6 +135,8 @@ end
 end # module
 
 using .raasch_examples
-m = raasch_examples
-m.test_convergence()
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
+raasch_examples.test_convergence(FEMMShellT3DSGaltModule)
+raasch_examples.test_convergence(FEMMShellT3DSGModule)
 # 
