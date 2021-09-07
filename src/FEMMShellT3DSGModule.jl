@@ -169,42 +169,48 @@ function _gather_normals!(n, nvalid, normals, normal_valid, c)
     return n
 end
 
-function _compute_normals_e!(ln, n, nvalid, F0)
-    # The nodal normal is projected onto the basis vectors of the element
-    # cartesian coordinate system. The normals are expressed using components
-    # on the element basis.
-    for k in 1:length(ln)
-        nk = vec(view(n[k], :))
-        if nvalid[k] 
-            # If the nodal normal is valid, pull it back into the element frame.
-            ln[k] .= F0'*nk
-        else
-            # Otherwise the element normal replaces the nodal normal.
-            ln[k] .= 0.0; ln[k][3] = 1.0
-        end
-    end
-    return ln
-end
+function _nodal_triads_e!(lTn, ln, n, nvalid, F0)
+    # Components of nodal cartesian ordinate systems such that the third
+    # direction is the direction of the nodal normal, and the angle to rotate
+    # the element normal into the nodal normal is as short as possible; these
+    # components are given on the local element coordinate system basis
+    # vectors. If the angle of rotation is excessively small, the nodal matrix
+    # is the identity. 
+    # 
+    # These triads are the nodal-to-element transformation
+    # matrices.
 
-function _compute_nodal_triads_e!(lTn, ln)
-    # Components of a cartesian ordinate system such that the third direction is
-    # the direction of the nodal normal, and the angle to rotate one into the
-    # other is as short as possible; these components are given on the local
-    # element coordinate system basis vectors. These triads are the
-    # element-to-nodal transformation matrices.
-
-    # TO DO Get rid of the temporaries
-    r = similar(ln[1])
-    f3_e = [0.0, 0.0, 1.0]
-    for k in 1:length(lTn)
-        cross3!(r, f3_e, ln[k])
-        if norm(r) > 1.0e-6
-            rotmat3!(lTn[k], r) 
-        else
-            lTn[k] .= I(3)
+    function __compute_normals_e_!(ln_, n, nvalid, F0)
+        for k in 1:length(ln_)
+            nk = vec(view(n[k], :))
+            if nvalid[k] 
+                # If the nodal normal is valid, pull it back into the element frame.
+                ln_[k] .= F0'*nk
+            else
+                # Otherwise the element normal replaces the nodal normal.
+                ln_[k] .= 0.0; ln_[k][3] = 1.0
+            end
         end
+        return ln_
     end
-    return lTn
+
+    function __compute_nodal_triads_e_!(lTn_, ln)
+        # TO DO Get rid of the temporaries
+        r = similar(ln[1])
+        f3_e = [0.0, 0.0, 1.0]
+        for k in 1:length(lTn_)
+            cross3!(r, f3_e, ln[k])
+            if norm(r) > 1.0e-6
+                rotmat3!(lTn_[k], r) 
+            else
+                lTn_[k] .= I(3)
+            end
+        end
+        return lTn_
+    end
+
+    __compute_normals_e_!(ln, n, nvalid, F0)
+    return __compute_nodal_triads_e_!(lTn, ln)
 end
 
 function _transfmat_n_to_g!(Te, Tn, lTn, F0)
@@ -481,14 +487,12 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
             # multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-            # add_btdb_ut_only!(elmat, Bs, t*Jac*w[j], Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the nodal to the element triad
         _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
-        _compute_normals_e!(ln, n, nvalid, F0)
-        _compute_nodal_triads_e!(lTn, ln)
+        _nodal_triads_e!(lTn, ln, n, nvalid, F0)
         _n_e_transfmat!(Te, lTn, lgradN)
         # Bending diagonal stiffness coefficients
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
@@ -563,8 +567,7 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
         end # Loop over quadrature points
         # Now treat the transformation from the nodal to the element triad
         _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
-        _compute_normals_e!(ln, n, nvalid, F0)
-        _compute_nodal_triads_e!(lTn, ln)
+        _nodal_triads_e!(lTn, ln, n, nvalid, F0)
         _n_e_transfmat!(Te, lTn, lgradN)
         # Fill the elementwise matrix
         fill!(elmat,  0.0); # Initialize element matrix
