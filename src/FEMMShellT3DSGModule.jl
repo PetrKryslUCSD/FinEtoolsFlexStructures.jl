@@ -20,32 +20,35 @@ Class for Discrete Shear Gap shell finite element modeling machine. With
 averaging of the transverse strain-displacement matrix to provide isotropic
 transverse shear response. Also, the formulation is developed to correctly
 handle the coupling of twisting moments and transverse shear (such as in the
-twisted beam or the Raasch hook problems).
+twisted beam or the Raasch hook problems) by incorporating "nodal" normals.
 
-Programming developed consistently with the paper
+Programming developed consistently with the paper 
 [1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
 element method, Comput Mech (2010) 45:141–156
 DOI 10.1007/s00466-009-0429-9
 
-In this reference, the sign next to Ae in equation (44) is wrong.
+In this reference, the sign next to Ae in equation (44) is wrong:
 [2] A superconvergent alpha finite element method (S a FEM) for static and
 free vibration analysis of shell structures
 Chai et al. (2017).
 
-Element
-Finite Elements in Analysis and Design 30 (1998) 235—242
+The treatment of the transformation between the element and nodal coordinates
+is carried out using an alternative to the publication
+
+[3] Finite Elements in Analysis and Design 30 (1998) 235—242
 The treatment of shell normals in ﬁnite element analysis
-Richard H. MacNeal* , Charles T. Wilson, Robert L. Harder, Claus C. Hoﬀ
+Richard H. MacNeal, Charles T. Wilson, Robert L. Harder, Claus C. Hoﬀ
 The MacNeal-Schwendler Corporation, 815 Colorado Blvd., Los Angeles, CA 90041, USA
 
-- Normals are incorporated by looking at the differences between normals of element that meet at a node.
-- A crease in the surface is take into account.
-In that case the normal are not averaged across the crease.
-Along the crease every element uses the normal to its surface.
+The following features are incorporated to deal with nodal normals:
+- Nodal normals are averages of the normals of elements that meet at a node.
+- A crease in the surface is take into account. In that case the normal are not
+  averaged across the crease. At the nodes along the crease every element uses
+  the normal to its surface instead of the nodal normal.
 """
 mutable struct FEMMShellT3DSG{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
-    material::M # material object
+    material::M # material object.
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
@@ -212,7 +215,7 @@ function _compute_nodal_triads_g!(Tn, lTn, F0)
     return Tn
 end
  
-function _g_n_transfmat!(Te, Tn, F0)
+function _g_n_transfmat!(Te, Tn)
     # Global-to-nodal transformation matrix
     Te .= 0.0
     for i in 1:__nn
@@ -225,7 +228,7 @@ function _g_n_transfmat!(Te, Tn, F0)
     return Te
 end
 
-function _n_e_transfmat!(Te, lTn, F0, lgradN)
+function _n_e_transfmat!(Te, lTn, lgradN)
     # Nodal-to-element transformation matrix. 
     # lTn = matrix with the nodal triad vectors in columns, components 
     # on the element basis
@@ -234,24 +237,27 @@ function _n_e_transfmat!(Te, lTn, F0, lgradN)
     # Translation degrees of freedom
     for i in 1:__nn
         roffset = (i-1)*__ndof
+        lTnT = lTn[i]'
         r = roffset+1:roffset+3
-        Te[r, r] .= lTn[i]' # this needs to be inverse
+        Te[r, r] .= lTnT # this needs to be inverse
+        r = roffset+4:roffset+5
+        Te[r, r] .= lTnT[1:2, 1:2] - (1/lTnT[3, 3]).*(vec(lTnT[3, 1:2])*vec(lTnT[1:2, 3])') # this needs to be inverse
+        Te[roffset+6, roffset+6]  = lTnT[3, 3]
     end
     # Rotation degrees of freedom. The drilling rotation of the mid surface
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
     for i in 1:__nn
         coffst = (i-1)*__ndof
-        invlTn = inv(lTn[i][1:2, 1:2]') 
-        Te[coffst.+(4:5), coffst.+(4:5)] .= invlTn
-        Te[coffst+6, coffst+6] = 1/lTn[i][3, 3]
-        r = invlTn * vec(lTn[i][1:2, 3]) # TO DO avoid the temporary
+        lTnT = lTn[i]'
+        a1 = (1/lTnT[3, 3])*lTnT[3, 1]
+        a2 = (1/lTnT[3, 3])*lTnT[3, 2]
         for j in 1:__nn
             roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-r[1] * 1/2 * lgradN[j, 2])
-            Te[roffst+2, coffst+4] = (+r[1] * 1/2 * lgradN[j, 1])
-            Te[roffst+1, coffst+5] = (-r[2] * 1/2 * lgradN[j, 2])
-            Te[roffst+2, coffst+5] = (+r[2] * 1/2 * lgradN[j, 1])
+            Te[roffst+1, coffst+4] = (-a1 * 1/2 * lgradN[j, 2])
+            Te[roffst+2, coffst+4] = (+a1 * 1/2 * lgradN[j, 1])
+            Te[roffst+1, coffst+5] = (-a2 * 1/2 * lgradN[j, 2])
+            Te[roffst+2, coffst+5] = (+a2 * 1/2 * lgradN[j, 1])
         end
     end
     return Te
@@ -484,13 +490,13 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
         _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
         _compute_normals_e!(ln, n, nvalid, F0)
         _compute_nodal_triads_e!(lTn, ln)
-        _n_e_transfmat!(Te, lTn, F0, lgradN)
+        _n_e_transfmat!(Te, lTn, lgradN)
         # Bending diagonal stiffness coefficients
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
         kavg = (kavg4 + kavg5) / 1e0
-        # Add the artificial drilling stiffness: only if the nodal normal is
-        # valid. It is not valid when the note is located at a crease. 
+        # Add the artificial drilling stiffness, but only if the nodal normal is
+        # valid. 
         nvalid[1] && (elmat[6,6] += kavg)
         nvalid[2] && (elmat[12,12] += kavg)
         nvalid[3] && (elmat[18,18] += kavg)
@@ -499,7 +505,7 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
         mul!(elmat, Te, elmatTe)
         # Transform into global coordinates
         _compute_nodal_triads_g!(Tn, lTn, F0)
-        _g_n_transfmat!(Te, Tn, F0)
+        _g_n_transfmat!(Te, Tn)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
         # Assembly
@@ -562,7 +568,7 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
         _gather_normals!(n, nvalid, normals, normal_valid, fes.conn[i])
         _compute_normals_e!(ln, n, nvalid, F0)
         _compute_nodal_triads_e!(lTn, ln)
-        _n_e_transfmat!(Te, lTn, F0, lgradN)
+        _n_e_transfmat!(Te, lTn, lgradN)
         # Fill the elementwise matrix
         fill!(elmat,  0.0); # Initialize element matrix
         for k in 1:npe
@@ -588,7 +594,7 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
         mul!(elmat, Te, elmatTe)
         # Transform into global coordinates
         _compute_nodal_triads_g!(Tn, lTn, F0)
-        _g_n_transfmat!(Te, Tn, F0)
+        _g_n_transfmat!(Te, Tn)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
         # Assemble

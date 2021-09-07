@@ -273,7 +273,7 @@ end
 function test_convergence(t, results)
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
         v = t("raasch_s4_" * m * ".inp", false)
-        @test res ≈ v
+        @test isapprox(res, v, rtol = 1.0e-4)
     end
     return true
 end
@@ -414,39 +414,42 @@ end
 function test_convergence(t, results)
     for n in [2, 4, 8, 16, ]
         v = t(params_thicker_dir_2..., 2*n, n, false)
-        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thicker_dir_3..., 2*n, n, false)
-        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thinner_dir_2..., 2*n, n, false)
-        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = t(params_thinner_dir_3..., 2*n, n, false)
-        @test isapprox(v, popat!(results, 1), rtol = 1.0e-4)
+        @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     return true
 end
 
-test_convergence(test_st3dsg, [54.64381168194862                                  
-73.44131219368768                                  
-87.32404900158092                                  
-95.46324216331342                                  
-79.62634140519276                                  
-91.14293575791413                                  
-96.58985595218654                                  
-98.66116466318049                                  
-68.78329703527952
-85.06739918101329                                  
-92.79651734583757                               
-96.51004023953843
-79.23340078402887
-88.4444050673403
-93.60212106778023                                 
-96.63919884543652 ])
+
+test_convergence(test_st3dsg, [
+54.805233070631076                            
+73.44641209899501                             
+87.32412910052115                             
+95.4632433244121                              
+79.92383979346117                             
+91.14976239731942                             
+96.58994588179995                             
+98.66116586884601        
+69.02559195351958                             
+85.07726985621599                             
+92.79673898566946                             
+96.510044245744                               
+79.58409509359382                             
+88.45548033078009                             
+93.60232747809474                             
+96.63932621230815  
+])
 
 end # module
 

@@ -25,7 +25,7 @@ include("FEMMShellQ4SRIModule.jl")
 include("FEMMShellT3DSGOModule.jl")
 include("FEMMShellT3DSGICModule.jl")
 include("FEMMShellT3DSGModule.jl")
-include("FEMMShellT3DSGaltModule.jl")
+include("FEMMShellT3DSGMTModule.jl")
 include("FEMMShellCSDSG3Module.jl")
 include("FEMMShellIsoPModule.jl")
 

@@ -38,7 +38,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
 using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
 using FinEtoolsFlexStructures.FEMMShellIsoPModule
 using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
@@ -144,6 +144,6 @@ end # module
 
 using .twisted_beam_examples
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGaltModule
-twisted_beam_examples.test_convergence(FEMMShellT3DSGaltModule)
+using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
 twisted_beam_examples.test_convergence(FEMMShellT3DSGModule)
+twisted_beam_examples.test_convergence(FEMMShellT3DSGMTModule)
