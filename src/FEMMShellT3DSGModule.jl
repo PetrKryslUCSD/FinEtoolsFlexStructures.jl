@@ -32,10 +32,16 @@ In this reference, the sign next to Ae in equation (44) is wrong.
 free vibration analysis of shell structures
 Chai et al. (2017).
 
-TO DO: 
-- Take into account the possibility of a crease in the surface.
-In that case the normal should not be averaged across the crease.
-Along the crease every element should use the normal to its surface.
+Element
+Finite Elements in Analysis and Design 30 (1998) 235—242
+The treatment of shell normals in ﬁnite element analysis
+Richard H. MacNeal* , Charles T. Wilson, Robert L. Harder, Claus C. Hoﬀ
+The MacNeal-Schwendler Corporation, 815 Colorado Blvd., Los Angeles, CA 90041, USA
+
+- Normals are incorporated by looking at the differences between normals of element that meet at a node.
+- A crease in the surface is take into account.
+In that case the normal are not averaged across the crease.
+Along the crease every element uses the normal to its surface.
 """
 mutable struct FEMMShellT3DSG{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
