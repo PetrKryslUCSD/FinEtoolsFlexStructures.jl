@@ -9,6 +9,7 @@ import FinEtools.FEMMBaseModule: associategeometry!
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3, local_frame!
+using ..TransformerModule: Transformer
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -206,24 +207,20 @@ function _compute_nodal_triads_e!(lTn, ln)
     return lTn
 end
 
-function _compute_nodal_triads_g!(Tn, lTn, F0)
-    # The nodal triads expressed on the element basis are pushed forward with the
-    # element rotation matrix.
-    for k in 1:length(Tn)
-        mul!(Tn[k], F0, lTn[k])
-    end
-    return Tn
-end
- 
-function _g_n_transfmat!(Te, Tn)
-    # Global-to-nodal transformation matrix
+function _transfmat_n_to_g!(Te, Tn, lTn, F0)
+    # Nodal-to-global transformation matrix. The 3x3 blocks consist of the nodal
+    # triad expressed on the global basis. The nodal basis vectors in `lTn
+    # [i]` are expressed on the element basis, and are then rotated with `F0`
+    # into the global coordinate system.
     Te .= 0.0
     for i in 1:__nn
+        Tblock = Tn[i]
+        mul!(Tblock, F0, lTn[i])
         offset = (i-1)*__ndof
         r = offset+1:offset+3
-        @. Te[r, r] = Tn[i]
+        @. Te[r, r] = Tblock
         r = offset+4:offset+6
-        @. Te[r, r] = Tn[i]
+        @. Te[r, r] = Tblock
     end
     return Te
 end
@@ -453,12 +450,14 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
     lecoords = self._lecoords
     F0, Tn, lTn, n, ln, nvalid, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._nvalid, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
+    transformwith = Transformer(elmat)
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Br = fill(0.0, 1, size(elmat, 1))
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
+    drilling_stiffness_scale = 1.0e0
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -494,20 +493,17 @@ function stiffness(self::FEMMShellT3DSG, assembler::ASS, geom0::NodalField{FFlt}
         # Bending diagonal stiffness coefficients
         kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
         kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) / 1e0
+        kavg = (kavg4 + kavg5) * drilling_stiffness_scale
         # Add the artificial drilling stiffness, but only if the nodal normal is
         # valid. 
         nvalid[1] && (elmat[6,6] += kavg)
         nvalid[2] && (elmat[12,12] += kavg)
         nvalid[3] && (elmat[18,18] += kavg)
         # Transform the elementwise matrix into the nodal coordinates
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        transformwith(elmat, Te)
         # Transform into global coordinates
-        _compute_nodal_triads_g!(Tn, lTn, F0)
-        _g_n_transfmat!(Te, Tn)
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        _transfmat_n_to_g!(Te, Tn, lTn, F0)
+        transformwith(elmat, Te)
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i]); 
         assemble!(assembler, elmat, dofnums, dofnums); 
@@ -538,6 +534,7 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
     lecoords = self._lecoords
     F0, Tn, lTn, n, ln, nvalid, Te = self._F0, self._Tn, self._lTn, self._n, self._ln, self._nvalid, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
+    transformwith = Transformer(elmat)
     lloc, lJ, lgradN = self._lloc, self._lJ, self._lgradN 
     rho::FFlt = massdensity(self.material); # mass density
     npe = nodesperelem(fes)
@@ -590,13 +587,10 @@ function mass(self::FEMMShellT3DSG,  assembler::A,  geom0::NodalField{FFlt}, dch
             end
         end
         # Transform the elementwise matrix into the nodal coordinates
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        transformwith(elmat, Te)
         # Transform into global coordinates
-        _compute_nodal_triads_g!(Tn, lTn, F0)
-        _g_n_transfmat!(Te, Tn)
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        _transfmat_n_to_g!(Te, Tn, lTn, F0)
+        transformwith(elmat, Te)
         # Assemble
         gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
         assemble!(assembler,  elmat,  dofnums,  dofnums);# assemble symmetric matrix
