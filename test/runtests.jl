@@ -1,4 +1,7 @@
 using Test
+@time @testset "Shell statics" begin
+    include("test_shell_statics.jl")
+end
 @time @testset "Beam section" begin
     include("test_section.jl")
 end
@@ -13,9 +16,6 @@ end
 end
 @time @testset "Beam transient dynamics" begin
     include("test_dyn.jl")
-end
-@time @testset "Shell statics" begin
-    include("test_shell_statics.jl")
 end
 @time @testset "Shell dynamics" begin
     include("test_shell_dynamics.jl")
