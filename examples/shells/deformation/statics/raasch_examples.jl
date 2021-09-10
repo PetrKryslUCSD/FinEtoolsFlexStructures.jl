@@ -136,7 +136,11 @@ end # module
 
 using .raasch_examples
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
 raasch_examples.test_convergence(FEMMShellT3DSGModule)
-raasch_examples.test_convergence(FEMMShellT3DSGMTModule)
+raasch_examples.test_convergence(FEMMShellT3DSGAModule)
+# raasch_examples.test_convergence(FEMMShellT3DSGMTModule)
+# raasch_examples.test_convergence(FEMMShellT3DSGICModule)
 # 

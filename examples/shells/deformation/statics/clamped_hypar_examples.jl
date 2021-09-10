@@ -120,8 +120,8 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     return targetu
 end
 
-function test_convergence()
-    formul = FEMMShellT3DSGModule
+function test_convergence(formul)
+    
     tL_ratios = [1/100, 1/1000, 1/10000]; 
     gs = [80*0.1^0, 80*0.1^1, 80*0.1^2]
     analyt_sols = [-9.3355e-5, -6.3941e-3, -5.2988e-1];
@@ -129,7 +129,8 @@ function test_convergence()
     for (tL_ratio, g, analyt_sol) in zip(tL_ratios, gs, analyt_sols)
         @info "Clamped hypar, t/L=$(tL_ratio), formulation=$(formul)"
         results = []
-        for n in [4, 8, 16, 32, 64, 128, 256, ]
+        for n in [4, 8, 16, 32, 64, 128, 256, 512]
+        # for n in [4, 8, 16, 32, 64, ]
             r = _execute_dsg_model(formul, tL_ratio, g, analyt_sol, n, false)
             push!(results, r/analyt_sol)
         end   
@@ -152,5 +153,8 @@ end
 end # module
 
 using .clamped_hypar_examples
-m = clamped_hypar_examples
-m.test_convergence()
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
+# clamped_hypar_examples.test_convergence(FEMMShellT3DSGModule)
+clamped_hypar_examples.test_convergence(FEMMShellT3DSGAModule)

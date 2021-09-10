@@ -137,6 +137,8 @@ end # module
 
 using .hemisphere_examples
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
 hemisphere_examples.test_convergence(FEMMShellT3DSGModule)
+hemisphere_examples.test_convergence(FEMMShellT3DSGAModule)
 hemisphere_examples.test_convergence(FEMMShellT3DSGMTModule)

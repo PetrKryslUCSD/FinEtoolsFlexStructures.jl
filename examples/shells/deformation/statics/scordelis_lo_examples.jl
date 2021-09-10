@@ -101,8 +101,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return true
 end
 
-function test_convergence()
-    formul = FEMMShellT3DSGModule
+function test_convergence(formul)
     @info "Scordelis-Lo shell, formulation=$(formul)"
     for n in [4, 8, 10, 12, 16, 24, 32, 64, 128]
         _execute_dsg_model(formul, n, false)
@@ -113,5 +112,8 @@ end
 end # module
 
 using .scordelis_lo_examples
-m = scordelis_lo_examples
-m.test_convergence()
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
+scordelis_lo_examples.test_convergence(FEMMShellT3DSGModule)
+scordelis_lo_examples.test_convergence(FEMMShellT3DSGAModule)

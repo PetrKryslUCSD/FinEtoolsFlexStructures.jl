@@ -144,6 +144,8 @@ end # module
 
 using .twisted_beam_examples
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
 twisted_beam_examples.test_convergence(FEMMShellT3DSGModule)
-twisted_beam_examples.test_convergence(FEMMShellT3DSGMTModule)
+twisted_beam_examples.test_convergence(FEMMShellT3DSGAModule)
+# twisted_beam_examples.test_convergence(FEMMShellT3DSGMTModule)
