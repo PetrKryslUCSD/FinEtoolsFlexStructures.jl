@@ -104,8 +104,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     return true
 end
 
-function test_convergence()
-    formul = FEMMShellT3DSGModule
+function test_convergence(formul)
     @info "Pinched cylinder, formulation=$(formul)"
     for n in [8, 12, 16, 24]
         _execute_dsg_model(formul, n, false)
@@ -116,5 +115,8 @@ end
 end # module
 
 using .pinched_cylinder_examples
-m = pinched_cylinder_examples
-m.test_convergence()
+using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
+pinched_cylinder_examples.test_convergence(FEMMShellT3DSGModule)
+pinched_cylinder_examples.test_convergence(FEMMShellT3DSGAModule)
