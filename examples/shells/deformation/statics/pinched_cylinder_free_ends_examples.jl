@@ -25,11 +25,17 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     R = 4.953
     L = 10.35
     P = 100.0
-   # analytical solution for the vertical deflection under the load
-    thickness = R/1.0e6
-    analyt_sol = -1.907*P*R/E/thickness^3;
+   
+    # [8] D. Briassoulis, Testing the asymptotic behaviour of shell elements.
+    # Part I. The classical benchmark tests, Int. J. Numer. Meth. Engrg. 54(3)
+    # (2002) 421–452.
+
+    # Analytical: series solution; inextensible [8,17]
+    thickness = R/1.0e6 
+    analyt_sol = -1.907*P*R/E/thickness^3; 
     # thickness = R/1.0e4
     # analyt_sol = -1.912*P*R/E/thickness^3;
+    # Finite element solution (25 · 35 mesh) [8]
     # thickness = R/1.0e2
     # analyt_sol = -1.997*P*R/E/thickness^3;
 
@@ -51,6 +57,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    # femm.drilling_stiffness_scale = 1.0e0
     associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
 
@@ -129,5 +136,5 @@ using .pinched_cylinder_free_ends_examples
 using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
-pinched_cylinder_free_ends_examples.test_convergence(FEMMShellT3DSGModule)
-# pinched_cylinder_free_ends_examples.test_convergence(FEMMShellT3DSGAModule)
+# pinched_cylinder_free_ends_examples.test_convergence(FEMMShellT3DSGModule)
+pinched_cylinder_free_ends_examples.test_convergence(FEMMShellT3DSGAModule)
