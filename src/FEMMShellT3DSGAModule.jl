@@ -53,6 +53,7 @@ The following features are incorporated to deal with nodal normals:
 mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::M # material object.
+    drilling_stiffness_scale::Float64
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
@@ -110,7 +111,7 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
     
-    return FEMMShellT3DSGA(integdomain, material,
+    return FEMMShellT3DSGA(integdomain, material, 1.0,
         false,
         _normals, _normal_valid,
         _loc, _J, _J0,
@@ -437,7 +438,7 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
-    drilling_stiffness_scale = 1.0e0
+    drilling_stiffness_scale = self.drilling_stiffness_scale:
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
