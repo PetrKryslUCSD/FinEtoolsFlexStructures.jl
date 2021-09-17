@@ -28,13 +28,22 @@ Programming developed consistently with the paper
 element method, Comput Mech (2010) 45:141–156
 DOI 10.1007/s00466-009-0429-9
 
-In this reference, the sign next to Ae in equation (44) is wrong:
+In the above reference, the sign next to Ae in equation (44) is wrong:
 [2] A superconvergent alpha finite element method (S a FEM) for static and
 free vibration analysis of shell structures
 Chai et al. (2017).
 
+The stabilization factor of the shear term of
+
+Mikko Lyly, Rolf Stenberg and Teemu Vihinen
+A stable bilinear element for the
+Reissner-Mindlin plate model
+Computer Methods in Applied Mechanics and Engineering 110 (1993) 343-357 
+
+is incorporated. Refer to expressions (3.12) and (3.13).
+
 The treatment of the transformation between the element and nodal coordinates
-is carried out using an alternative to the publication
+is carried out using a clean alternative to the publication
 
 [3] Finite Elements in Analysis and Design 30 (1998) 235—242
 The treatment of shell normals in ﬁnite element analysis
@@ -229,9 +238,9 @@ function _transfmat_e_to_n!(Te, n_e, gradN_e)
         roffset = (i-1)*__ndof
         n_eT = n_e[i]'
         r = roffset+1:roffset+3
-        Te[r, r] .= n_eT # this needs to be inverse
+        Te[r, r] .= n_eT 
         r = roffset+4:roffset+6
-        Te[r, r] .= n_eT # this needs to be inverse
+        Te[r, r] .= n_eT 
     end
     # The drilling rotation of the mid surface produced by the 1/2*(v,x - u,y)
     # effect is linked to the out of plane rotations.
@@ -438,7 +447,7 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
-    drilling_stiffness_scale = self.drilling_stiffness_scale:
+    drilling_stiffness_scale = self.drilling_stiffness_scale
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -457,9 +466,6 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
             _Bsmat!(Bs, ecoords_e)
             add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            # TO DO The stabilization expression has a significant effect
-            # (at least for the pinched cylinder). What is the recommended
-            # multiplier of he^2?
             he = sqrt(Jac)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
         end
