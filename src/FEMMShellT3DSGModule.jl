@@ -28,13 +28,13 @@ Programming developed consistently with the paper
 element method, Comput Mech (2010) 45:141–156
 DOI 10.1007/s00466-009-0429-9
 
-In this reference, the sign next to Ae in equation (44) is wrong:
+In the above reference, the sign next to Ae in equation (44) is wrong:
 [2] A superconvergent alpha finite element method (S a FEM) for static and
 free vibration analysis of shell structures
 Chai et al. (2017).
 
 The treatment of the transformation between the element and nodal coordinates
-is carried out using an alternative to the publication
+is carried out using slightly modified approach from the publication
 
 [3] Finite Elements in Analysis and Design 30 (1998) 235—242
 The treatment of shell normals in ﬁnite element analysis
