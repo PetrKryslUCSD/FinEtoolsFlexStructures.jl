@@ -6,10 +6,13 @@ using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
 using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 import FinEtools.FEMMBaseModule: associategeometry!
+import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3, local_frame!
 using ..TransformerModule: Transformer
+
+using Infiltrator
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -23,12 +26,13 @@ transverse shear response. Also, the formulation is developed to correctly
 handle the coupling of twisting moments and transverse shear (such as in the
 twisted beam or the Raasch hook problems) by incorporating "nodal" normals.
 
-Programming developed consistently with the paper 
-[1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
-element method, Comput Mech (2010) 45:141–156
-DOI 10.1007/s00466-009-0429-9
+Programming developed consistently with the paper
 
-In the above reference, the sign next to Ae in equation (44) is wrong:
+[1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
+element method, Comput Mech (2010) 45:141–156 DOI 10.1007/s00466-009-0429-9
+
+In the below reference, the sign next to Ae in equation (44) is wrong:
+
 [2] A superconvergent alpha finite element method (S a FEM) for static and
 free vibration analysis of shell structures
 Chai et al. (2017).
@@ -61,6 +65,7 @@ The following features are incorporated to deal with nodal normals:
 """
 mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
+    mcsys::CSys # updater of the material orientation matrix
     material::M # material object.
     drilling_stiffness_scale::Float64
     _associatedgeometry::Bool
@@ -71,8 +76,9 @@ mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _J::FFltMat
     _J0::FFltMat
     _ecoords::FFltMat
-    _edisp::FFltMat
+    _edisp::FFltVec
     _ecoords_e::FFltMat
+    _edisp_e::FFltVec
     _dofnums::FIntMat
     _e_g::FFltMat
     _n_e::Vector{FFltMat} # transformation nodal-element matrices  
@@ -103,8 +109,9 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _J = fill(0.0, 3, 2)
     _J0 = fill(0.0, 3, 2)
     _ecoords = fill(0.0, __nn, 3)
-    _edisp = fill(0.0, __nn, 6); 
+    _edisp = fill(0.0, __nn*__ndof); 
     _ecoords_e = fill(0.0, __nn, 2) 
+    _edisp_e = fill(0.0, __nn*__ndof); 
     _dofnums = zeros(FInt, 1, __nn*__ndof); 
     _e_g = fill(0.0, 3, 3); 
     _n_e = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]; 
@@ -120,11 +127,12 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
     
-    return FEMMShellT3DSGA(integdomain, material, 1.0,
+    return FEMMShellT3DSGA(integdomain, CSys(3), 
+        material, 1.0,
         false,
         _normals, _normal_valid,
         _loc, _J, _J0,
-        _ecoords, _edisp, _ecoords_e,
+        _ecoords, _edisp, _ecoords_e, _edisp_e,
         _dofnums, 
         _e_g, _n_e, _nvalid, _Te,
         _elmat, 
@@ -434,6 +442,7 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
+    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
@@ -454,21 +463,21 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
         _compute_J0!(J0, ecoords)
         local_frame!(delegateof(fes), e_g, J0)
         fill!(elmat,  0.0); # Initialize element matrix
-        for j in 1:npts
-            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-            locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
-            gradN!(fes, gradN_e, gradNparams[j], J_e);
-            _Bmmat!(Bm, gradN_e)
-            _Bbmat!(Bb, gradN_e)
-            _Bsmat!(Bs, ecoords_e)
-            add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
-            add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            he = sqrt(Jac)
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-        end
+        j = 1 # single integration point # :for j in 1:npts
+        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
+        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
+        locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
+        gradN!(fes, gradN_e, gradNparams[j], J_e);
+        _Bmmat!(Bm, gradN_e)
+        _Bbmat!(Bb, gradN_e)
+        _Bsmat!(Bs, ecoords_e)
+        add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
+        add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
+        he = sqrt(Jac)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
+        # integration point loop # end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
@@ -512,6 +521,7 @@ function mass(self::FEMMShellT3DSGA,  assembler::A,  geom0::NodalField{FFlt}, dc
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
+    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
@@ -533,18 +543,18 @@ function mass(self::FEMMShellT3DSGA,  assembler::A,  geom0::NodalField{FFlt}, dc
         fill!(tmss, 0.0)
         fill!(rmss, 0.0)
         # Compute the translational and rotational masses corresponding to nodes
-        for j = 1:npts # Loop over quadrature points
-            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-            tfactor = rho*(t*Jac*w[j]);
-            rfactor = rho*(t^3/12*Jac*w[j]);
-            for k in 1:npe
-                tmss[k] += tfactor*(Ns[j][k])
-                rmss[k] += rfactor*(Ns[j][k])
-            end
-        end # Loop over quadrature points
+        j = 1 # single integration point # :for j in 1:npts
+        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
+        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
+        tfactor = rho*(t*Jac*w[j]);
+        rfactor = rho*(t^3/12*Jac*w[j]);
+        for k in 1:npe
+            tmss[k] += tfactor*(Ns[j][k])
+            rmss[k] += rfactor*(Ns[j][k])
+        end
+        # end # Loop over quadrature points
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         # Fill the elementwise matrix in the nodal basis: the matrix is lumped,
@@ -611,23 +621,27 @@ Inspect integration point quantities.
 ### Return
 The updated inspector data is returned.
 """
-function inspectintegpoints(self::FEMMShellT3DSGA, geom::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
-    fes = self.integdomain.fes
+function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
+    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
     loc, J, J0 = self._loc, self._J, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e = self._ecoords_e
-    e_g, n_e, n, ln, nvalid, Te = self._e_g, self._n_e, self._n, self._nv_e, self._nvalid, self._Te
+    ecoords_e, edisp_e = self._ecoords_e, self._edisp_e
+    edisp_n = deepcopy(edisp_e)
+    out = fill(0.0, 3)
+    e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
+    transformwith = Transformer(elmat)
     loc_e, J_e, gradN_e = self._loc_e, self._J_e, self._gradN_e 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Br = fill(0.0, 1, size(elmat, 1))
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
+    drilling_stiffness_scale = self.drilling_stiffness_scale
     # Sort out  the output requirements
     outputcsys = self.mcsys; # default: report the stresses in the material coord system
     for apair in pairs(context)
@@ -636,74 +650,52 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom::NodalField{FFlt},  u::N
             outputcsys = val
         end
     end
-    # t= 0.0
-    # dt = 0.0
-    # dTe = fill(zero(FFlt), nodesperelem(fes)) # nodal temperatures -- buffer
-    # ue = fill(zero(FFlt), size(elmat, 1)); # array of node displacements -- buffer
-    # nne = nodesperelem(fes); # number of nodes for element
-    # sdim = ndofs(geom);            # number of space dimensions
-    # xe = fill(zero(FFlt), nne, sdim); # array of node coordinates -- buffer
-    # qpdT = 0.0; # node temperature increment
-    # qpstrain = fill(zero(FFlt), nstressstrain(self.mr), 1); # total strain -- buffer
-    # qpthstrain = fill(zero(FFlt), nthermstrain(self.mr)); # thermal strain -- buffer
-    # qpstress = fill(zero(FFlt), nstressstrain(self.mr)); # stress -- buffer
-    # out1 = fill(zero(FFlt), nstressstrain(self.mr)); # stress -- buffer
-    # out =  fill(zero(FFlt), nstressstrain(self.mr));# output -- buffer
     # Loop over  all the elements and all the quadrature points within them
     for ilist = 1:length(felist) # Loop over elements
         i = felist[ilist];
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        gathervalues_asmat!(u1, edisp, fes.conn[i]);
-        ecoords1 .= ecoords .+ edisp
+        gathervalues_asvec!(u, edisp, fes.conn[i]);
         _compute_J0!(J0, ecoords)
         local_frame!(delegateof(fes), e_g, J0)
-        fill!(elmat,  0.0); # Initialize element matrix
-        for j in 1:npts
-            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-            locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
-            gradN!(fes, gradN_e, gradNparams[j], J_e);
-            _Bmmat!(Bm, gradN_e)
+        j = 1 # single integration point # :for j in 1:npts
+        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
+        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
+        locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
+        gradN!(fes, gradN_e, gradNparams[j], J_e);
+        # Transform from global into nodal coordinates
+        _transfmat_n_to_g!(Te, n_e, e_g)
+        mul!(edisp_n, Te', edisp)
+        # Now treat the transformation from the nodal to the element triad
+        _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
+        _transfmat_e_to_n!(Te, n_e, gradN_e)
+         # Transform the nodal vector into the elementwise coordinates
+        mul!(edisp_e, Te', edisp_n)
+        updatecsmat!(outputcsys, loc, J, fes.label[i]);
+        # Compute the Requested Quantity
+        if quantity == :moment
             _Bbmat!(Bb, gradN_e)
-            _Bsmat!(Bs, ecoords_e)
+            @show kurv = Bb * edisp_e
+            @show mom = ((t^3)/12)*Dps * kurv
+            @show o_e = e_g' * outputcsys.csmat
+            o2_e = o_e[1:2, 1:2]
+            m = [mom[1] mom[3]; mom[3] mom[2]]
+            mo = o2_e' * m * o2_e
+            out[:] = mo[[1, 4, 2]]
+        end
+        _Bmmat!(Bm, gradN_e)
+        _Bsmat!(Bs, ecoords_e)
+        # @infiltrate
             # add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
             # add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
             # TO DO The stabilization expression has a significant effect
             # (at least for the pinched cylinder). What is the recommended
             # multiplier of he^2?
-            he = sqrt(Jac)
+        he = sqrt(Jac)
             # add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-            updatecsmat!(outputcsys, loc, J, fes.label[i]);
             # Call the inspector
-            #     idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
-        end # Loop over quadrature points
-
-        # gathervalues_asmat!(geom, ecoords, fes.conn[i]);
-        # gathervalues_asvec!(u, ue, fes.conn[i]);# retrieve element displacements
-        # # gathervalues_asvec!(dT, dTe, fes.conn[i]);# retrieve element temp. increments
-        # for j = 1:npts # Loop over quadrature points
-        #     locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-        #     Jac = Jacobianvolume(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-        #     updatecsmat!(self.mcsys, loc, J, fes.label[i]);
-        #     At_mul_B!(csmatTJ,  self.mcsys.csmat,  J); # local Jacobian matrix
-        #     gradN!(fes, gradN, gradNparams[j], csmatTJ);
-        #     Blmat!(self.mr, B, Ns[j], gradN, loc, self.mcsys.csmat);
-        #     updatecsmat!(outputcsys, loc, J, fes.label[i]);
-        #     # Quadrature point quantities
-        #     A_mul_B!(qpstrain, B, ue); # strain in material coordinates
-        #     qpdT = dot(vec(dTe), vec(Ns[j]));# Quadrature point temperature increment
-        #     thermalstrain!(self.material, qpthstrain, qpdT)
-        #     # Material updates the state and returns the output
-        #     out = update!(self.material, qpstress, out, vec(qpstrain), qpthstrain, t, dt, loc, fes.label[i], quantity)
-        #     if (quantity == :Cauchy)   # Transform stress tensor,  if that is "out"
-        #         (length(out1) >= length(out)) || (out1 = zeros(length(out)))
-        #         rotstressvec!(self.mr, out1, out, transpose(self.mcsys.csmat))# To global coord sys
-        #         rotstressvec!(self.mr, out, out1, outputcsys.csmat)# To output coord sys
-        #     end
-        #     # Call the inspector
-        #     idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
+                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
         # end # Loop over quadrature points
     end # Loop over elements
     return idat; # return the updated inspector data
