@@ -13,14 +13,14 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 function _execute_dsg_model(formul, n = 2, visualize = true)
     E = 30e6;
     nu = 0.3;
-    force = 40;
+    force = 40e3;
     thickness = 0.1;
     L= 10;
     # analytical solution for the vertical deflection under the load
-    analyt_sol=-0.0168;
+    analyt_sol=-0.0168e3;
 
     tolerance = L/n/1000
-    fens, fes = T3block(L/2,L/2,n,n);
+    @show fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -83,9 +83,11 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     @show dchi.values[nl, 3]/analyt_sol*100
 
     # Generate a graphical display of resultants
-    # fld= fieldfromintegpoints(femm, geom0, dchi, :moment, 1)
-    fld= elemfieldfromintegpoints(femm, geom0, dchi, :moment, 1)
-    vtkwrite("plate-m1.vtu", fens, fes; scalars = [("m1", fld.values)])
+    for nc in 1:3
+    fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+    # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+    vtkwrite("plate-m$(nc).vtu", fens, fes; scalars = [("m$nc", fld.values), ])
+end
 
     # Visualization
     if !visualize
@@ -108,7 +110,7 @@ function test_convergence()
     @info "Simply supported square plated with concentrated force,"
     @info " formulation=$(formul)"
 
-    for n in [12, ]
+    for n in [8, ]
         _execute_dsg_model(formul, n, true)
     end
     return true
