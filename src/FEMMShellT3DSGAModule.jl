@@ -650,6 +650,17 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
             outputcsys = val
         end
     end
+    BENDING_MOMENT, TRANSVERSE_SHEAR, MEMBRANE_FORCE = 1, 2, 3
+    quant = BENDING_MOMENT
+    if quantity == :bending || quantity == :moment || quantity == :bending_moment
+        quant = BENDING_MOMENT
+    end
+    if quantity == :transverse_shear || quantity == :transverse || quantity == :shear
+        quant = TRANSVERSE_SHEAR
+    end
+    if quantity == :membrane_force || quantity == :membrane 
+        quant = MEMBRANE_FORCE
+    end
     # Loop over  all the elements and all the quadrature points within them
     for ilist = 1:length(felist) # Loop over elements
         i = felist[ilist];
@@ -673,29 +684,35 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, Te', edisp_n)
         updatecsmat!(outputcsys, loc, J, fes.label[i]);
+        o_e = e_g' * outputcsys.csmat
+        o2_e = o_e[1:2, 1:2]
         # Compute the Requested Quantity
-        if quantity == :moment
+        if quant == BENDING_MOMENT
             _Bbmat!(Bb, gradN_e)
-            @show kurv = Bb * edisp_e
-            @show mom = ((t^3)/12)*Dps * kurv
-            @show o_e = e_g' * outputcsys.csmat
-            o2_e = o_e[1:2, 1:2]
+            kurv = Bb * edisp_e
+            mom = ((t^3)/12)*Dps * kurv
             m = [mom[1] mom[3]; mom[3] mom[2]]
-            mo = o2_e' * m * o2_e
-            out[:] = mo[[1, 4, 2]]
+            mo = o2_e * m * o2_e'
+            out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
         end
-        _Bmmat!(Bm, gradN_e)
-        _Bsmat!(Bs, ecoords_e)
-        # @infiltrate
-            # add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
-            # add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-            # TO DO The stabilization expression has a significant effect
-            # (at least for the pinched cylinder). What is the recommended
-            # multiplier of he^2?
-        he = sqrt(Jac)
-            # add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-            # Call the inspector
-                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
+        if quant == MEMBRANE_FORCE
+            _Bmmat!(Bm, gradN_e)
+            strn = Bm * edisp_e
+            frc = (t)*Dps * strn
+            f = [frc[1] frc[3]; frc[3] frc[2]]
+            fo = o2_e * f * o2_e'
+            out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
+        end
+        if quant == TRANSVERSE_SHEAR
+            _Bsmat!(Bs, ecoords_e)
+            he = sqrt(Jac)
+            shr = Bs * edisp_e
+            frc = ((t^3/(t^2+0.2*he^2)))*Dt * shr
+            fo = o2_e' * frc
+            out[1:2] .= fo[1], fo[2]
+        end
+        # Call the inspector
+        idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
         # end # Loop over quadrature points
     end # Loop over elements
     return idat; # return the updated inspector data
