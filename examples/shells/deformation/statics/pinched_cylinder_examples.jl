@@ -6,10 +6,7 @@ module pinched_cylinder_examples
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -106,7 +103,7 @@ end
 
 function test_convergence(formul)
     @info "Pinched cylinder, formulation=$(formul)"
-    for n in [8, 12, 16, 24]
+    for n in [4, 8, 12, 16, 24] # 3:64 #
         _execute_dsg_model(formul, n, false)
     end
     return true
@@ -115,8 +112,5 @@ end
 end # module
 
 using .pinched_cylinder_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
 using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
-pinched_cylinder_examples.test_convergence(FEMMShellT3DSGModule)
 pinched_cylinder_examples.test_convergence(FEMMShellT3DSGAModule)

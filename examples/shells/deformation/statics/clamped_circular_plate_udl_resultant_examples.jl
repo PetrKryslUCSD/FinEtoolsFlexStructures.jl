@@ -143,7 +143,7 @@ function test_convergence()
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio formulation=$(formul)"
     for n in [80, ]
-        _execute_dsg_model(formul, :q4_t3, n, t_radius_ratio, false)
+        _execute_dsg_model(formul, :t3_nice, n, t_radius_ratio, false)
     end
     return true
 end

@@ -6,10 +6,7 @@ module clamped_circular_plate_udl_examples
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -111,7 +108,7 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGModule
+    formul = FEMMShellT3DSGAModule
     t_radius_ratio = 0.00001
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio formulation=$(formul)"
