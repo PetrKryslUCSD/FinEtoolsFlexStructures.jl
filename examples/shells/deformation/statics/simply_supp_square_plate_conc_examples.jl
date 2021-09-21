@@ -5,10 +5,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -100,7 +97,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGModule
+    formul = FEMMShellT3DSGAModule
     @info "Simply supported square plated with concentrated force,"
     @info " formulation=$(formul)"
 
