@@ -684,6 +684,9 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, Te', edisp_n)
         updatecsmat!(outputcsys, loc, J, fes.label[i]);
+        if dot(view(outputcsys.csmat, :, 3), view(e_g, :, 3)) < 0.95
+            @warn "Ordinate Systems Mismatched?"
+        end
         o_e = e_g' * outputcsys.csmat
         o2_e = o_e[1:2, 1:2]
         # Compute the Requested Quantity
@@ -692,7 +695,7 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
             kurv = Bb * edisp_e
             mom = ((t^3)/12)*Dps * kurv
             m = [mom[1] mom[3]; mom[3] mom[2]]
-            mo = o2_e * m * o2_e'
+            mo = o2_e' * m * o2_e
             out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
         end
         if quant == MEMBRANE_FORCE
@@ -700,7 +703,7 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
             strn = Bm * edisp_e
             frc = (t)*Dps * strn
             f = [frc[1] frc[3]; frc[3] frc[2]]
-            fo = o2_e * f * o2_e'
+            fo = o2_e' * f * o2_e
             out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
         end
         if quant == TRANSVERSE_SHEAR
