@@ -118,7 +118,13 @@ function _execute_dsg_model(formul, input = "barrelvault_s3r_fineirreg.inp", vis
         push!(scalars, ("m$nc", fld.values))
     end
     vtkwrite("$(input)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
-            # Generate a graphical display of resultants
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("n$nc", fld.values))
+    end
+    vtkwrite("$(input)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     scalars = []
     for nc in 1:2
         fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
@@ -145,9 +151,9 @@ function test_convergence(formul)
     
     @info "Scordelis-Lo Abaqus model, formulation=$(formul)"
 
-    _execute_dsg_model(formul, "barrelvault_stri3_irreg.inp", true)
+    _execute_dsg_model(formul, "barrelvault_stri3_irreg.inp", false)
 
-    _execute_dsg_model(formul, "barrelvault_s3r_fineirreg.inp", true)
+    _execute_dsg_model(formul, "barrelvault_s3r_fineirreg.inp", false)
 
     return true
 end
