@@ -111,6 +111,38 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     resultpercent =  dchi.values[nl, 1][1]*100
     @info "Solution: $(round(resultpercent/analyt_sol, digits = 4))%"
 
+    # Generate a graphical display of resultants
+    spherical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+        r = vec(XYZ); 
+        csmatout[:, 3] .= vec(r)/norm(vec(r))
+        csmatout[:, 2] .= (0.0, 0.0, 1.0)
+        cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
+        cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))
+        return csmatout
+    end
+    ocsys = CSys(3, 3, spherical!)
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("m$nc", fld.values))
+    end
+    vtkwrite("hemisphere_open-$n-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("n$nc", fld.values))
+    end
+    vtkwrite("hemisphere_open-$n-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:2
+        fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("q$nc", fld.values))
+    end
+    vtkwrite("hemisphere_open-$n-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+
     # Visualization
     if !visualize
         return true
