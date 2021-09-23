@@ -2,6 +2,7 @@
 *.jl.*.cov
 *.jl.mem
 *.vtk
+*.vtu
 *.jls
 *.jld
 *.png
