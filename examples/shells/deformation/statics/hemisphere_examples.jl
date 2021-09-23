@@ -1,23 +1,6 @@
 """
-The pinched hemisphere benchmark
-The reference below states:
+The pinched hemisphere benchmark. Half over fully closed sphere.
 
-The spherical shell shown in Fig. 9 is our proposed doubly-curved shell
-problem. Note that the equator is a free edge so that the problem
-represents a hemisphere with four point loads alternating in sign at 90 °
-intervals on the equator. The hole at the top has been introduced to
-avoid the use of triangles near the axis of revolution. Convergence can
-be studied by varying  mesh size. Both membrane and bending strains
-contribute significantly to the radial displacement at the load point. A
-theoretical value of the displacement under load has been computed for a
-slightly different configuration [7] in which the hole at the axis is
-closed.
-
-In our example the shell is closed at the top, and we avoid the use
-of triangles on the axis of symmetry.
-
-Macneal RH, Harder RL (1985) A proposed standard set of problems to test
-finite element accuracy. Finite Elements in Analysis and Design 1: 3-20.
 """
 module hemisphere_examples
 
