@@ -355,6 +355,7 @@ end
 Compute the linear membrane strain-displacement matrix.
 """
 function _Bmmat!(Bm, gradN)
+    fill!(Bm, 0.0)
     for i in 1:__nn
         Bm[1,6*(i-1)+1] = gradN[i,1];
         Bm[2,6*(i-1)+2] = gradN[i,2];
@@ -369,6 +370,7 @@ end
 Compute the linear, displacement independent, curvature-displacement/rotation matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and rotations are in a local coordinate system.
 """
 function _Bbmat!(Bb, gradN)
+    fill!(Bb, 0.0)
     for i in 1:__nn
         Bb[1,6*(i-1)+5] = gradN[i,1];
         Bb[2,6*(i-1)+4] = -gradN[i,2];
@@ -675,11 +677,12 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
         mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
         locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
         gradN!(fes, gradN_e, gradNparams[j], J_e);
+        # Establish nodal triads
+        _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
         _transfmat_n_to_g!(Te, n_e, e_g)
         mul!(edisp_n, Te', edisp)
         # Now treat the transformation from the nodal to the element triad
-        _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         _transfmat_e_to_n!(Te, n_e, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, Te', edisp_n)
@@ -704,6 +707,7 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
             frc = (t)*Dps * strn
             f = [frc[1] frc[3]; frc[3] frc[2]]
             fo = o2_e' * f * o2_e
+            # @infiltrate
             out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
         end
         if quant == TRANSVERSE_SHEAR
