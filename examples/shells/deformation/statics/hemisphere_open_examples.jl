@@ -17,6 +17,14 @@ closed.
 
 Macneal RH, Harder RL (1985) A proposed standard set of problems to test
 finite element accuracy. Finite Elements in Analysis and Design 1: 3-20.
+
+Regarding the convergence: refer to the article
+Performance of the MITC3+ and MITC4+ shell elements in widely-used
+benchmark problems
+Yeongbin Ko a, Youngyu Lee b, Phill-Seung Lee a,⇑, Klaus-Jürgen Bathe
+
+The drilling degrees of freedom stiffness has an effect on the convergence for
+coarser meshes.
 """
 module hemisphere_open_examples
 
@@ -159,7 +167,7 @@ end
 
 function test_convergence(formul)
     @info "Hemisphere, formulation=$(formul)"
-    for n in [2, 4, 8, 16, 32, 64]
+    for n in [2, 4, 8, 16, 32, 64, 128, 256]
         _execute_dsg_model(formul, n, false)
     end
     return true
