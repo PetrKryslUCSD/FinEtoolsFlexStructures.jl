@@ -1,5 +1,5 @@
 # Simply supported square plate with center concentrated load
-module simply_supp_square_plate_conc_resultant_examples
+module simply_supp_rect_plate_conc_resultant_examples
 
 using FinEtools
 using FinEtoolsDeforLinear
@@ -22,7 +22,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     analyt_sol=-0.0168e3;
 
     tolerance = L/n/1000
-    fens, fes = T3block(W/2,L/2,n,n);
+    fens, fes = T3block(W/2,L/2,n,2*n);
     fens.xyz = xyz3(fens)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -88,10 +88,10 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc)
-    # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("m$nc", fld.values))
     end
-    vtkwrite("simply_supp_square_plate_conc_resultant-m.vtu", fens, fes; scalars = scalars)
+    vtkwrite("simply_supp_rect_plate_conc_resultant-m.vtu", fens, fes; scalars = scalars)
     # Generate a graphical display of resultants
     scalars = []
     for nc in 1:2
@@ -99,7 +99,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
     end
-    vtkwrite("simply_supp_square_plate_conc_resultant-q.vtu", fens, fes; scalars = scalars)
+    vtkwrite("simply_supp_rect_plate_conc_resultant-q.vtu", fens, fes; scalars = scalars)
 
     # Visualization
     if !visualize
@@ -122,7 +122,7 @@ function test_convergence()
     @info "Simply supported square plated with concentrated force,"
     @info " formulation=$(formul)"
 
-    for n in [100, ]
+    for n in [10, ]
         _execute_dsg_model(formul, n, true)
     end
     return true
@@ -130,6 +130,6 @@ end
 
 end # module
 
-using .simply_supp_square_plate_conc_resultant_examples
-m = simply_supp_square_plate_conc_resultant_examples
+using .simply_supp_rect_plate_conc_resultant_examples
+m = simply_supp_rect_plate_conc_resultant_examples
 m.test_convergence()

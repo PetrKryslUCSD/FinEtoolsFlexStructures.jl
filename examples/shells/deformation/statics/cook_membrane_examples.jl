@@ -8,6 +8,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function _execute_dsg_model(formul, n = 8, visualize = true)
     E = 1.0;
@@ -74,6 +75,15 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     resultpercent = dchi.values[l1, 2][1]/convutip*100
     @info "Solution: $(round(resultpercent, digits = 4))%"
 
+    # Generate a graphical display of resultants
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc)
+        push!(scalars, ("n$nc", fld.values))
+    end
+    vtkwrite("cook_membrane-n=$n-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    
     # Visualization
     if !visualize
         return true
