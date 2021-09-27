@@ -20,28 +20,12 @@ using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-    return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-    return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-    return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
+    return _execute_dsg_model(FEMMShellT3DSGAModule, args...)
 end
 
 function _execute_dsg_model(formul, n = 8, visualize = true)

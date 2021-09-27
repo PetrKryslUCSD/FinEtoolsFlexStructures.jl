@@ -6,33 +6,11 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 using Infiltrator
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
 
 function _execute_dsg_model(formul, n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
@@ -105,38 +83,24 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return resultpercent
 end
 
-function test_convergence(t, results)
+function test_convergence()
+    formul = FEMMShellT3DSGAModule
+    results = [
+    66.6606197093463,                                                
+    85.5997636990392,                                                
+    89.88947890745521,                                               
+    92.53516614150621,                                               
+    95.4225137166831, 
+    97.66243080996651
+    ]
     for (n, res) in  zip([4, 8, 10, 12, 16, 24], results)
-        v =  t(n, false)
+        v = _execute_dsg_model(formul, n, false)
         @test isapprox(res, v, rtol = 1.0e-4)
     end
     return true
 end
-       
-test_convergence(test_dsg3, [64.3167759233874,
-85.36891297631232,        
-90.2486220974747,
-93.32599689114275,                                                              
-96.82533584021382,                                                              
-99.91041942923614])
-test_convergence(test_st3dsgic, [68.93400706852107,                             
-89.31902528662164,                                                              
-94.05006970072284,                                                              
-97.03680208373054,                                                              
-100.46625686052543,                                                             
-103.64317681989752])
-test_convergence(test_st3dsg, [66.64995973373549,                       
-    85.59194662963257,                                                              
-    89.88220350622672,                                                              
-    92.52849163603474,                                                              
-    95.41700393607626,                                                              
-    97.65867120146895])
-test_convergence(test_csdsg3, [67.6211603156003,                       
-    87.47670927679906,                                                              
-    92.07919359232324,                                                              
-    94.99649878356443,                                                              
-    98.38626631439227,                                                              
-    101.66676977204703])
+
+test_convergence()
 
 end # module
 
@@ -165,33 +129,11 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 using Infiltrator
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
 
 function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;
@@ -269,20 +211,23 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     return targetu/analyt_sol*100
 end
  
-function test_convergence(t, results)
+function test_convergence()
+    formul = FEMMShellT3DSGAModule
+    results = [
+    95.96774650732868, 
+    96.68065217811291, 
+    97.39437142020671, 
+    98.4519858066279
+    ]
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
-        v = t("raasch_s4_" * m * ".inp", false)
+        v = _execute_dsg_model(formul, "raasch_s4_" * m * ".inp", false)
         @test isapprox(res, v, rtol = 1.0e-4)
     end
     return true
 end
 
- 
-test_convergence(test_dsg3, [197.07225021939522, 122.29375814892506, 131.7397746827515, 166.9855842073799])
-test_convergence(test_st3dsgic, [98.93041135486558, 107.56727708008175, 121.0279541750594, 160.55183716024845])
-test_convergence(test_st3dsg, [96.51445461618886, 96.48046436369553, 97.30091092942541, 98.41519147885221])
-test_convergence(test_csdsg3, [90.09510193432982, 101.2652927601732, 114.4122860334214, 155.13736181762695])
-       
+test_convergence() 
+
 end # module
 
 """
@@ -323,13 +268,7 @@ using Test
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
@@ -339,18 +278,6 @@ params_thicker_dir_2 = (t =  0.32, force = 1.0, dir = 2, uex = 0.001753248285256
 params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256); 
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
 
 function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
     E = 0.29e8;
@@ -407,48 +334,53 @@ function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.0054
     U = K\F
     scattersysvec!(dchi, U[:])
     result =  dchi.values[nl, dir][1]/uex*100
-return result
+    return result
 end
 
-function test_convergence(t, results)
+function test_convergence()
+    formul = FEMMShellT3DSGAModule
+    results = [
+    60.729833319894325,
+    75.03868479181727,
+    87.50963379377527,
+    95.47124053670485,
+    84.65337521150289,
+    91.88041248379042,
+    96.63969262242233,
+    98.65588185555086,
+    78.01013136700996,
+    88.55708071163137,
+    93.80585717074035,
+    96.77822361996257,
+    85.16655215203586,
+    89.84038466760585,
+    93.94781632610085,
+    96.7274995250634,
+    ]
     for n in [2, 4, 8, 16, ]
-        v = t(params_thicker_dir_2..., 2*n, n, false)
+        v = _execute_dsg_model(formul, params_thicker_dir_2..., 2*n, n, false)
+        # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = t(params_thicker_dir_3..., 2*n, n, false)
+        v = _execute_dsg_model(formul, params_thicker_dir_3..., 2*n, n, false)
+        # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = t(params_thinner_dir_2..., 2*n, n, false)
+        v = _execute_dsg_model(formul, params_thinner_dir_2..., 2*n, n, false)
+        # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = t(params_thinner_dir_3..., 2*n, n, false)
+        v = _execute_dsg_model(formul, params_thinner_dir_3..., 2*n, n, false)
+        # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     return true
 end
 
-
-test_convergence(test_st3dsg, [
-54.71730549782702                                                      
-73.44366670164864                                                      
-87.32408688274104                                                      
-95.46324273338426                                                      
-79.76297604829963                                                      
-91.14610752463135                                                      
-96.58989858350299                                                      
-98.66116532944923                                   
-68.89252424089389                                                      
-85.07181344755831                                                      
-92.79675600487462                                                      
-96.50978146075457                                                      
-79.39297464735631                                                      
-88.44933016324278                                                      
-93.60256847723656                                                      
-96.6387691344659  
-])
+test_convergence()
 
 end # module
 
@@ -477,33 +409,11 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 
-
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGModule, args...)
-end
-
-function test_st3dsgic(args...)
-  return _execute_dsg_model(FEMMShellT3DSGICModule, args...)
-end
-
-function test_dsg3(args...)
-  return _execute_dsg_model(FEMMShellT3DSGOModule, args...)
-end
-
-function test_csdsg3(args...)
-  return _execute_dsg_model(FEMMShellCSDSG3Module, args...)
-end
 
 function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     E = 210e9;
@@ -583,17 +493,22 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
     return minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
 end
 
-function test_convergence(t)
-    @info "LE5 Z-cantilever, formulation=$(t)"
-    for n in [0, 1, 2, 3, 4, ]
-        t("nle5xf3c.inp", n, false)
+function test_convergence()
+    formul = FEMMShellT3DSGAModule
+    # @info "LE5 Z-cantilever, formulation=$(formul)"
+    for n in [0,  ]
+        res = _execute_dsg_model(formul, "nle5xf3c.inp", n, false)
+        @test res[1] ≈ (-0.01568028415401719, 0.015401663810490641)[1]
+        @test res[2] ≈ (-0.01568028415401719, 0.015401663810490641)[2]
     end
     return true
 end
 
-res = test_st3dsg("nle5xf3c.inp", 0, false)
-@test res[1] ≈ (-0.01568028415401719, 0.015401663810490641)[1]
-@test res[2] ≈ (-0.01568028415401719, 0.015401663810490641)[2]
+# res = test_st3dsg("nle5xf3c.inp", 0, false)
+# @test res[1] ≈ (-0.01568028415401719, 0.015401663810490641)[1]
+# @test res[2] ≈ (-0.01568028415401719, 0.015401663810490641)[2]
+
+test_convergence()
 
 end # module
 
