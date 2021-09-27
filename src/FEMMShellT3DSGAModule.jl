@@ -73,7 +73,6 @@ mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _normal_valid::Vector{Bool}
     # The attributes below are buffers used in various operations.
     _loc::FFltMat
-    _J::FFltMat
     _J0::FFltMat
     _ecoords::FFltMat
     _edisp::FFltVec
@@ -85,8 +84,6 @@ mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _nvalid::Vector{Bool}
     _Te::FFltMat
     _elmat::FFltMat
-    _loc_e::FFltMat
-    _J_e::FFltMat
     _gradN_e::FFltMat
     _Bm::FFltMat
     _Bb::FFltMat
@@ -104,9 +101,8 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     end
     _normals = fill(0.0, _nnmax, 3)
     _normal_valid = fill(true, _nnmax)
-    # Alocate_e the buffers2
+    # Alocate the buffers
     _loc = fill(0.0, 1, 3)
-    _J = fill(0.0, 3, 2)
     _J0 = fill(0.0, 3, 2)
     _ecoords = fill(0.0, __nn, 3)
     _edisp = fill(0.0, __nn*__ndof); 
@@ -118,8 +114,6 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _nvalid = fill(false, 3)
     _Te = fill(0.0, __nn*__ndof, __nn*__ndof)
     _elmat = fill(0.0, __nn*__ndof, __nn*__ndof);   
-    _loc_e = fill(0.0, 1, 2)
-    _J_e = fill(0.0, 2, 2)
     _gradN_e = fill(0.0, __nn, 2)
     _Bm = fill(0.0, 3, __nn*__ndof)
     _Bb = fill(0.0, 3, __nn*__ndof)
@@ -131,12 +125,12 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
         material, 1.0,
         false,
         _normals, _normal_valid,
-        _loc, _J, _J0,
+        _loc, _J0,
         _ecoords, _edisp, _ecoords_e, _edisp_e,
         _dofnums, 
         _e_g, _n_e, _nvalid, _Te,
         _elmat, 
-        _loc_e, _J_e, _gradN_e,
+        _gradN_e,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
 
@@ -144,12 +138,34 @@ function make(integdomain, material)
     return FEMMShellT3DSGA(integdomain, material)
 end
 
-function _compute_J0!(J0, ecoords)
-    # Compute the Jacobian: the Jacobian is constant within the triangle
+function _compute_J_loc!(J0, loc, ecoords)
+    # Compute the Jacobian matrix: the Jacobian matrix is constant within the
+    # triangle
     x, y, z = ecoords[2, :].-ecoords[1, :]
     J0[:, 1] .= (x, y, z)
     x, y, z = ecoords[3, :].-ecoords[1, :]
     J0[:, 2] .= (x, y, z)
+    loc[1] = (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3
+    loc[2] = (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3
+    loc[3] = (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
+    return J0, loc
+end
+
+function _local_coordinates!(ecoords_e, J0, e_g)
+    ecoords_e[1, 1] = ecoords_e[1, 2] = 0.0
+    ecoords_e[2, 1] = dot(view(J0, :, 1), view(e_g, :, 1))
+    ecoords_e[2, 2] = dot(view(J0, :, 1), view(e_g, :, 2))
+    ecoords_e[3, 1] = dot(view(J0, :, 2), view(e_g, :, 1))
+    ecoords_e[3, 2] = dot(view(J0, :, 2), view(e_g, :, 2))
+    return ecoords_e
+end
+
+function _centroid(ecoords)
+    (
+    (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3,
+    (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3,
+    (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
+    )
 end
     
 function _shell_material_stiffness(material)
@@ -271,6 +287,15 @@ function _transfmat_e_to_n!(Te, n_e, gradN_e)
     return Te
 end
 
+function _gradN_e_Ae!(gradN_e, ecoords_e)
+    # Compute the gradient with respect to the element ordinates, three
+    # gradients in two coordinates, and the area of the triangle
+    a, b = ecoords_e[2, :] .- ecoords_e[1, :]
+    c, d = ecoords_e[3, :] .- ecoords_e[1, :]
+    J = (a*d - b*c)
+    gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
+    return gradN_e, J/2
+end
 
 """
     _Bsmat!(Bs, gradN, N)
@@ -285,9 +310,9 @@ function _Bsmat!(Bs, ecoords_e)
     a, b = ecoords_e[p, :] .- ecoords_e[s, :]
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
     Ae = (a*d - b*c)/2
+    m = (1/2/Ae) * (1/3) # multiplier
 
     # The first node in the triangle 
-    m = (1/2/Ae) * (1/3) # multiplier
     # Node s
     co = (s - 1) * 6 # column offset
     Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
@@ -308,7 +333,6 @@ function _Bsmat!(Bs, ecoords_e)
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
 
     # The first node in the triangle 
-    m = (1/2/Ae) * (1/3) # multiplier
     # Node s
     co = (s - 1) * 6 # column offset
     Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
@@ -330,7 +354,6 @@ function _Bsmat!(Bs, ecoords_e)
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
     
     # The first node in the triangle 
-    m = (1/2/Ae) * (1/3) # multiplier
     # Node s
     co = (s - 1) * 6 # column offset
     Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
@@ -358,9 +381,8 @@ function _Bmmat!(Bm, gradN)
     fill!(Bm, 0.0)
     for i in 1:__nn
         Bm[1,6*(i-1)+1] = gradN[i,1];
-        Bm[2,6*(i-1)+2] = gradN[i,2];
-        Bm[3,6*(i-1)+1] = gradN[i,2];
-        Bm[3,6*(i-1)+2] = gradN[i,1];
+                                             Bm[2,6*(i-1)+2] = gradN[i,2];
+        Bm[3,6*(i-1)+1] = gradN[i,2];        Bm[3,6*(i-1)+2] = gradN[i,1];
     end
 end
 
@@ -372,10 +394,9 @@ Compute the linear, displacement independent, curvature-displacement/rotation ma
 function _Bbmat!(Bb, gradN)
     fill!(Bb, 0.0)
     for i in 1:__nn
-        Bb[1,6*(i-1)+5] = gradN[i,1];
+                                              Bb[1,6*(i-1)+5] = gradN[i,1];
         Bb[2,6*(i-1)+4] = -gradN[i,2];
-        Bb[3,6*(i-1)+4] = -gradN[i,1];
-        Bb[3,6*(i-1)+5] = gradN[i,2];
+        Bb[3,6*(i-1)+4] = -gradN[i,1];        Bb[3,6*(i-1)+5] = gradN[i,2];
     end
 end
 
@@ -443,18 +464,14 @@ Compute the material stiffness matrix.
 function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J, J0 = self._loc, self._J, self._J0
+    loc, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e = self._ecoords_e
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
     transformwith = Transformer(elmat)
-    loc_e, J_e, gradN_e = self._loc_e, self._J_e, self._gradN_e 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    Br = fill(0.0, 1, size(elmat, 1))
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
@@ -462,35 +479,30 @@ function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        _compute_J0!(J0, ecoords)
+        _compute_J_loc!(J0, loc, ecoords)
         local_frame!(delegateof(fes), e_g, J0)
+        _local_coordinates!(ecoords_e, J0, e_g)
+        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
+        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        # Construct the Stiffness Matrix
         fill!(elmat,  0.0); # Initialize element matrix
-        j = 1 # single integration point # :for j in 1:npts
-        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-        locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
-        gradN!(fes, gradN_e, gradNparams[j], J_e);
         _Bmmat!(Bm, gradN_e)
         _Bbmat!(Bb, gradN_e)
         _Bsmat!(Bs, ecoords_e)
-        add_btdb_ut_only!(elmat, Bm, t*Jac*w[j], Dps, DpsBmb)
-        add_btdb_ut_only!(elmat, Bb, (t^3)/12*Jac*w[j], Dps, DpsBmb)
-        he = sqrt(Jac)
-        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Jac*w[j], Dt, DtBs)
-        # integration point loop # end
+        add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
+        add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
+        he = sqrt(2*Ae)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         _transfmat_e_to_n!(Te, n_e, gradN_e)
-         # Transform the elementwise matrix into the nodal coordinates
+        # Transform the elementwise matrix into the nodal coordinates
         transformwith(elmat, Te)
         # Bending diagonal stiffness coefficients
-        kavg4 = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16]))
-        kavg5 = mean((elmat[5, 5], elmat[11, 11], elmat[17, 17]))
-        kavg = (kavg4 + kavg5) * drilling_stiffness_scale
+        kavg = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16],
+            elmat[5, 5], elmat[11, 11], elmat[17, 17])) * drilling_stiffness_scale
         # Add the artificial drilling stiffness in the nodal cordinates, but
         # only if the nodal normal is valid. 
         nvalid[1] && (elmat[6,6] += kavg)
@@ -522,40 +534,27 @@ This is a general routine for the shell FEMM.
 function mass(self::FEMMShellT3DSGA,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J, J0 = self._loc, self._J, self._J0
+    loc, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e = self._ecoords_e
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
     transformwith = Transformer(elmat)
-    loc_e, J_e, gradN_e = self._loc_e, self._J_e, self._gradN_e 
     rho::FFlt = massdensity(self.material); # mass density
     npe = nodesperelem(fes)
-    tmss = fill(0.0, npe);# basis f. matrix -- buffer
-    rmss = fill(0.0, npe);# basis f. matrix -- buffer
     ndn = ndofs(dchi)
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        _compute_J0!(J0, ecoords)
+        _compute_J_loc!(J0, loc, ecoords)
         local_frame!(delegateof(fes), e_g, J0)
-        fill!(tmss, 0.0)
-        fill!(rmss, 0.0)
+        _local_coordinates!(ecoords_e, J0, e_g)
+        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
         # Compute the translational and rotational masses corresponding to nodes
-        j = 1 # single integration point # :for j in 1:npts
-        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-        tfactor = rho*(t*Jac*w[j]);
-        rfactor = rho*(t^3/12*Jac*w[j]);
-        for k in 1:npe
-            tmss[k] += tfactor*(Ns[j][k])
-            rmss[k] += rfactor*(Ns[j][k])
-        end
+        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        tfactor = rho*(t*Ae)/3;
+        rfactor = rho*(t^3/12*Ae)/3;
         # end # Loop over quadrature points
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
@@ -566,18 +565,18 @@ function mass(self::FEMMShellT3DSGA,  assembler::A,  geom0::NodalField{FFlt}, dc
             # Translation degrees of freedom
             for d in 1:3
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += tmss[k]
+                elmat[c, c] += tfactor
             end
             # Bending degrees of freedom
             for d in 4:5
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += rmss[k]
+                elmat[c, c] += rfactor
             end
             # Drilling rotations
             if nvalid[k]
                 d = 6
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += rmss[k] / 1e6
+                elmat[c, c] += rfactor / 1e6
             end
         end
         # Transform into global coordinates
