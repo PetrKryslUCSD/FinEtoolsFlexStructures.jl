@@ -10,7 +10,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotat
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-function _execute_dsg_model(formul, n = 8, visualize = true)
+function _execute(n = 8, visualize = true)
     E = 1.0;
     nu = 1.0/3;
     width = 48.0; 
@@ -20,6 +20,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     mid_edge  = [48.0, 52.0];# Location of tracked  deflection
     magn=1/free_height;# Magnitude of applied load
     convutip=23.97;
+    formul = FEMMShellT3DSGAModule
     
     @info "Mesh: $n elements per side"
     tolerance = thickness/n/100
@@ -99,11 +100,12 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
-    @info "Cook, formulation=$(formul)"
+    
+    @info "Cook trapezoidal membrane"
+
        
     for n in [2, 4, 8, 16, 32, 64, 128]
-        _execute_dsg_model(formul, n, false)
+        _execute(n, false)
     end
     return true
 end

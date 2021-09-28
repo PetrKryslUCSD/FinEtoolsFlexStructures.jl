@@ -24,16 +24,13 @@ using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function test_st3dsg(args...)
-    return _execute_dsg_model(FEMMShellT3DSGAModule, args...)
-end
-
-function _execute_dsg_model(formul, n = 8, visualize = true)
+function _execute(n = 8, visualize = true)
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
     thickness = 0.05*phun("m");
     L = 10.0*phun("m");
+    formul = FEMMShellT3DSGAModule
     
     # Report
     # @info "Mesh: $n elements per side"
@@ -49,6 +46,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 1.0
     associate = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass
@@ -101,19 +99,21 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
 end
 
 
-function test_convergence(t)
-    @info "FV12 free vibration, formulation=$(t)"
+function test_convergence()
+    @info "FV12 free vibration"
     for n in [2, 4, 8, 16, 32, 64]
-        t(n, false)
+        _execute(n, false)
     end
     return true
 end
 
 # 1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668.
 reffs = [0.0, 0.0, 2.604869127850317e-7, 4.698288861559094e-6, 6.749716652051837e-6, 9.829373450823236e-6, 1.572130183778014, 2.2424585076387427, 2.8079394352847316, 3.883763676656034, 4.039123204140305, 6.787320617260535, 6.920636670319986, 7.127888889722697] 
-fs = test_st3dsg()
+
+fs = _execute(8, false)
 for j in eachindex(reffs)
     @test isapprox(fs[j], reffs[j], atol = 1.0e-8, rtol = 1.0e-6)
 end
+
 
 end # module

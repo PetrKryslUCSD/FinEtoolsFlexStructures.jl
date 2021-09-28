@@ -1,4 +1,21 @@
-# Pinched cylinder with diagphram supports and concentrated force
+"""
+The barrel vault (Scordelis-Lo) roof is one of the benchmarks for linear elastic
+analysis of shells. 
+
+The candidate element's usefulness in irregular geometries (and most practical
+cases involve a high degree of geometric irregularity) is tested. As would be
+expected,the irregular mesh results are not as good as those provided by a
+regular meshwith the same number of variables. 
+
+Problem description
+
+The physical basis of the problem is a deeply arched roof supported only
+bydiaphragms at its curved edges (an aircraft hanger), deforming under its own
+weight. It is interesting to observe that the geometry is such that the
+centerpoint of the roof moves upward under the self-weight(downwardly directed)
+load. Perhaps this is one reason why the problem is not straightforward
+numerically. 
+"""
 module scordelis_lo_examples
 
 using LinearAlgebra

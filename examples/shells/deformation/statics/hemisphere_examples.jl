@@ -15,13 +15,14 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, n = 2, visualize = true)
+function _execute(n = 2, visualize = true)
     E = 6.825e7;
     nu = 0.3;
     thickness  =  0.04;
     # analytical solution for the vertical deflection under the load
     analyt_sol = 0.0924;
     R = 10.0;
+    formul = FEMMShellT3DSGAModule
 
     tolerance = R/n/1000
     fens, fes = Q4spheren(R, n)
@@ -35,6 +36,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -102,10 +104,10 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     return true
 end
 
-function test_convergence(formul)
-    @info "Hemisphere, formulation=$(formul)"
-    for n in [2, 4, 8, 16, 32, 64]
-        _execute_dsg_model(formul, n, false)
+function test_convergence()
+    @info "Hemisphere benchmark"
+    for n in [2, 4, 8, 16, 32]
+        _execute(n, false)
     end
     return true
 end
@@ -113,6 +115,5 @@ end
 end # module
 
 using .hemisphere_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-hemisphere_examples.test_convergence(FEMMShellT3DSGAModule)
+hemisphere_examples.test_convergence()
 

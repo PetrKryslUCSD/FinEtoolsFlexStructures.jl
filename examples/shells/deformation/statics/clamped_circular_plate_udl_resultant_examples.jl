@@ -1,5 +1,7 @@
 """
-Clamped circular plate with uniform distributed load
+Clamped circular plate with uniform distributed load.
+
+Resultants are presented graphically.
 """
 module clamped_circular_plate_udl_resultant_examples
 
@@ -15,7 +17,7 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 using Infiltrator
 
-function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
+function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
     E = 200*phun("GPa");
     nu = 0.3;
     a = 1.0*phun("m");
@@ -27,6 +29,7 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
     @show center_m = q*a^2*(1+nu)/16
     @show fixed_mr = q*a^2/8
     @show fixed_mt = nu*q*a^2/8
+    formul = FEMMShellT3DSGAModule
 
     tolerance = a/n/1000
     if mesh_procedure == :q4_t3
@@ -141,9 +144,9 @@ function test_convergence()
     formul = FEMMShellT3DSGAModule
     t_radius_ratio = 0.01
     @info "Simply supported square plate with uniform load,"
-    @info "thickness/length = $t_radius_ratio formulation=$(formul)"
+    @info "thickness/length = $t_radius_ratio "
     for n in [80, ]
-        _execute_dsg_model(formul, :t3_nice, n, t_radius_ratio, false)
+        _execute(:t3_nice, n, t_radius_ratio, false)
     end
     return true
 end

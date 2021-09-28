@@ -12,7 +12,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
+function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
     E = 200*phun("GPa");
     nu = 0.3;
     a = 1.0*phun("m");
@@ -21,6 +21,7 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
     q = 1.0e10*t_radius_ratio^3
     # analytical solution for the vertical deflection under the load
     analyt_sol = -q*a^4/64/D*(1+16/5/(1-nu)*thickness^2/a^2);
+    formul = FEMMShellT3DSGAModule
 
     tolerance = a/n/1000
     if mesh_procedure == :q4_t3
@@ -108,12 +109,11 @@ function _execute_dsg_model(formul, mesh_procedure = :q4_t3, n = 2, t_radius_rat
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
     t_radius_ratio = 0.00001
     @info "Simply supported square plate with uniform load,"
-    @info "thickness/length = $t_radius_ratio formulation=$(formul)"
+    @info "thickness/length = $t_radius_ratio "
     for n in [2, 4, 8, 16, 32, 64]
-        _execute_dsg_model(formul, :q4_t3, n, t_radius_ratio, false)
+        _execute(:q4_t3, n, t_radius_ratio, false)
     end
     return true
 end

@@ -12,7 +12,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, n = 8, visualize = true)
+function _execute(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -22,6 +22,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     thickness = 0.25; # geometrical dimensions are in feet
     R = 25.0;
     L = 50.0;
+    formul = FEMMShellT3DSGAModule
     
     tolerance = R/n/1000
     fens, fes = T3block(40/360*2*pi,L/2,n,n);
@@ -36,6 +37,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -94,7 +96,7 @@ function test_convergence()
     97.66243080996651
     ]
     for (n, res) in  zip([4, 8, 10, 12, 16, 24], results)
-        v = _execute_dsg_model(formul, n, false)
+        v = _execute(n, false)
         @test isapprox(res, v, rtol = 1.0e-4)
     end
     return true
@@ -135,7 +137,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = true)
+function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;
     nu = 0.35;
     thickness  =  2.0;
@@ -143,6 +145,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     # analytical solution for the vertical deflection under the load
     analyt_sol = 5.02;
     R = 46.0;
+    formul = FEMMShellT3DSGAModule
 
     output = import_ABAQUS(joinpath(input))
     fens = output["fens"]
@@ -169,6 +172,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -220,7 +224,7 @@ function test_convergence()
     98.4519858066279
     ]
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
-        v = _execute_dsg_model(formul, "raasch_s4_" * m * ".inp", false)
+        v = _execute("raasch_s4_" * m * ".inp", false)
         @test isapprox(res, v, rtol = 1.0e-4)
     end
     return true
@@ -279,11 +283,12 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
+function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
+    formul = FEMMShellT3DSGAModule
     
     tolerance = W/nW/100
     fens, fes = T3block(L,W,nL,nW,:a);
@@ -298,6 +303,7 @@ function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.0054
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
+    femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -358,22 +364,22 @@ function test_convergence()
     96.7274995250634,
     ]
     for n in [2, 4, 8, 16, ]
-        v = _execute_dsg_model(formul, params_thicker_dir_2..., 2*n, n, false)
+        v = _execute(params_thicker_dir_2..., 2*n, n, false)
         # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = _execute_dsg_model(formul, params_thicker_dir_3..., 2*n, n, false)
+        v = _execute(params_thicker_dir_3..., 2*n, n, false)
         # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = _execute_dsg_model(formul, params_thinner_dir_2..., 2*n, n, false)
+        v = _execute(params_thinner_dir_2..., 2*n, n, false)
         # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
-        v = _execute_dsg_model(formul, params_thinner_dir_3..., 2*n, n, false)
+        v = _execute(params_thinner_dir_3..., 2*n, n, false)
         # @show v
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
@@ -415,11 +421,12 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 
 
-function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = true)
+function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     E = 210e9;
     nu = 0.3;
     L = 10.0;
     thickness = 0.1
+    formul = FEMMShellT3DSGAModule
 
     tolerance = thickness/1000
     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
@@ -443,6 +450,7 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -497,7 +505,7 @@ function test_convergence()
     formul = FEMMShellT3DSGAModule
     # @info "LE5 Z-cantilever, formulation=$(formul)"
     for n in [0,  ]
-        res = _execute_dsg_model(formul, "nle5xf3c.inp", n, false)
+        res = _execute("nle5xf3c.inp", n, false)
         @test res[1] ≈ (-0.01568028415401719, 0.015401663810490641)[1]
         @test res[2] ≈ (-0.01568028415401719, 0.015401663810490641)[2]
     end

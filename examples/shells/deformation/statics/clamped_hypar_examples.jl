@@ -33,7 +33,7 @@ using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32, visualize = false)
+function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32, visualize = false)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -43,6 +43,7 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     thickness = tL_ratio * L
     # Bathe, Iosilevich, and Chapelle (2000) with a refined mesh of
     # high-order element MITC16
+    formul = FEMMShellT3DSGAModule
 
     @info "Mesh: $n elements per side"
 
@@ -59,6 +60,7 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -116,18 +118,18 @@ function _execute_dsg_model(formul, tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-
     return targetu
 end
 
-function test_convergence(formul)
+function test_convergence()
     
     tL_ratios = [1/100, 1/1000, 1/10000]; 
     gs = [80*0.1^0, 80*0.1^1, 80*0.1^2]
     analyt_sols = [-9.3355e-5, -6.3941e-3, -5.2988e-1];
     
     for (tL_ratio, g, analyt_sol) in zip(tL_ratios, gs, analyt_sols)
-        @info "Clamped hypar, t/L=$(tL_ratio), formulation=$(formul)"
-        results = []
-        for n in [4, 8, 16, 32, 64, 128, 256, 512]
+        @info "Clamped hypar, t/L=$(tL_ratio)"
+        results = Float64[]
+        for n in [4, 8, 16, 32, 64, 128, 256, ]
         # for n in [4, 8, 16, 32, 64, ]
-            r = _execute_dsg_model(formul, tL_ratio, g, analyt_sol, n, false)
+            r = _execute(tL_ratio, g, analyt_sol, n, false)
             push!(results, r/analyt_sol)
         end   
         @show results
@@ -138,16 +140,15 @@ end
 
 # using Gnuplot
 
-# ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, 512]
-# results = [0.8571252448599641, 0.8665242340654647, 0.9178272403908829, 0.9613361100770298, 0.9854577511292909, 0.9954878630275767, 0.9992902287331279, 1.0007228233464933]    
+# ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, ]
+# results = [0.8839348674712617, 0.8750949157612452, 0.9199805802913757, 0.9619508790573108, 0.9856803572479892, 0.9955727622499687, 0.9993169031485688]   
 # @gp ns results "with lp"      :-           
-# results = [1.0075109452933262, 0.918680499178048, 0.9336875438959243, 0.9558938174582949, 0.9762891817704417, 0.9902400506734798, 0.9968806281803028, 0.9993845760976003]  
+# results = [1.0429797613488236, 0.9314984628085947, 0.9365905225801154, 0.9565506281799385, 0.9764476699285441, 0.9902805329751646, 0.9968920296205528]   
 # @gp :- ns results "with lp"    :-                             
-# results = [1.2091137985344178, 1.0002021765631814, 0.9641514478788299, 0.971027447847773, 0.9811117321314542, 0.9889056459333478, 0.9953395935946254, 0.999163974846612]  
+# results = [1.251888013432877, 1.0155533090845452, 0.9678060658415124, 0.9718188010061173, 0.9812934066246979, 0.9889499817887738, 0.9953521405300628] 
 # @gp :- ns results "with lp"
 
 end # module
 
 using .clamped_hypar_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-clamped_hypar_examples.test_convergence(FEMMShellT3DSGAModule)
+clamped_hypar_examples.test_convergence()

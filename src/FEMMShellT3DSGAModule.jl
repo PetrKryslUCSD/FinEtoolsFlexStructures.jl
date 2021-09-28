@@ -122,7 +122,7 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _DtBs = similar(_Bs)
     
     return FEMMShellT3DSGA(integdomain, CSys(3), 
-        material, 1.0,
+        material, 0.1,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -625,24 +625,20 @@ The updated inspector data is returned.
 function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    npts,  Ns,  gradNparams,  w,  pc = integrationdata(self.integdomain);
-    @assert npts == 1
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J, J0 = self._loc, self._J, self._J0
+    loc, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, edisp_e = self._ecoords_e, self._edisp_e
-    edisp_n = deepcopy(edisp_e)
-    out = fill(0.0, 3)
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
     transformwith = Transformer(elmat)
-    loc_e, J_e, gradN_e = self._loc_e, self._J_e, self._gradN_e 
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    Br = fill(0.0, 1, size(elmat, 1))
     Dps, Dt = _shell_material_stiffness(self.material)
     scf=5/6;  # shear correction factor
     Dt .*= scf
-    drilling_stiffness_scale = self.drilling_stiffness_scale
+    edisp_e = deepcopy(edisp)
+    edisp_n = deepcopy(edisp_e)
+    out = fill(0.0, 3)
     # Sort out  the output requirements
     outputcsys = self.mcsys; # default: report the stresses in the material coord system
     for apair in pairs(context)
@@ -667,15 +663,11 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
         i = felist[ilist];
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
         gathervalues_asvec!(u, edisp, fes.conn[i]);
-        _compute_J0!(J0, ecoords)
+        _compute_J_loc!(J0, loc, ecoords)
         local_frame!(delegateof(fes), e_g, J0)
-        j = 1 # single integration point # :for j in 1:npts
-        locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-        Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j]);
-        t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-        mul!(ecoords_e, ecoords, view(e_g, :, 1:2))
-        locjac!(loc_e, J_e, ecoords_e, Ns[j], gradNparams[j])
-        gradN!(fes, gradN_e, gradNparams[j], J_e);
+        _local_coordinates!(ecoords_e, J0, e_g)
+        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
+        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
         # Establish nodal triads
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
@@ -685,7 +677,7 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
         _transfmat_e_to_n!(Te, n_e, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, Te', edisp_n)
-        updatecsmat!(outputcsys, loc, J, fes.label[i]);
+        updatecsmat!(outputcsys, loc, J0, fes.label[i]);
         if dot(view(outputcsys.csmat, :, 3), view(e_g, :, 3)) < 0.95
             @warn "Ordinate Systems Mismatched?"
         end
@@ -711,7 +703,7 @@ function inspectintegpoints(self::FEMMShellT3DSGA, geom0::NodalField{FFlt},  u::
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e)
-            he = sqrt(Jac)
+            he = sqrt(2*Ae)
             shr = Bs * edisp_e
             frc = ((t^3/(t^2+0.2*he^2)))*Dt * shr
             fo = o2_e' * frc

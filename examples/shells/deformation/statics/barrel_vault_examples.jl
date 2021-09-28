@@ -1,5 +1,20 @@
 """
+The barrel vault (Scordelis-Lo) roof is one of the benchmarks for linear elastic
+analysis of shells. 
 
+The candidate element's usefulness in irregular geometries (and most practical
+cases involve a high degree of geometric irregularity) is tested. As would be
+expected,the irregular mesh results are not as good as those provided by a
+regular meshwith the same number of variables. 
+
+Problem description
+
+The physical basis of the problem is a deeply arched roof supported only
+bydiaphragms at its curved edges (an aircraft hanger), deforming under its own
+weight. It is interesting to observe that the geometry is such that the
+centerpoint of the roof moves upward under the self-weight(downwardly directed)
+load. Perhaps this is one reason why the problem is not straightforward
+numerically. 
 """
 module barrel_vault_examples
 
@@ -15,7 +30,7 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 using Infiltrator
 
-function _execute_dsg_model(formul, input = "barrelvault_s3r_fineirreg.inp", visualize = true)
+function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
     E = 3.0e6;
     nu = 0.0;
     thickness = 3.0;
@@ -24,6 +39,7 @@ function _execute_dsg_model(formul, input = "barrelvault_s3r_fineirreg.inp", vis
     analyt_sol = -0.3024*12;
     R = 25.0*12;
     L = 50.0*12;
+    formul = FEMMShellT3DSGAModule
     
     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
     fens = output["fens"]
@@ -49,6 +65,7 @@ function _execute_dsg_model(formul, input = "barrelvault_s3r_fineirreg.inp", vis
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -147,13 +164,13 @@ function _execute_dsg_model(formul, input = "barrelvault_s3r_fineirreg.inp", vis
     return true
 end
 
-function test_convergence(formul)
+function test_convergence()
     
-    @info "Scordelis-Lo Abaqus model, formulation=$(formul)"
+    @info "Scordelis-Lo Abaqus model"
 
-    _execute_dsg_model(formul, "barrelvault_stri3_irreg.inp", false)
+    _execute("barrelvault_stri3_irreg.inp", false)
 
-    _execute_dsg_model(formul, "barrelvault_s3r_fineirreg.inp", false)
+    _execute("barrelvault_s3r_fineirreg.inp", false)
 
     return true
 end
@@ -161,5 +178,4 @@ end
 end # module
 
 using .barrel_vault_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-barrel_vault_examples.test_convergence(FEMMShellT3DSGAModule)
+barrel_vault_examples.test_convergence()

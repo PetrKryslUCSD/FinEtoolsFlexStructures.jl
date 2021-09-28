@@ -10,12 +10,13 @@ using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute_dsg_model(formul, n = 2, visualize = true)
+function _execute(n = 2, visualize = true)
     E = 3e6;
     nu = 0.3;
     thickness = 3.0;
     # analytical solution for the vertical deflection under the load
     analyt_sol=-1.82488e-5;
+    formul = FEMMShellT3DSGAModule
 
     @info "Mesh: $n elements per side"
 
@@ -37,6 +38,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 0.1
     associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
 
@@ -101,10 +103,10 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     return true
 end
 
-function test_convergence(formul)
-    @info "Pinched cylinder, formulation=$(formul)"
-    for n in [4, 8, 12, 16, 24] # 3:64 #
-        _execute_dsg_model(formul, n, false)
+function test_convergence()
+    @info "Pinched cylinder"
+    for n in [4, 8, 12, 16, 24, 48] # 3:64 #
+        _execute(n, false)
     end
     return true
 end
@@ -112,5 +114,4 @@ end
 end # module
 
 using .pinched_cylinder_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-pinched_cylinder_examples.test_convergence(FEMMShellT3DSGAModule)
+pinched_cylinder_examples.test_convergence()
