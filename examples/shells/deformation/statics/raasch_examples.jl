@@ -29,7 +29,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = true)
+function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;
     nu = 0.35;
     thickness  =  2.0;
@@ -37,6 +37,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     # analytical solution for the vertical deflection under the load
     analyt_sol = 5.02;
     R = 46.0;
+    formul = FEMMShellT3DSGAModule
 
     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
     fens = output["fens"]
@@ -63,6 +64,7 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.drilling_stiffness_scale = 0.001
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -116,12 +118,13 @@ function _execute_dsg_model(formul, input = "raasch_s4_1x9.inp", visualize = tru
     return true
 end
 
-function test_convergence(formul)
+function test_convergence()
     
-    @info "Raasch hook, formulation=$(formul)"
+    @info "Raasch hook"
 
     for m in ["1x9", "3x18", "5x36", "10x72"]
-        _execute_dsg_model(formul, "raasch_s4_" * m * ".inp", false)
+    # for m in ["1x9", ]
+        _execute("raasch_s4_" * m * ".inp", false)
     end
     return true
 end
@@ -129,5 +132,4 @@ end
 end # module
 
 using .raasch_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-raasch_examples.test_convergence(FEMMShellT3DSGAModule)
+raasch_examples.test_convergence()
