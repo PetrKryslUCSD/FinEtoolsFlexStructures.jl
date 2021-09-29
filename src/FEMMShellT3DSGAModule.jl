@@ -92,6 +92,7 @@ mutable struct FEMMShellT3DSGA{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _DtBs::FFltMat
 end
 
+
 function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
@@ -120,7 +121,7 @@ function FEMMShellT3DSGA(integdomain::IntegDomain{S, F}, material::M) where {S<:
     _Bs = fill(0.0, 2, __nn*__ndof)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
-    
+
     return FEMMShellT3DSGA(integdomain, CSys(3), 
         material, 0.1,
         false,
@@ -245,7 +246,8 @@ function _transfmat_n_to_g!(Te, n_e, e_g)
     return Te
 end
 
-function _transfmat_e_to_n!(Te, n_e, gradN_e)
+function _transfmat_e_to_n_A!(Te, n_e, gradN_e)
+    # DSGA version
     # Element-to-nodal transformation matrix. 
     # - `n_e` = matrix with the nodal triad vectors in columns, components on
     #   the element basis. Its transpose is the element triad on the nodal
@@ -271,9 +273,10 @@ function _transfmat_e_to_n!(Te, n_e, gradN_e)
     for i in 1:__nn
         coffst = (i-1)*__ndof
         n_eT = n_e[i]'
-        a1 = n_e[i][1, 3]
-        a2 = n_e[i][2, 3]
-        a3 = n_e[i][3, 3]
+        # a1 = n_e[i][1, 3]
+        # a2 = n_e[i][2, 3]
+        # a3 = n_e[i][3, 3]
+        a1, a2, a3 = n_eT[3, :]
         for j in 1:__nn
             roffst = (j-1)*__ndof
             Te[roffst+1, coffst+4] = (-a1 * 1/2 * gradN_e[j, 2])
@@ -282,6 +285,84 @@ function _transfmat_e_to_n!(Te, n_e, gradN_e)
             Te[roffst+2, coffst+5] = (+a2 * 1/2 * gradN_e[j, 1])
             Te[roffst+1, coffst+6] = (-a3 * 1/2 * gradN_e[j, 2])
             Te[roffst+2, coffst+6] = (+a3 * 1/2 * gradN_e[j, 1])
+        end
+    end
+    return Te 
+end
+
+
+function _transfmat_e_to_n_!(Te, n_e, gradN_e)
+    # DSG version
+    # Element-to-nodal transformation matrix. 
+    # - `n_e` = matrix with the nodal triad vectors in columns, components on
+    #   the element basis. Its transpose is the element triad on the nodal
+    #   basis vectors.
+    # - `gradN_e` = basis function gradients on the element basis.
+    # Output
+    # - `Te` = transformation matrix, input in the element basis, output in the
+    #   nodal basis
+
+    # TO DO avoid a temporary
+    Te .= 0.0
+    # Translation degrees of freedom
+    for i in 1:__nn
+        roffset = (i-1)*__ndof
+        n_eT = n_e[i]'
+        r = roffset+1:roffset+3
+        Te[r, r] .= n_eT 
+        r = roffset+4:roffset+5
+        Te[r, r] .= n_eT[1:2, 1:2] - (1/n_eT[3, 3]).*(vec(n_eT[3, 1:2])*vec(n_eT[1:2, 3])') 
+        Te[roffset+6, roffset+6]  = n_eT[3, 3]
+    end
+    # Rotation degrees of freedom. The drilling rotation of the mid surface
+    # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
+    # rotations.
+    for i in 1:__nn
+        coffst = (i-1)*__ndof
+        n_eT = n_e[i]'
+        a1 = (1/n_eT[3, 3])*n_eT[3, 1]
+        a2 = (1/n_eT[3, 3])*n_eT[3, 2]
+        for j in 1:__nn
+            roffst = (j-1)*__ndof
+            Te[roffst+1, coffst+4] = (-a1 * 1/2 * gradN_e[j, 2])
+            Te[roffst+2, coffst+4] = (+a1 * 1/2 * gradN_e[j, 1])
+            Te[roffst+1, coffst+5] = (-a2 * 1/2 * gradN_e[j, 2])
+            Te[roffst+2, coffst+5] = (+a2 * 1/2 * gradN_e[j, 1])
+        end
+    end
+    return Te
+end
+
+
+function _transfmat_e_to_n_MT!(Te, n_e, gradN_e)
+    # DSGMT version
+    # Nodal-to-element transformation matrix. 
+    # lTn = matrix with the nodal triad vectors in columns, components 
+    # on the element basis
+    # TO DO avoid a temporary
+    Te .= 0.0
+    # Translation degrees of freedom
+    for i in 1:__nn
+        roffset = (i-1)*__ndof
+        r = roffset+1:roffset+3
+        Te[r, r] .= n_e[i]' # this needs to be inverse
+    end
+    # Rotation degrees of freedom. The drilling rotation of the mid surface
+    # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
+    # rotations.
+    for i in 1:__nn
+        coffst = (i-1)*__ndof
+        invn_e = inv(n_e[i][1:2, 1:2]') 
+        Te[coffst.+(4:5), coffst.+(4:5)] .= invn_e
+        Te[coffst+6, coffst+6] = 1/n_e[i][3, 3]
+        r = invn_e * vec(n_e[i][1:2, 3]) # TO DO avoid the temporary
+        # 1.@show r
+        for j in 1:__nn
+            roffst = (j-1)*__ndof
+            Te[roffst+1, coffst+4] = (-r[1] * 1/2 * gradN_e[j, 2])
+            Te[roffst+2, coffst+4] = (+r[1] * 1/2 * gradN_e[j, 1])
+            Te[roffst+1, coffst+5] = (-r[2] * 1/2 * gradN_e[j, 2])
+            Te[roffst+2, coffst+5] = (+r[2] * 1/2 * gradN_e[j, 1])
         end
     end
     return Te
@@ -456,12 +537,19 @@ function associategeometry!(self::FEMMShellT3DSGA,  geom::NodalField{FFlt})
     return self
 end
 
+# _transfmat_e_to_n! = _transfmat_e_to_n_MT! 
+# _transfmat_e_to_n! = _transfmat_e_to_n_A!
+_transfmat_e_to_n! = _transfmat_e_to_n_!
+
 """
     stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
 function stiffness(self::FEMMShellT3DSGA, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+
+    @show _transfmat_e_to_n!
+    
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     normals, normal_valid = self._normals, self._normal_valid
