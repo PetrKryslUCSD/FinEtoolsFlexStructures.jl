@@ -477,7 +477,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     transformwith = Transformer(elmat)
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
-    scf=5/6;  # shear correction factor
+    scf = 5/6;  # shear correction factor
     Dt .*= scf
     drilling_stiffness_scale = self.drilling_stiffness_scale
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
@@ -491,10 +491,10 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         # Construct the Stiffness Matrix
         fill!(elmat,  0.0); # Initialize element matrix
         _Bmmat!(Bm, gradN_e)
-        _Bbmat!(Bb, gradN_e)
-        _Bsmat!(Bs, ecoords_e)
         add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
+        _Bbmat!(Bb, gradN_e)
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
+        _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
