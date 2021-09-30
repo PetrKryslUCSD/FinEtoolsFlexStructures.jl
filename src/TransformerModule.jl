@@ -14,8 +14,8 @@ end
 (o::Transformer)(elmat, T) = begin
     @assert size(o._buff) == size(T)
     @assert size(elmat) == size(T)
-    mul!(o._buff, elmat, Transpose(T))
-    mul!(elmat, T, o._buff)
+    mul!(o._buff, elmat, T)
+    mul!(elmat, Transpose(T), o._buff)
     return elmat
 end
 

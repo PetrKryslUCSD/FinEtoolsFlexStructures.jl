@@ -231,8 +231,8 @@ function _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, c)
     return n_e, nvalid
 end
 
-function _transfmat_n_to_g!(Te, n_e, e_g)
-    # Nodal-to-global transformation matrix. 
+function _transfmat_g_to_n!(Te, n_e, e_g)
+    # Global-to-nodal transformation matrix. 
     # The 3x3 blocks consist of the nodal
     # triad expressed on the global basis. The nodal basis vectors in `n_e
     # [i]` are expressed on the element basis, and are then rotated with `e_g`
@@ -242,7 +242,7 @@ function _transfmat_n_to_g!(Te, n_e, e_g)
     #   global basis
     Te .= 0.0
     for i in 1:__nn
-        Teblock = e_g * n_e[i] # TO DO remove temporary
+        Teblock = transpose(n_e[i]) * transpose(e_g) # TO DO remove temporary
         offset = (i-1)*__ndof
         r = offset+1:offset+3
         @. Te[r, r] = Teblock
@@ -252,103 +252,16 @@ function _transfmat_n_to_g!(Te, n_e, e_g)
     return Te
 end
 
-function _transfmat_e_to_n_A!(Te, n_e, gradN_e)
-    # DSGA version
-    # Element-to-nodal transformation matrix. 
-    # - `n_e` = matrix with the nodal triad vectors in columns, components on
-    #   the element basis. Its transpose is the element triad on the nodal
-    #   basis vectors.
-    # - `gradN_e` = basis function gradients on the element basis.
-    # Output
-    # - `Te` = transformation matrix, input in the element basis, output in the
-    #   nodal basis
-
-    # TO DO avoid a temporary
-    Te .= 0.0
-    # Translation and rotation degrees of freedom
-    for i in 1:__nn
-        roffset = (i-1)*__ndof
-        n_eT = n_e[i]'
-        r = roffset+1:roffset+3
-        Te[r, r] .= n_eT 
-        r = roffset+4:roffset+6
-        Te[r, r] .= n_eT 
-    end
-    # The drilling rotation of the mid surface produced by the 1/2*(v,x - u,y)
-    # effect is linked to the out of plane rotations.
-    for i in 1:__nn
-        coffst = (i-1)*__ndof
-        n_eT = n_e[i]'
-        # a1 = n_e[i][1, 3]
-        # a2 = n_e[i][2, 3]
-        # a3 = n_e[i][3, 3]
-        a1, a2, a3 = n_eT[3, :]
-        for j in 1:__nn
-            roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-a1 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+4] = (+a1 * 1/2 * gradN_e[j, 1])
-            Te[roffst+1, coffst+5] = (-a2 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+5] = (+a2 * 1/2 * gradN_e[j, 1])
-            Te[roffst+1, coffst+6] = (-a3 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+6] = (+a3 * 1/2 * gradN_e[j, 1])
-        end
-    end
-    return Te 
-end
-
-
-function _transfmat_e_to_n_!(Te, n_e, gradN_e)
+function _transfmat_n_to_e!(Te, n_e, gradN_e)
     # DSG version
-    # Element-to-nodal transformation matrix. 
+    # Nodal-to-element transformation matrix. 
     # - `n_e` = matrix with the nodal triad vectors in columns, components on
     #   the element basis. Its transpose is the element triad on the nodal
     #   basis vectors.
     # - `gradN_e` = basis function gradients on the element basis.
     # Output
-    # - `Te` = transformation matrix, input in the element basis, output in the
-    #   nodal basis
-
-    # TO DO avoid a temporary
-    Te .= 0.0
-    # Translation degrees of freedom
-    for i in 1:__nn
-        roffset = (i-1)*__ndof
-        n_eT = n_e[i]'
-        r = roffset+1:roffset+3
-        Te[r, r] .= n_eT 
-        r = roffset+4:roffset+5
-        Te[r, r] .= n_eT[1:2, 1:2] - (1/n_eT[3, 3]).*(vec(n_eT[3, 1:2])*vec(n_eT[1:2, 3])') 
-        Te[roffset+6, roffset+6]  = n_eT[3, 3]
-    end
-    # Rotation degrees of freedom. The drilling rotation of the mid surface
-    # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
-    # rotations.
-    for i in 1:__nn
-        coffst = (i-1)*__ndof
-        n_eT = n_e[i]'
-        a1 = (1/n_eT[3, 3])*n_eT[3, 1]
-        a2 = (1/n_eT[3, 3])*n_eT[3, 2]
-        for j in 1:__nn
-            roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-a1 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+4] = (+a1 * 1/2 * gradN_e[j, 1])
-            Te[roffst+1, coffst+5] = (-a2 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+5] = (+a2 * 1/2 * gradN_e[j, 1])
-        end
-    end
-    return Te
-end
-
-function _transfmat_e_to_n_C!(Te, n_e, gradN_e)
-    # DSG version
-    # Element-to-nodal transformation matrix. 
-    # - `n_e` = matrix with the nodal triad vectors in columns, components on
-    #   the element basis. Its transpose is the element triad on the nodal
-    #   basis vectors.
-    # - `gradN_e` = basis function gradients on the element basis.
-    # Output
-    # - `Te` = transformation matrix, input in the element basis, output in the
-    #   nodal basis: t_n = Te * t_e
+    # - `Te` = transformation matrix, input in the nodal basis, output in the
+    #   element basis: t_e = Te * t_n
     # Rotation degrees of freedom: The drilling rotation of the mid surface
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
@@ -356,28 +269,26 @@ function _transfmat_e_to_n_C!(Te, n_e, gradN_e)
     # TO DO avoid a temporary
     Te .= 0.0
     for i in 1:__nn
-        coffst = (i-1)*__ndof
-        # n_eT = n_e[i]'
+        roffst = (i-1)*__ndof
         n_ei = n_e[i] # TO DO avoid temporary
         n_ei_33 = n_ei[3, 3]
-        r = coffst+1:coffst+3
-        Te[r, r] .= n_ei'
-        r = coffst+4:coffst+5
-        Te[r, r] .= n_ei[1:2, 1:2]' - (1/n_ei_33).*(vec(n_ei[3, 1:2])*vec(n_ei[1:2, 3])') 
-        # Te[coffst+6, coffst+6]  = n_ei_33
+        r = roffst+1:roffst+3
+        Te[r, r] .= n_ei
+        r = roffst+4:roffst+5
+        Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
+        # Te[roffst+6, roffst+6]  = n_ei_33
         a1 = (1/n_ei_33)*n_ei[1, 3]
         a2 = (1/n_ei_33)*n_ei[2, 3]
         for j in 1:__nn
-            roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-a1 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+4] = (+a1 * 1/2 * gradN_e[j, 1])
-            Te[roffst+1, coffst+5] = (-a2 * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+5] = (+a2 * 1/2 * gradN_e[j, 1])
+            coffst = (j-1)*__ndof
+            Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
+            Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
+            Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
+            Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
         end
     end
     return Te
 end
-
 
 function _transfmat_e_to_n_MT!(Te, n_e, gradN_e)
     # DSGMT version
@@ -585,7 +496,7 @@ end
 # _transfmat_e_to_n! = _transfmat_e_to_n_MT! 
 # _transfmat_e_to_n! = _transfmat_e_to_n_A!
 # _transfmat_e_to_n! = _transfmat_e_to_n_!
-_transfmat_e_to_n! = _transfmat_e_to_n_C!
+# _transfmat_e_to_n! = _transfmat_e_to_n_C!
 
 """
     stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
@@ -631,7 +542,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
-        _transfmat_e_to_n!(Te, n_e, gradN_e)
+        _transfmat_n_to_e!(Te, n_e, gradN_e)
         # Transform the elementwise matrix into the nodal coordinates
         transformwith(elmat, Te)
         # Bending diagonal stiffness coefficients
@@ -643,7 +554,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         nvalid[2] && (elmat[12,12] += kavg)
         nvalid[3] && (elmat[18,18] += kavg)
         # Transform from nodal into global coordinates
-        _transfmat_n_to_g!(Te, n_e, e_g)
+        _transfmat_g_to_n!(Te, n_e, e_g)
         transformwith(elmat, Te)
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i]); 
