@@ -5,7 +5,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -90,7 +90,7 @@ function _execute_dsg_model(formul, n = 2, LW_ratio = 2.0, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     LW_ratio = 2.0
     @info "Twisted Ribbon, L/W=$(LW_ratio), formulation=$(formul)"
     for n in [8, 12, 16, 24]

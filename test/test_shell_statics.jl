@@ -6,7 +6,7 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -22,7 +22,7 @@ function _execute(n = 8, visualize = true)
     thickness = 0.25; # geometrical dimensions are in feet
     R = 25.0;
     L = 50.0;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     
     tolerance = R/n/1000
     fens, fes = T3block(40/360*2*pi,L/2,n,n);
@@ -86,7 +86,7 @@ function _execute(n = 8, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     results = [
     66.6606197093463,                                                
     85.5997636990392,                                                
@@ -131,7 +131,7 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -145,7 +145,7 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     # analytical solution for the vertical deflection under the load
     analyt_sol = 5.02;
     R = 46.0;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     output = import_ABAQUS(joinpath(input))
     fens = output["fens"]
@@ -216,12 +216,12 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
 end
  
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     results = [
-    95.96774650732868, 
-    96.68065217811291, 
-    97.39437142020671, 
-    98.4519858066279
+    96.51872499310304, 
+    96.48077130332018, 
+    97.30092946169812,
+    98.41519237501687,
     ]
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
         v = _execute("raasch_s4_" * m * ".inp", false)
@@ -272,7 +272,7 @@ using Test
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
@@ -288,7 +288,7 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     nu = 0.22;
     W = 1.1;
     L = 12.0;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     
     tolerance = W/nW/100
     fens, fes = T3block(L,W,nL,nW,:a);
@@ -344,24 +344,24 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     results = [
-    60.729833319894325,
-    75.03868479181727,
-    87.50963379377527,
-    95.47124053670485,
-    84.65337521150289,
-    91.88041248379042,
-    96.63969262242233,
-    98.65588185555086,
-    78.01013136700996,
-    88.55708071163137,
-    93.80585717074035,
-    96.77822361996257,
-    85.16655215203586,
-    89.84038466760585,
-    93.94781632610085,
-    96.7274995250634,
+    55.01392801827269,                                                      
+    73.4779289710503,                                                       
+    87.32619365109382,                                                      
+    95.4633643434613,                                                       
+    80.29938451608545,                                                      
+    91.19170648510708,                                                      
+    96.5922583423222,                                                       
+    98.66128847112462,                                                      
+    69.33900522374954,                                                      
+    85.13773919622749,                                                      
+    92.80255690185935,                                                      
+    96.51101392349429,                                                      
+    80.02664618946295,                                                      
+    88.52219896619799,                                                      
+    93.60828078721634,                                                      
+    96.64123677105148,   
     ]
     for n in [2, 4, 8, 16, ]
         v = _execute(params_thicker_dir_2..., 2*n, n, false)
@@ -415,7 +415,7 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -426,7 +426,7 @@ function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     nu = 0.3;
     L = 10.0;
     thickness = 0.1
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     tolerance = thickness/1000
     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
@@ -502,7 +502,7 @@ function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     # @info "LE5 Z-cantilever, formulation=$(formul)"
     for n in [0,  ]
         res = _execute("nle5xf3c.inp", n, false)

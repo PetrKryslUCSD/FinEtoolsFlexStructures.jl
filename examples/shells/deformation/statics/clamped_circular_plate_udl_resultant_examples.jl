@@ -10,7 +10,7 @@ using FinEtools
 using FinEtools.RotationUtilModule: cross3!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -29,7 +29,7 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     @show center_m = q*a^2*(1+nu)/16
     @show fixed_mr = q*a^2/8
     @show fixed_mt = nu*q*a^2/8
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     tolerance = a/n/1000
     if mesh_procedure == :q4_t3
@@ -141,7 +141,7 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     t_radius_ratio = 0.01
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio "

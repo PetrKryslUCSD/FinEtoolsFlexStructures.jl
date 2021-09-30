@@ -6,7 +6,7 @@ module clamped_circular_plate_udl_examples
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -21,7 +21,7 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     q = 1.0e10*t_radius_ratio^3
     # analytical solution for the vertical deflection under the load
     analyt_sol = -q*a^4/64/D*(1+16/5/(1-nu)*thickness^2/a^2);
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     tolerance = a/n/1000
     if mesh_procedure == :q4_t3

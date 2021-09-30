@@ -23,7 +23,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -122,7 +122,7 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
 end
 
 function test_convergence()
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     @info "LE5 Z-cantilever, formulation=$(formul)"
     for n in [0, 1, 2, 3, 4, ]
         _execute_dsg_model(formul, "nle5xf3c.inp", n, false)

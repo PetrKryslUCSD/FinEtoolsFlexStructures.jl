@@ -35,13 +35,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
-using FinEtoolsFlexStructures.FEMMShellIsoPModule
-using FinEtoolsFlexStructures.FEMMShellQ4SRIModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
@@ -52,11 +46,12 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
+function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
+    formul = FEMMShellT3FFModule
     
     tolerance = W/nW/100
     fens, fes = T3block(L,W,nL,nW,:a);
@@ -71,6 +66,7 @@ function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.0054
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
+    femm.drilling_stiffness_scale = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -122,20 +118,20 @@ function _execute_dsg_model(formul, t = 0.32, force = 1.0, dir = 3, uex = 0.0054
     return true
 end
 
-function test_convergence(formul)
-    @info "Twisted, thicker, formulation=$(formul)"
+function test_convergence()
+    @info "Twisted, thicker"
     for n in [2, 4, 8, 16, ]
-        _execute_dsg_model(formul, params_thicker_dir_2..., 2*n, n, false)
+        _execute(params_thicker_dir_2..., 2*n, n, false)
     end
     for n in [2, 4, 8, 16, ]
-        _execute_dsg_model(formul, params_thicker_dir_3..., 2*n, n, false)
+        _execute(params_thicker_dir_3..., 2*n, n, false)
     end
-    @info "Twisted, thinner, formulation=$(formul)"
+    @info "Twisted, thinner"
     for n in [2, 4, 8, 16, ]
-        _execute_dsg_model(formul, params_thinner_dir_2..., 2*n, n, false)
+        _execute(params_thinner_dir_2..., 2*n, n, false)
     end
     for n in [2, 4, 8, 16, ]
-        _execute_dsg_model(formul, params_thinner_dir_3..., 2*n, n, false)
+        _execute(params_thinner_dir_3..., 2*n, n, false)
     end
     return true
 end
@@ -143,9 +139,5 @@ end
 end # module
 
 using .twisted_beam_examples
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGMTModule
-twisted_beam_examples.test_convergence(FEMMShellT3DSGModule)
-twisted_beam_examples.test_convergence(FEMMShellT3DSGAModule)
+twisted_beam_examples.test_convergence()
 # twisted_beam_examples.test_convergence(FEMMShellT3DSGMTModule)

@@ -5,7 +5,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -20,7 +20,7 @@ function _execute(n = 8, visualize = true)
     mid_edge  = [48.0, 52.0];# Location of tracked  deflection
     magn=1/free_height;# Magnitude of applied load
     convutip=23.97;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
     
     @info "Mesh: $n elements per side"
     tolerance = thickness/n/100

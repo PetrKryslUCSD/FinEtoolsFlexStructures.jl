@@ -6,7 +6,7 @@ module pinched_cylinder_examples
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -16,7 +16,7 @@ function _execute(n = 2, visualize = true)
     thickness = 3.0;
     # analytical solution for the vertical deflection under the load
     analyt_sol=-1.82488e-5;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     @info "Mesh: $n elements per side"
 

@@ -9,7 +9,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -22,7 +22,7 @@ function _execute(n = 2, visualize = true)
     # analytical solution for the vertical deflection under the load
     analyt_sol = 0.0924;
     R = 10.0;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     tolerance = R/n/1000
     fens, fes = Q4spheren(R, n)

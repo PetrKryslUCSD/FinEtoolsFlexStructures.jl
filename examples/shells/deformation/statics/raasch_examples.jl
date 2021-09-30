@@ -23,7 +23,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3DSGAModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -37,7 +37,7 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     # analytical solution for the vertical deflection under the load
     analyt_sol = 5.02;
     R = 46.0;
-    formul = FEMMShellT3DSGAModule
+    formul = FEMMShellT3FFModule
 
     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
     fens = output["fens"]
@@ -64,7 +64,7 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.drilling_stiffness_scale = 0.001
+    femm.drilling_stiffness_scale = 1.0e-4
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
