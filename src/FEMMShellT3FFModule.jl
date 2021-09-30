@@ -233,13 +233,14 @@ end
 
 function _transfmat_g_to_n!(Te, n_e, e_g)
     # Global-to-nodal transformation matrix. 
-    # The 3x3 blocks consist of the nodal
-    # triad expressed on the global basis. The nodal basis vectors in `n_e
-    # [i]` are expressed on the element basis, and are then rotated with `e_g`
-    # into the global coordinate system.
+
+    # The 3x3 blocks consist of the nodal triad expressed on the global basis.
+    # The nodal basis vectors in `n_e[i]` are expressed on the element basis,
+    # and are then rotated with `e_g` into the global coordinate system.
+
     # Output
-    # - `Te` = transformation matrix, input in the nodal basis, output in the
-    #   global basis
+    # - `Te` = transformation matrix, input in the global basis, output in the
+    #   nodal basis
     Te .= 0.0
     for i in 1:__nn
         Teblock = transpose(n_e[i]) * transpose(e_g) # TO DO remove temporary
@@ -285,40 +286,6 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
             Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
             Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
             Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
-        end
-    end
-    return Te
-end
-
-function _transfmat_e_to_n_MT!(Te, n_e, gradN_e)
-    # DSGMT version
-    # Nodal-to-element transformation matrix. 
-    # lTn = matrix with the nodal triad vectors in columns, components 
-    # on the element basis
-    # TO DO avoid a temporary
-    Te .= 0.0
-    # Translation degrees of freedom
-    for i in 1:__nn
-        roffset = (i-1)*__ndof
-        r = roffset+1:roffset+3
-        Te[r, r] .= n_e[i]' # this needs to be inverse
-    end
-    # Rotation degrees of freedom. The drilling rotation of the mid surface
-    # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
-    # rotations.
-    for i in 1:__nn
-        coffst = (i-1)*__ndof
-        invn_e = inv(n_e[i][1:2, 1:2]') 
-        Te[coffst.+(4:5), coffst.+(4:5)] .= invn_e
-        Te[coffst+6, coffst+6] = 1/n_e[i][3, 3]
-        r = invn_e * vec(n_e[i][1:2, 3]) # TO DO avoid the temporary
-        # 1.@show r
-        for j in 1:__nn
-            roffst = (j-1)*__ndof
-            Te[roffst+1, coffst+4] = (-r[1] * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+4] = (+r[1] * 1/2 * gradN_e[j, 1])
-            Te[roffst+1, coffst+5] = (-r[2] * 1/2 * gradN_e[j, 2])
-            Te[roffst+2, coffst+5] = (+r[2] * 1/2 * gradN_e[j, 1])
         end
     end
     return Te
@@ -493,20 +460,12 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
     return self
 end
 
-# _transfmat_e_to_n! = _transfmat_e_to_n_MT! 
-# _transfmat_e_to_n! = _transfmat_e_to_n_A!
-# _transfmat_e_to_n! = _transfmat_e_to_n_!
-# _transfmat_e_to_n! = _transfmat_e_to_n_C!
-
 """
     stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
 
 Compute the material stiffness matrix.
 """
 function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
-
-    # @show _transfmat_e_to_n!
-    
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     normals, normal_valid = self._normals, self._normal_valid
@@ -625,7 +584,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
             end
         end
         # Transform into global coordinates
-        _transfmat_n_to_g!(Te, n_e, e_g)
+        _transfmat_g_to_n!(Te, n_e, e_g)
         transformwith(elmat, Te)
         # Assemble
         gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
@@ -716,12 +675,12 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         # Establish nodal triads
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
-        _transfmat_n_to_g!(Te, n_e, e_g)
-        mul!(edisp_n, Te', edisp)
+        _transfmat_g_to_n!(Te, n_e, e_g)
+        mul!(edisp_n, Te, edisp)
         # Now treat the transformation from the nodal to the element triad
-        _transfmat_e_to_n!(Te, n_e, gradN_e)
+        _transfmat_n_to_e!(Te, n_e, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
-        mul!(edisp_e, Te', edisp_n)
+        mul!(edisp_e, Te, edisp_n)
         updatecsmat!(outputcsys, loc, J0, fes.label[i]);
         if dot(view(outputcsys.csmat, :, 3), view(e_g, :, 3)) < 0.95
             @warn "Ordinate Systems Mismatched?"
