@@ -88,10 +88,10 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    66.6606197093463,                                                
-    85.5997636990392,                                                
-    89.88947890745521,                                               
-    92.53516614150621,                                               
+    66.60559668780701,
+    85.57474282895569,
+    89.87150728557539,
+    92.52173091974855,
     95.4225137166831, 
     97.66243080996651
     ]
@@ -218,10 +218,10 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    96.51872499310304, 
-    96.48077130332018, 
-    97.30092946169812,
-    98.41519237501687,
+    96.32049617852304,
+    96.28654617911712,
+    97.22832838599399,
+    98.39267809570217,
     ]
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
         v = _execute("raasch_s4_" * m * ".inp", false)
@@ -346,20 +346,20 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    55.01392801827269,                                                      
-    73.4779289710503,                                                       
-    87.32619365109382,                                                      
+    57.75018765506612, 
+    74.13862651110597, 
+    87.40098459192473,
     95.4633643434613,                                                       
-    80.29938451608545,                                                      
-    91.19170648510708,                                                      
+    83.63588917033569,                                                    
+    91.39754527393814,                                                      
     96.5922583423222,                                                       
     98.66128847112462,                                                      
-    69.33900522374954,                                                      
-    85.13773919622749,                                                      
-    92.80255690185935,                                                      
+    73.80761873503538,                                                      
+    86.67159157990508,                                                      
+    93.16799868490061,                                                      
     96.51101392349429,                                                      
-    80.02664618946295,                                                      
-    88.52219896619799,                                                      
+    84.35366406235917,                                                      
+    89.08379145405587,                                                      
     93.60828078721634,                                                      
     96.64123677105148,   
     ]
@@ -655,15 +655,15 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
     test_results = [
     (-1520.6449167366522, 14.067403309095397)                                   
     (-73.8262145426215,   425.93651541819503)                                   
-    (-0.016018692104439992, 953.0929383629322)
+    (-0.005341121492547284, 953.0929383629322)
     ]
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("m$nc", fld.values))
-        @test isapprox(minimum(fld.values), test_results[nc][1])
-        @test isapprox(maximum(fld.values), test_results[nc][2])
+        @test isapprox(minimum(fld.values), test_results[nc][1], rtol = 0.01)
+        @test isapprox(maximum(fld.values), test_results[nc][2], rtol = 0.01)
     end
     # vtkwrite("$(input)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     test_results = [
@@ -676,8 +676,8 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
         fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("n$nc", fld.values))
-        @test isapprox(minimum(fld.values), test_results[nc][1])
-        @test isapprox(maximum(fld.values), test_results[nc][2])
+        @test isapprox(minimum(fld.values), test_results[nc][1], rtol = 0.01)
+        @test isapprox(maximum(fld.values), test_results[nc][2], rtol = 0.01)
     end
     # vtkwrite("$(input)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     test_results = [                          
@@ -689,8 +689,8 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
         fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
-        @test isapprox(minimum(fld.values), test_results[nc][1])
-               @test isapprox(maximum(fld.values), test_results[nc][2])
+        @test isapprox(minimum(fld.values), test_results[nc][1], rtol = 0.01)
+        @test isapprox(maximum(fld.values), test_results[nc][2], rtol = 0.01)
     end
     # vtkwrite("$(input)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
