@@ -282,10 +282,22 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
         a2 = (1/n_ei_33)*n_ei[2, 3]
         for j in 1:__nn
             coffst = (j-1)*__ndof
-            Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
-            Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
-            Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
-            Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
+            # Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
+            # Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
+            # Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
+            # Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
+            Te[roffst+4, coffst+1] += (-a1 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
+            Te[roffst+4, coffst+2] += (-a1 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
+            Te[roffst+4, coffst+3] += (-a1 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
+            Te[roffst+4, coffst+1] += (+a1 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
+            Te[roffst+4, coffst+2] += (+a1 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
+            Te[roffst+4, coffst+3] += (+a1 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
+            Te[roffst+5, coffst+1] += (-a2 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
+            Te[roffst+5, coffst+2] += (-a2 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
+            Te[roffst+5, coffst+3] += (-a2 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
+            Te[roffst+5, coffst+1] += (+a2 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
+            Te[roffst+5, coffst+2] += (+a2 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
+            Te[roffst+5, coffst+3] += (+a2 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
         end
     end
     return Te
