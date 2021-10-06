@@ -1,7 +1,7 @@
 """
-Clamped circular plate with uniform distributed load
+Simply-supported circular plate with uniform distributed load
 """
-module clamped_circular_plate_udl_examples
+module ss_circular_plate_udl_examples
 
 using FinEtools
 using FinEtoolsDeforLinear
@@ -20,8 +20,8 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     D = E*thickness^3/12/(1-nu^2)
     q = 1.0e10*t_radius_ratio^3
     # analytical solution for the vertical deflection under the load
-    analyt_sol = -q*a^4/64/D*(1+16/5/(1-nu)*thickness^2/a^2);
-    # analyt_sol = -q*a^4/64/D
+    # Includes the effect of shear deformation.
+    analyt_sol = -q*a^4/64/D*((5+nu)/(1+nu)+4/(1-nu)*thickness^2/a^2);
     formul = FEMMShellT3FFModule
 
     tolerance = a/n/1000
@@ -70,9 +70,9 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     for i in [2,4,6]
         setebc!(dchi, l1, true, i)
     end
-    # clamped support
+    # ss support
     l1 = connectednodes(subset(bfes, lc))
-    for i in [1,2,3,4,5,6]
+    for i in [1,2,3,]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -110,17 +110,17 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
 end
 
 function test_convergence()
-    t_radius_ratio = 0.1
+    t_radius_ratio = 0.05
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio "
     for n in [2, 4, 8, 16, 32, 64]
-        _execute(:q4_t3, n, t_radius_ratio, false)
+        _execute(:t3_poor, n, t_radius_ratio, false)
     end
     return true
 end
 
 end # module
 
-using .clamped_circular_plate_udl_examples
-m = clamped_circular_plate_udl_examples
+using .ss_circular_plate_udl_examples
+m = ss_circular_plate_udl_examples
 m.test_convergence()
