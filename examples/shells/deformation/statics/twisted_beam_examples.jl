@@ -120,17 +120,18 @@ end
 
 function test_convergence()
     @info "Twisted, thicker"
-    for n in [2, 4, 8, 16, ]
+    ns = [2, 4, 8, 16, 32, 64, 128]
+    for n in ns
         _execute(params_thicker_dir_2..., 2*n, n, false)
     end
-    for n in [2, 4, 8, 16, ]
+    for n in ns
         _execute(params_thicker_dir_3..., 2*n, n, false)
     end
     @info "Twisted, thinner"
-    for n in [2, 4, 8, 16, ]
+    for n in ns
         _execute(params_thinner_dir_2..., 2*n, n, false)
     end
-    for n in [2, 4, 8, 16, ]
+    for n in ns
         _execute(params_thinner_dir_3..., 2*n, n, false)
     end
     return true
