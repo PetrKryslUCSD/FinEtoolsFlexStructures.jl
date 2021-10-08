@@ -222,7 +222,7 @@ function _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, c)
             nk_e .= 0.0; nk_e[3] = 1.0
         end
         cross3!(r, f3_e, nk_e)
-        if norm(r) > 1.0e-6
+        if norm(r) > 1.0e-12
             rotmat3!(n_e[k], r) 
         else
             n_e[k] .= I(3)
@@ -253,6 +253,67 @@ function _transfmat_g_to_n!(Te, n_e, e_g)
     return Te
 end
 
+# function _transfmat_n_to_e!(Te, n_e, gradN_e)
+#     # DSG version
+#     # Nodal-to-element transformation matrix. 
+#     # - `n_e` = matrix with the nodal triad vectors in columns, components on
+#     #   the element basis. Its transpose is the element triad on the nodal
+#     #   basis vectors.
+#     # - `gradN_e` = basis function gradients on the element basis.
+#     # Output
+#     # - `Te` = transformation matrix, input in the nodal basis, output in the
+#     #   element basis: t_e = Te * t_n
+#     # Rotation degrees of freedom: The drilling rotation of the mid surface
+#     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
+#     # rotations.
+    
+#     # TO DO avoid a temporary
+#     Te .= 0.0
+#     for i in 1:__nn
+#         roffst = (i-1)*__ndof
+#         n_ei = n_e[i] # TO DO avoid temporary
+#         n_ei_33 = n_ei[3, 3]
+#         r = roffst+1:roffst+3
+#         Te[r, r] .= n_ei
+#         r = roffst+4:roffst+5
+#         Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
+#         Te[roffst+6, roffst+6]  += n_ei_33
+#         Te[roffst+6, roffst+4]  += n_ei[3, 1]
+#         Te[roffst+6, roffst+5]  += n_ei[3, 2]
+#         a1 = (1/n_ei_33)*n_ei[1, 3]
+#         a2 = (1/n_ei_33)*n_ei[2, 3]
+#         a3 = 1.0
+#         for j in 1:__nn
+#             coffst = (j-1)*__ndof
+#             # Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
+#             # Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
+#             # Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
+#             # Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
+#             for k in 1:3
+#                 Te[roffst+4, coffst+k] += (-a1 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
+#                 Te[roffst+4, coffst+k] += (+a1 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
+#                 Te[roffst+5, coffst+k] += (-a2 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
+#                 Te[roffst+5, coffst+k] += (+a2 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
+#                 Te[roffst+6, coffst+k] -= (-a3 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
+#                 Te[roffst+6, coffst+k] -= (+a3 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
+#             end
+#             # Te[roffst+4, coffst+1] += (-a1 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
+#             # Te[roffst+4, coffst+2] += (-a1 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
+#             # Te[roffst+4, coffst+3] += (-a1 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
+#             # Te[roffst+4, coffst+1] += (+a1 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
+#             # Te[roffst+4, coffst+2] += (+a1 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
+#             # Te[roffst+4, coffst+3] += (+a1 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
+#             # Te[roffst+5, coffst+1] += (-a2 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
+#             # Te[roffst+5, coffst+2] += (-a2 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
+#             # Te[roffst+5, coffst+3] += (-a2 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
+#             # Te[roffst+5, coffst+1] += (+a2 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
+#             # Te[roffst+5, coffst+2] += (+a2 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
+#             # Te[roffst+5, coffst+3] += (+a2 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
+#         end
+#     end
+#     return Te
+# end
+
 function _transfmat_n_to_e!(Te, n_e, gradN_e)
     # DSG version
     # Nodal-to-element transformation matrix. 
@@ -277,27 +338,17 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
         Te[r, r] .= n_ei
         r = roffst+4:roffst+5
         Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
-        # Te[roffst+6, roffst+6]  = n_ei_33
-        a1 = (1/n_ei_33)*n_ei[1, 3]
-        a2 = (1/n_ei_33)*n_ei[2, 3]
+        a1 = (1/n_ei_33)*n_ei[1, 3] * 1/2
+        a2 = (1/n_ei_33)*n_ei[2, 3] * 1/2
+        a3 = 1.0 * 1/2
         for j in 1:__nn
             coffst = (j-1)*__ndof
-            # Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
-            # Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
-            # Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
-            # Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
-            Te[roffst+4, coffst+1] += (-a1 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
-            Te[roffst+4, coffst+2] += (-a1 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
-            Te[roffst+4, coffst+3] += (-a1 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
-            Te[roffst+4, coffst+1] += (+a1 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
-            Te[roffst+4, coffst+2] += (+a1 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
-            Te[roffst+4, coffst+3] += (+a1 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
-            Te[roffst+5, coffst+1] += (-a2 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
-            Te[roffst+5, coffst+2] += (-a2 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
-            Te[roffst+5, coffst+3] += (-a2 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
-            Te[roffst+5, coffst+1] += (+a2 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
-            Te[roffst+5, coffst+2] += (+a2 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
-            Te[roffst+5, coffst+3] += (+a2 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
+            for k in 1:3
+                Te[roffst+4, coffst+k] += (-a1) * (n_ei[1, k] * gradN_e[j, 2])
+                Te[roffst+4, coffst+k] += (+a1) * (n_ei[2, k] * gradN_e[j, 1])
+                Te[roffst+5, coffst+k] += (-a2) * (n_ei[1, k] * gradN_e[j, 2])
+                Te[roffst+5, coffst+k] += (+a2) * (n_ei[2, k] * gradN_e[j, 1])
+            end
         end
     end
     return Te
@@ -509,6 +560,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
+        # add_btdb_ut_only!(elmat, Bs, t*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
