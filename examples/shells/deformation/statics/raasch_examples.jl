@@ -26,6 +26,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 using Infiltrator
 
@@ -94,12 +95,26 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     l1 = selectelem(fens, bfes, box = [97.9615 97.9615 -16 -16 0 20], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
     fi = ForceIntensity(FFlt[0, 0, 0.05, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 1);
     
     # @infiltrate
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
+    # @show minimum(dchi.values[:, 1]), maximum(dchi.values[:, 1])
+    # @show minimum(dchi.values[:, 2]), maximum(dchi.values[:, 2])
+    # @show minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
+    # @show minimum(dchi.values[:, 4]), maximum(dchi.values[:, 4])
+    # @show minimum(dchi.values[:, 5]), maximum(dchi.values[:, 5])
+    # @show minimum(dchi.values[:, 6]), maximum(dchi.values[:, 6])
+
+    # Generate a graphical display of displacements and rotations
+    scalars = []
+    for nc in 1:6
+        push!(scalars, ("dchi$nc", dchi.values[:, nc]))
+    end
+    vtkwrite("raasch-$input-dchi.vtu", fens, fes; scalars = scalars)
+
     nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 0], inflate = tolerance)
     targetu =  dchi.values[nl, 3][1]
     @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
@@ -122,7 +137,7 @@ function test_convergence()
     
     @info "Raasch hook"
 
-    for m in ["1x9", "3x18", "5x36", "10x72"]
+    for m in ["1x9", "3x18", "5x36", "10x72", "20x144"]
     # for m in ["1x9", ]
         _execute("raasch_s4_" * m * ".inp", false)
     end
