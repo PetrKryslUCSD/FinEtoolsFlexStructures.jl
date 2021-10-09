@@ -1,6 +1,6 @@
 module FEMMShellT3FFModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot
+using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
 using FinEtools
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -74,6 +74,7 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     mcsys::CSys # updater of the material orientation matrix
     material::M # material object.
     drilling_stiffness_scale::Float64
+    threshold_angle::Float64
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
@@ -94,6 +95,7 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _Bm::FFltMat
     _Bb::FFltMat
     _Bs::FFltMat
+    _Bt::FFltMat
     _DpsBmb::FFltMat
     _DtBs::FFltMat
 end
@@ -125,11 +127,12 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
     _Bm = fill(0.0, 3, __nn*__ndof)
     _Bb = fill(0.0, 3, __nn*__ndof)
     _Bs = fill(0.0, 2, __nn*__ndof)
+    _Bt = fill(0.0, __nn*__ndof, 1)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, CSys(3), 
-        material, 0.1,
+        material, 0.1, 15.0,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -138,7 +141,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
         _e_g, _n_e, _nvalid, _Te,
         _elmat, 
         _gradN_e,
-        _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
+        _Bm, _Bb, _Bs, _Bt, _DpsBmb, _DtBs)
 end
 
 function make(integdomain, material)
@@ -338,16 +341,14 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
         Te[r, r] .= n_ei
         r = roffst+4:roffst+5
         Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
-        a1 = (1/n_ei_33)*n_ei[1, 3] * 1/2
-        a2 = (1/n_ei_33)*n_ei[2, 3] * 1/2
-        a3 = 1.0 * 1/2
+        m1 = (1/n_ei_33)*n_ei[1, 3]
+        m2 = (1/n_ei_33)*n_ei[2, 3]
         for j in 1:__nn
             coffst = (j-1)*__ndof
             for k in 1:3
-                Te[roffst+4, coffst+k] += (-a1) * (n_ei[1, k] * gradN_e[j, 2])
-                Te[roffst+4, coffst+k] += (+a1) * (n_ei[2, k] * gradN_e[j, 1])
-                Te[roffst+5, coffst+k] += (-a2) * (n_ei[1, k] * gradN_e[j, 2])
-                Te[roffst+5, coffst+k] += (+a2) * (n_ei[2, k] * gradN_e[j, 1])
+                a3 = 1/2 * (n_ei[2, k] * gradN_e[j, 1] - n_ei[1, k] * gradN_e[j, 2])
+                Te[roffst+4, coffst+k] += m1 * a3
+                Te[roffst+5, coffst+k] += m2 * a3
             end
         end
     end
@@ -362,6 +363,24 @@ function _gradN_e_Ae!(gradN_e, ecoords_e)
     J = (a*d - b*c)
     gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
     return gradN_e, J/2
+end
+
+function _Btmat!(Bt, ecoords_e)
+    x1, x2, x3 = ecoords_e[1, 1], ecoords_e[2, 1], ecoords_e[3, 1]
+    y1, y2, y3 = ecoords_e[1, 2], ecoords_e[2, 2], ecoords_e[3, 2]
+    
+    xc = (x1 + x2 + x3)/3
+    yc = (y1 + y2 + y3)/3
+
+    Bt .= 0.0
+
+    Bt[4, 1] = (x1 - xc)
+    Bt[5, 1] = (y1 - yc)
+    Bt[10, 1] = (x2 - xc)
+    Bt[11, 1] = (y2 - yc)
+    Bt[16, 1] = (x3 - xc)
+    Bt[17, 1] = (y3 - yc)
+    return Bt
 end
 
 """
@@ -468,6 +487,7 @@ function _Bbmat!(Bb, gradN)
 end
 
 function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
+    threshold_angle = self.threshold_angle
     J0 = self._J0
     e_g = self._e_g
     normals, normal_valid = self._normals, self._normal_valid
@@ -490,9 +510,8 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
     end
     # Now perform a second pass. If the nodal normal differs by a substantial
     # amount from the element normals, zero out the nodal normal to indicate
-    # that the nodal normal should not be used at that vertex. TO DO: Should we
-    # make this a configurable parameter?
-    ntolerance = 1 - sqrt(1 - sin(30/180*pi)^2)
+    # that the nodal normal should not be used at that vertex. 
+    ntolerance = 1 - sqrt(1 - sin(threshold_angle/180*pi)^2)
     for el in 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         J0[:, 1] = geom.values[j, :] - geom.values[i, :]
@@ -518,7 +537,7 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
             nz += 1
         end
     end
-    # @show size(normals, 1) , nz
+    # Mark the engine as being associated with geometry
     self._associatedgeometry = true
     return self
 end
@@ -538,7 +557,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
     transformwith = Transformer(elmat)
-    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    Bm, Bb, Bs, Bt, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._Bt, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
     Dt .*= scf
@@ -560,7 +579,8 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
-        # add_btdb_ut_only!(elmat, Bs, t*Ae, Dt, DtBs)
+        _Btmat!(Bt, ecoords_e)
+        # add_nnt_ut_only!(elmat, Bt, Dt[1, 1]*t*Ae/192/Ae)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
