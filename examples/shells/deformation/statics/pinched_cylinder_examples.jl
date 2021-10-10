@@ -105,7 +105,7 @@ end
 
 function test_convergence()
     @info "Pinched cylinder"
-    for n in [4, 8, 12, 16, 24, 48, 96, 128, 256, 400, 6001] # 3:64 #
+    for n in [4, 8, 12, 16, 24, 48, 96, 128, 256,] # 3:64 #
         _execute(n, false)
     end
     return true
