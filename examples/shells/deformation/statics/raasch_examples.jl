@@ -117,16 +117,17 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
 
     # Load
     bfes = meshboundary(fes)
-    l1 = selectelem(fens, bfes, box = [97.9615 97.9615 -16 -16 0 20], inflate = tolerance)
+    l1 = selectelem(fens, bfes, box = [97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
     fi = ForceIntensity(FFlt[0, 0, 0.05, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
+    @assert  isapprox(sum(F), 1.0)
     
     # @infiltrate
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 20], inflate = tolerance)
+    nl = selectnode(fens; box = Float64[97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     targetu =  mean(dchi.values[nl, 3])
     @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
@@ -138,7 +139,39 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     vectors = []
     push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
     push!(vectors, ("UR", deepcopy(dchi.values[:, 4:6])))
-    vtkwrite("raasch-$input-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
+    vtkwrite("$input-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
+
+    # Generate a graphical display of resultants
+    function csys!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+        cross3!(view(csmatout, :, 3), view(tangents, :, 1), view(tangents, :, 2))
+        r = view(csmatout, :, 3)
+        csmatout[:, 3] .= vec(r)/norm(vec(r))
+        csmatout[:, 2] .= (0.0, 0.0, 1.0)
+        cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
+        return csmatout
+    end
+    ocsys = CSys(3, 3, csys!)
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("m$nc", fld.values))
+    end
+    vtkwrite("$(input)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("n$nc", fld.values))
+    end
+    vtkwrite("$(input)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:2
+        fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("q$nc", fld.values))
+    end
+    vtkwrite("$(input)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
     # Visualization
     if visualize
