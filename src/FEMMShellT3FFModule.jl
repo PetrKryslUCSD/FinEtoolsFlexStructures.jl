@@ -95,7 +95,6 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     _Bm::FFltMat
     _Bb::FFltMat
     _Bs::FFltMat
-    _Bt::FFltMat
     _DpsBmb::FFltMat
     _DtBs::FFltMat
 end
@@ -127,12 +126,11 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
     _Bm = fill(0.0, 3, __nn*__ndof)
     _Bb = fill(0.0, 3, __nn*__ndof)
     _Bs = fill(0.0, 2, __nn*__ndof)
-    _Bt = fill(0.0, __nn*__ndof, 1)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, CSys(3), 
-        material, 0.1, 15.0,
+        material, 0.1, 30.0,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -141,7 +139,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
         _e_g, _n_e, _nvalid, _Te,
         _elmat, 
         _gradN_e,
-        _Bm, _Bb, _Bs, _Bt, _DpsBmb, _DtBs)
+        _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
 
 function make(integdomain, material)
@@ -256,66 +254,6 @@ function _transfmat_g_to_n!(Te, n_e, e_g)
     return Te
 end
 
-# function _transfmat_n_to_e!(Te, n_e, gradN_e)
-#     # DSG version
-#     # Nodal-to-element transformation matrix. 
-#     # - `n_e` = matrix with the nodal triad vectors in columns, components on
-#     #   the element basis. Its transpose is the element triad on the nodal
-#     #   basis vectors.
-#     # - `gradN_e` = basis function gradients on the element basis.
-#     # Output
-#     # - `Te` = transformation matrix, input in the nodal basis, output in the
-#     #   element basis: t_e = Te * t_n
-#     # Rotation degrees of freedom: The drilling rotation of the mid surface
-#     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
-#     # rotations.
-    
-#     # TO DO avoid a temporary
-#     Te .= 0.0
-#     for i in 1:__nn
-#         roffst = (i-1)*__ndof
-#         n_ei = n_e[i] # TO DO avoid temporary
-#         n_ei_33 = n_ei[3, 3]
-#         r = roffst+1:roffst+3
-#         Te[r, r] .= n_ei
-#         r = roffst+4:roffst+5
-#         Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
-#         Te[roffst+6, roffst+6]  += n_ei_33
-#         Te[roffst+6, roffst+4]  += n_ei[3, 1]
-#         Te[roffst+6, roffst+5]  += n_ei[3, 2]
-#         a1 = (1/n_ei_33)*n_ei[1, 3]
-#         a2 = (1/n_ei_33)*n_ei[2, 3]
-#         a3 = 1.0
-#         for j in 1:__nn
-#             coffst = (j-1)*__ndof
-#             # Te[roffst+4, coffst+1] = (-a1 * 1/2 * gradN_e[j, 2])
-#             # Te[roffst+4, coffst+2] = (+a1 * 1/2 * gradN_e[j, 1])
-#             # Te[roffst+5, coffst+1] = (-a2 * 1/2 * gradN_e[j, 2])
-#             # Te[roffst+5, coffst+2] = (+a2 * 1/2 * gradN_e[j, 1])
-#             for k in 1:3
-#                 Te[roffst+4, coffst+k] += (-a1 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
-#                 Te[roffst+4, coffst+k] += (+a1 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
-#                 Te[roffst+5, coffst+k] += (-a2 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
-#                 Te[roffst+5, coffst+k] += (+a2 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
-#                 Te[roffst+6, coffst+k] -= (-a3 * 1/2) * (n_ei[1, k] * gradN_e[j, 2])
-#                 Te[roffst+6, coffst+k] -= (+a3 * 1/2) * (n_ei[2, k] * gradN_e[j, 1])
-#             end
-#             # Te[roffst+4, coffst+1] += (-a1 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
-#             # Te[roffst+4, coffst+2] += (-a1 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
-#             # Te[roffst+4, coffst+3] += (-a1 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
-#             # Te[roffst+4, coffst+1] += (+a1 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
-#             # Te[roffst+4, coffst+2] += (+a1 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
-#             # Te[roffst+4, coffst+3] += (+a1 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
-#             # Te[roffst+5, coffst+1] += (-a2 * 1/2) * (n_ei[1, 1] * gradN_e[j, 2])
-#             # Te[roffst+5, coffst+2] += (-a2 * 1/2) * (n_ei[1, 2] * gradN_e[j, 2])
-#             # Te[roffst+5, coffst+3] += (-a2 * 1/2) * (n_ei[1, 3] * gradN_e[j, 2])
-#             # Te[roffst+5, coffst+1] += (+a2 * 1/2) * (n_ei[2, 1] * gradN_e[j, 1])
-#             # Te[roffst+5, coffst+2] += (+a2 * 1/2) * (n_ei[2, 2] * gradN_e[j, 1])
-#             # Te[roffst+5, coffst+3] += (+a2 * 1/2) * (n_ei[2, 3] * gradN_e[j, 1])
-#         end
-#     end
-#     return Te
-# end
 
 function _transfmat_n_to_e!(Te, n_e, gradN_e)
     # DSG version
@@ -363,24 +301,6 @@ function _gradN_e_Ae!(gradN_e, ecoords_e)
     J = (a*d - b*c)
     gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
     return gradN_e, J/2
-end
-
-function _Btmat!(Bt, ecoords_e)
-    x1, x2, x3 = ecoords_e[1, 1], ecoords_e[2, 1], ecoords_e[3, 1]
-    y1, y2, y3 = ecoords_e[1, 2], ecoords_e[2, 2], ecoords_e[3, 2]
-    
-    xc = (x1 + x2 + x3)/3
-    yc = (y1 + y2 + y3)/3
-
-    Bt .= 0.0
-
-    Bt[4, 1] = (x1 - xc)
-    Bt[5, 1] = (y1 - yc)
-    Bt[10, 1] = (x2 - xc)
-    Bt[11, 1] = (y2 - yc)
-    Bt[16, 1] = (x3 - xc)
-    Bt[17, 1] = (y3 - yc)
-    return Bt
 end
 
 """
@@ -557,7 +477,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
     elmat = self._elmat
     transformwith = Transformer(elmat)
-    Bm, Bb, Bs, Bt, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._Bt, self._DpsBmb, self._DtBs
+    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
     Dt .*= scf
@@ -579,8 +499,6 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
-        _Btmat!(Bt, ecoords_e)
-        # add_nnt_ut_only!(elmat, Bt, Dt[1, 1]*t*Ae/192/Ae)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
