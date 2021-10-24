@@ -4,12 +4,6 @@
         {
             "path": ".",
         },
-        {
-			"path": "C:\\Users\\PetrKrysl\\00 WORK IN PROGRESS\\PlotlyJS.jl",
-		},
-        {
-			"path": "E:\\00WIP\\FinEtools.jl"
-		},
     ], 
     "settings": {
          // "theme": "Asphalt.sublime-theme",
