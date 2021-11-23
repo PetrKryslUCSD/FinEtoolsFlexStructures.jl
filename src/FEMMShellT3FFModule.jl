@@ -727,5 +727,75 @@ function inspectintegpoints(self::FEMMShellT3FF, geom::NodalField{FFlt},  u::Nod
     return inspectintegpoints(self, geom, u, dT, felist, inspector, idat, quantity; context...);
 end
 
+function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+    @assert self._associatedgeometry == true
+    fes = self.integdomain.fes
+    normals, normal_valid = self._normals, self._normal_valid
+    loc, J0 = self._loc, self._J0
+    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
+    e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
+    elmat = self._elmat
+    transformwith = Transformer(elmat)
+    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    Dps, Dt = _shell_material_stiffness(self.material)
+    scf = 5/6;  # shear correction factor
+    Dt .*= scf
+    drilling_stiffness_scale = self.drilling_stiffness_scale
+    edisp = fill(0.0, 18)
+    nodal_moments = deepcopy(normals)
+    for k in 1:size(nodal_moments, 1)
+        nodal_moments[k, :] .= 0.0
+    end
+    for i in 1:count(fes) # Loop over elements
+        gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
+        gathervalues_asvec!(dchi, edisp, fes.conn[i]);
+        _compute_J_loc!(J0, loc, ecoords)
+        local_frame!(delegateof(fes), e_g, J0)
+        _local_coordinates!(ecoords_e, J0, e_g)
+        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
+        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        # Construct the Stiffness Matrix
+        fill!(elmat,  0.0); # Initialize element matrix
+        _Bmmat!(Bm, gradN_e)
+        add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
+        _Bbmat!(Bb, gradN_e)
+        add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
+        _Bsmat!(Bs, ecoords_e)
+        he = sqrt(2*Ae)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
+        # Complete the elementwise matrix by filling in the lower triangle
+        complete_lt!(elmat)
+        # Now treat the transformation from the element to the nodal triad
+        _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
+        _transfmat_n_to_e!(Te, n_e, gradN_e)
+        # Transform the elementwise matrix into the nodal coordinates
+        transformwith(elmat, Te)
+        # Bending diagonal stiffness coefficients
+        kavg = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16],
+            elmat[5, 5], elmat[11, 11], elmat[17, 17])) * drilling_stiffness_scale
+        # Add the artificial drilling stiffness in the nodal cordinates, but
+        # only if the nodal normal is valid. 
+        nvalid[1] && (elmat[6,6] += kavg)
+        nvalid[2] && (elmat[12,12] += kavg)
+        nvalid[3] && (elmat[18,18] += kavg)
+        # Transform from nodal into global coordinates
+        _transfmat_g_to_n!(Te, n_e, e_g)
+        transformwith(elmat, Te)
+        # Compute the resultants
+        eforc = elmat * edisp
+        nodal_moments[fes.conn[i][1], :] += eforc[4:6]
+        nodal_moments[fes.conn[i][2], :] += eforc[10:12]
+        nodal_moments[fes.conn[i][3], :] += eforc[16:18]
+    end # Loop over elements
+    nodal_moment_magnitude = 0.0
+    nodal_moment_normal_magnitude = 0.0
+    for k in 1:size(nodal_moments, 1)
+        nodal_moment_magnitude += norm(nodal_moments[k, :])
+        nodal_moment_normal_magnitude += abs(dot(vec(normals[k, :]), vec(nodal_moments[k, :])))
+    end
+    @show nodal_moment_magnitude,     nodal_moment_normal_magnitude
+    return true
+end
 
 end # module
