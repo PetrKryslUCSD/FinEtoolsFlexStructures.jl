@@ -4,6 +4,12 @@
         {
             "path": ".",
         },
+        {
+			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\FinEtools.jl",
+		},
+        {
+			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\FinEtoolsDeforLinear.jl"
+		},
     ], 
     "settings": {
          // "theme": "Asphalt.sublime-theme",
