@@ -9,7 +9,7 @@ import FinEtools.FEMMBaseModule: associategeometry!
 import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
-using ..FESetShellT3Module: FESetShellT3, local_frame!
+using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: Transformer
 
 using Infiltrator
@@ -100,7 +100,7 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
 end
 
 
-function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:AbstractFESet, F<:Function, M}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -129,7 +129,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
-    return FEMMShellT3FF(integdomain, CSys(3), 
+    return FEMMShellT3FF(integdomain, mcsys, 
         material, 0.1, 30.0,
         false,
         _normals, _normal_valid,
@@ -142,24 +142,77 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:Ab
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
 
+function isoparametric!(E_G::FFltMat, XYZ::FFltMat, J0::FFltMat, fe_label::FInt)
+    # This is the tangent to the coordinate curve 1
+    a = @view J0[:, 1]
+    L0 = norm(a);
+    E_G[:,1] = a/L0;
+    # This is the tangent to the coordinate curve 2
+    b = J0[:, 2]
+    #     E_G(:,3)=skewmat(E_G(:,1))*b;
+    b = @view J0[:, 2]
+    # Now compute the normal
+    E_G[:, 3] .= (-E_G[3,1]*b[2]+E_G[2,1]*b[3],
+                   E_G[3,1]*b[1]-E_G[1,1]*b[3],
+                  -E_G[2,1]*b[1]+E_G[1,1]*b[2]);
+    E_G[:, 3] /= norm(@view E_G[:, 3]);
+    #     E_G(:,2)=skewmat(E_G(:,3))*E_G(:,1);
+    E_G[:, 2] .= (-E_G[3,3]*E_G[2,1]+E_G[2,3]*E_G[3,1],
+                   E_G[3,3]*E_G[1,1]-E_G[1,3]*E_G[3,1],
+                  -E_G[2,3]*E_G[1,1]+E_G[1,3]*E_G[2,1]);
+    return E_G
+end
+
+function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
+    updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, labl);
+    n[:] .= mcsys.csmat[:, 3]
+    return n
+end
+
+function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+    return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
+end
+
 function make(integdomain, material)
     return FEMMShellT3FF(integdomain, material)
 end
 
-function _compute_J_loc!(J0, loc, ecoords)
+function make(integdomain, mcsys, material)
+    return FEMMShellT3FF(integdomain, mcsys, material)
+end
+
+function _compute_J!(J0, ecoords)
     # Compute the Jacobian matrix: the Jacobian matrix is constant within the
     # triangle
     x, y, z = ecoords[2, :].-ecoords[1, :]
     J0[:, 1] .= (x, y, z)
     x, y, z = ecoords[3, :].-ecoords[1, :]
     J0[:, 2] .= (x, y, z)
-    loc[1] = (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3
-    loc[2] = (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3
-    loc[3] = (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
-    return J0, loc
+    return J0
 end
 
-function _local_coordinates!(ecoords_e, J0, e_g)
+function _e_g!(e_g, J0)
+    # This is the tangent to the coordinate curve 1
+    a = @view J0[:, 1]
+    L0 = norm(a);
+    e_g[:,1] = a/L0;
+    # This is the tangent to the coordinate curve 2
+    b = J0[:, 2]
+    #     e_g(:,3)=skewmat(e_g(:,1))*b;
+    b = @view J0[:, 2]
+    # Now compute the normal
+    e_g[:, 3] .= (-e_g[3,1]*b[2]+e_g[2,1]*b[3],
+                  e_g[3,1]*b[1]-e_g[1,1]*b[3],
+                 -e_g[2,1]*b[1]+e_g[1,1]*b[2]);
+    e_g[:, 3] /= norm(@view e_g[:, 3]);
+    #     e_g(:,2)=skewmat(e_g(:,3))*e_g(:,1);
+    e_g[:, 2] .= (-e_g[3,3]*e_g[2,1]+e_g[2,3]*e_g[3,1],
+                  e_g[3,3]*e_g[1,1]-e_g[1,3]*e_g[3,1],
+                 -e_g[2,3]*e_g[1,1]+e_g[1,3]*e_g[2,1]);
+    return e_g
+end
+
+function _ecoords_e!(ecoords_e, J0, e_g)
     ecoords_e[1, 1] = ecoords_e[1, 2] = 0.0
     ecoords_e[2, 1] = dot(view(J0, :, 1), view(e_g, :, 1))
     ecoords_e[2, 2] = dot(view(J0, :, 1), view(e_g, :, 2))
@@ -168,12 +221,12 @@ function _local_coordinates!(ecoords_e, J0, e_g)
     return ecoords_e
 end
 
-function _centroid(ecoords)
-    (
-    (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3,
-    (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3,
-    (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
-    )
+function _centroid!(centroid, ecoords)
+    centroid[:] .= (
+        (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3,
+        (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3,
+        (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
+        )
 end
     
 function _shell_material_stiffness(material)
@@ -273,11 +326,12 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
     Te .= 0.0
     for i in 1:__nn
         roffst = (i-1)*__ndof
-        n_ei = n_e[i] # TO DO avoid temporary
+        n_ei = n_e[i] 
         n_ei_33 = n_ei[3, 3]
         r = roffst+1:roffst+3
         Te[r, r] .= n_ei
         r = roffst+4:roffst+5
+        # TO DO avoid temporary
         Te[r, r] .= n_ei[1:2, 1:2] - (1/n_ei_33).*(vec(n_ei[1:2, 3])*vec(n_ei[3, 1:2])') 
         m1 = (1/n_ei_33)*n_ei[1, 3]
         m2 = (1/n_ei_33)*n_ei[2, 3]
@@ -294,7 +348,7 @@ function _transfmat_n_to_e!(Te, n_e, gradN_e)
 end
 
 function _gradN_e_Ae!(gradN_e, ecoords_e)
-    # Compute the gradient with respect to the element ordinates, three
+    # Compute the gradient with respect to the element coordinates, three
     # gradients in two coordinates, and the area of the triangle
     a, b = ecoords_e[2, :] .- ecoords_e[1, :]
     c, d = ecoords_e[3, :] .- ecoords_e[1, :]
@@ -411,15 +465,17 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
     J0 = self._J0
     e_g = self._e_g
     normals, normal_valid = self._normals, self._normal_valid
+    nnormal = fill(0.0, 3)
     # Compute the normals at the nodes
     for el in 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         J0[:, 1] = geom.values[j, :] - geom.values[i, :]
         J0[:, 2] = geom.values[k, :] - geom.values[i, :]
-        local_frame!(delegateof(self.integdomain.fes), e_g, J0)
-        normals[i, :] .+= e_g[:, 3]
-        normals[j, :] .+= e_g[:, 3]
-        normals[k, :] .+= e_g[:, 3]
+        for n in [i, j, k]
+            _compute_nodal_normal!(nnormal, self.mcsys, geom.values[n, :], J0, self.integdomain.fes.label[el])
+            normals[n, :] .+= nnormal
+            # @assert dot(vec(normals[n, :]), vec(geom.values[n, :])) / norm(vec(normals[n, :])) / norm(vec(geom.values[n, :])) ≈ 1.0
+        end
     end
     # Normalize to unit length
     for j in 1:size(normals, 1)
@@ -428,35 +484,23 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
             normals[j, :] ./= nn
         end
     end
+
     # Now perform a second pass. If the nodal normal differs by a substantial
     # amount from the element normals, zero out the nodal normal to indicate
     # that the nodal normal should not be used at that vertex. 
     ntolerance = 1 - sqrt(1 - sin(threshold_angle/180*pi)^2)
     for el in 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
-        J0[:, 1] = geom.values[j, :] - geom.values[i, :]
-        J0[:, 2] = geom.values[k, :] - geom.values[i, :]
-        local_frame!(delegateof(self.integdomain.fes), e_g, J0)
-        en = view(e_g, :, 3)
-        nd = dot(normals[i, :], en)
-        if nd < 1 - ntolerance
-            normal_valid[i] = false
-        end
-        nd = dot(normals[j, :], en)
-        if nd < 1 - ntolerance
-            normal_valid[j] = false
-        end
-        nd = dot(normals[k, :], en)
-        if nd < 1 - ntolerance
-            normal_valid[k] = false
+        _compute_J!(J0, geom.values[[i, j, k], :])
+        for n in [i, j, k]
+            _e_g!(e_g, J0)
+            nd = dot(normals[n, :], e_g[:, 3])
+            if nd < 1 - ntolerance
+                normal_valid[n] = false
+            end
         end
     end
-    nz = 0
-    for j in 1:size(normals, 1)
-        if !normal_valid[j]
-            nz += 1
-        end
-    end
+    @show length([v for v in normal_valid if v != true])
     # Mark the engine as being associated with geometry
     self._associatedgeometry = true
     return self
@@ -470,8 +514,9 @@ Compute the material stiffness matrix.
 function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
+    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J0 = self._loc, self._J0
+    centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
@@ -485,11 +530,12 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        _compute_J_loc!(J0, loc, ecoords)
-        local_frame!(delegateof(fes), e_g, J0)
-        _local_coordinates!(ecoords_e, J0, e_g)
+        _centroid!(centroid, ecoords)
+        _compute_J!(J0, ecoords)
+        _e_g!(e_g, J0)
+        _ecoords_e!(ecoords_e, J0, e_g)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         # Construct the Stiffness Matrix
         fill!(elmat,  0.0); # Initialize element matrix
         _Bmmat!(Bm, gradN_e)
@@ -540,8 +586,9 @@ This is a general routine for the shell FEMM.
 function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
+    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J0 = self._loc, self._J0
+    centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
@@ -553,12 +600,13 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        _compute_J_loc!(J0, loc, ecoords)
-        local_frame!(delegateof(fes), e_g, J0)
-        _local_coordinates!(ecoords_e, J0, e_g)
+        _centroid!(centroid, ecoords)
+        _compute_J!(J0, ecoords)
+        _e_g!(e_g, J0)
+        _ecoords_e!(ecoords_e, J0, e_g)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
         # Compute the translational and rotational masses corresponding to nodes
-        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         tfactor = rho*(t*Ae)/3;
         rfactor = rho*(t^3/12*Ae)/3;
         # end # Loop over quadrature points
@@ -631,8 +679,9 @@ The updated inspector data is returned.
 function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::NodalField{T}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {T<:Number, F<:Function}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
+    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J0 = self._loc, self._J0
+    centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
@@ -669,11 +718,12 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         i = felist[ilist];
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
         gathervalues_asvec!(u, edisp, fes.conn[i]);
-        _compute_J_loc!(J0, loc, ecoords)
-        local_frame!(delegateof(fes), e_g, J0)
-        _local_coordinates!(ecoords_e, J0, e_g)
+        _centroid!(centroid, ecoords)
+        _compute_J!(J0, ecoords)
+        _e_g!(e_g, J0)
+        _ecoords_e!(ecoords_e, J0, e_g)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         # Establish nodal triads
         _nodal_triads_e!(n_e, nvalid, e_g, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
@@ -683,7 +733,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         _transfmat_n_to_e!(Te, n_e, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, Te, edisp_n)
-        updatecsmat!(outputcsys, loc, J0, fes.label[i]);
+        updatecsmat!(outputcsys, centroid, J0, fes.label[i]);
         if dot(view(outputcsys.csmat, :, 3), view(e_g, :, 3)) < 0.95
             @warn "Ordinate Systems Mismatched?"
         end
@@ -716,7 +766,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             out[1:2] .= fo[1], fo[2]
         end
         # Call the inspector
-        idat = inspector(idat, i, fes.conn[i], ecoords, out, loc);
+        idat = inspector(idat, i, fes.conn[i], ecoords, out, centroid);
         # end # Loop over quadrature points
     end # Loop over elements
     return idat; # return the updated inspector data
@@ -730,8 +780,9 @@ end
 function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
+    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    loc, J0 = self._loc, self._J0
+    centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     e_g, n_e, nvalid, Te = self._e_g, self._n_e, self._nvalid, self._Te
@@ -743,18 +794,17 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
     Dt .*= scf
     drilling_stiffness_scale = self.drilling_stiffness_scale
     edisp = fill(0.0, 18)
-    nodal_moments = deepcopy(normals)
-    for k in 1:size(nodal_moments, 1)
-        nodal_moments[k, :] .= 0.0
-    end
+    nodal_moments = 0.0 .* deepcopy(normals)
+    nodal_rotations = 0.0 .* deepcopy(normals)
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
         gathervalues_asvec!(dchi, edisp, fes.conn[i]);
-        _compute_J_loc!(J0, loc, ecoords)
-        local_frame!(delegateof(fes), e_g, J0)
-        _local_coordinates!(ecoords_e, J0, e_g)
+        _centroid!(centroid, ecoords)
+        _compute_J!(J0, ecoords)
+        _e_g!(e_g, J0)
+        _ecoords_e!(ecoords_e, J0, e_g)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(loc, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         # Construct the Stiffness Matrix
         fill!(elmat,  0.0); # Initialize element matrix
         _Bmmat!(Bm, gradN_e)
@@ -787,6 +837,9 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         nodal_moments[fes.conn[i][1], :] += eforc[4:6]
         nodal_moments[fes.conn[i][2], :] += eforc[10:12]
         nodal_moments[fes.conn[i][3], :] += eforc[16:18]
+        nodal_rotations[fes.conn[i][1], :] += edisp[4:6]
+        nodal_rotations[fes.conn[i][2], :] += edisp[10:12]
+        nodal_rotations[fes.conn[i][3], :] += edisp[16:18]
     end # Loop over elements
     nodal_moment_magnitude = 0.0
     nodal_moment_normal_magnitude = 0.0
@@ -794,7 +847,18 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         nodal_moment_magnitude += norm(nodal_moments[k, :])
         nodal_moment_normal_magnitude += abs(dot(vec(normals[k, :]), vec(nodal_moments[k, :])))
     end
+    nodal_moment_magnitude /= size(nodal_moments, 1)
+    nodal_moment_normal_magnitude /= size(nodal_moments, 1)
     @show nodal_moment_magnitude,     nodal_moment_normal_magnitude
+    nodal_rotation_magnitude = 0.0
+    nodal_rotation_normal_magnitude = 0.0
+    for k in 1:size(nodal_rotations, 1)
+        nodal_rotation_magnitude += norm(nodal_rotations[k, :])
+        nodal_rotation_normal_magnitude += abs(dot(vec(normals[k, :]), vec(nodal_rotations[k, :])))
+    end
+    nodal_rotation_magnitude /= size(nodal_rotations, 1)
+    nodal_rotation_normal_magnitude /= size(nodal_rotations, 1)
+    @show nodal_rotation_magnitude,     nodal_rotation_normal_magnitude
     return true
 end
 
