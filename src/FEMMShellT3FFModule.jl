@@ -287,7 +287,7 @@ function _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, c)
     return A_Es, nvalid
 end
 
-function _transfmat_g_to_n!(T, A_Es, E_G)
+function _transfmat_g_to_a!(T, A_Es, E_G)
     # Global-to-nodal transformation matrix. 
 
     # The 3x3 blocks consist of the nodal triad expressed on the global basis.
@@ -311,8 +311,7 @@ function _transfmat_g_to_n!(T, A_Es, E_G)
 end
 
 
-function _transfmat_n_to_e!(T, A_Es, gradN_e)
-    # DSG version
+function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # Nodal-to-element transformation matrix. 
     # - `A_Es` = matrix with the nodal triad vectors in columns, components on
     #   the element basis. Its transpose is the element triad on the nodal
@@ -557,21 +556,20 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
-        # Now treat the transformation from the element to the nodal triad
+        # Transformation from the nodal (A) to the element (E) basis
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-        _transfmat_n_to_e!(T, A_Es, gradN_e)
-        # Transform the elementwise matrix into the nodal coordinates
+        _transfmat_a_to_e!(T, A_Es, gradN_e)
         transformwith(elmat, T)
         # Bending diagonal stiffness coefficients
         kavg = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16],
             elmat[5, 5], elmat[11, 11], elmat[17, 17])) * drilling_stiffness_scale
-        # Add the artificial drilling stiffness in the nodal cordinates, but
-        # only if the nodal normal is valid. 
+        # Add the artificial drilling stiffness in the nodal basis, but only if
+        # the nodal normal is valid. 
         nvalid[1] && (elmat[6,6] += kavg)
         nvalid[2] && (elmat[12,12] += kavg)
         nvalid[3] && (elmat[18,18] += kavg)
-        # Transform from nodal into global coordinates
-        _transfmat_g_to_n!(T, A_Es, E_G)
+        # Transform from global (G) into the nodal (A) basis
+        _transfmat_g_to_a!(T, A_Es, E_G)
         transformwith(elmat, T)
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i]); 
@@ -644,7 +642,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
             end
         end
         # Transform into global coordinates
-        _transfmat_g_to_n!(T, A_Es, E_G)
+        _transfmat_g_to_a!(T, A_Es, E_G)
         transformwith(elmat, T)
         # Assemble
         gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
@@ -737,10 +735,10 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         # Establish nodal triads
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
-        _transfmat_g_to_n!(T, A_Es, E_G)
+        _transfmat_g_to_a!(T, A_Es, E_G)
         mul!(edisp_n, T, edisp)
         # Now treat the transformation from the nodal to the element triad
-        _transfmat_n_to_e!(T, A_Es, gradN_e)
+        _transfmat_a_to_e!(T, A_Es, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, T, edisp_n)
         updatecsmat!(outputcsys, centroid, J0, fes.label[i]);
@@ -828,7 +826,7 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-        _transfmat_n_to_e!(T, A_Es, gradN_e)
+        _transfmat_a_to_e!(T, A_Es, gradN_e)
         # Transform the elementwise matrix into the nodal coordinates
         transformwith(elmat, T)
         # Bending diagonal stiffness coefficients
@@ -840,7 +838,7 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         nvalid[2] && (elmat[12,12] += kavg)
         nvalid[3] && (elmat[18,18] += kavg)
         # Transform from nodal into global coordinates
-        _transfmat_g_to_n!(T, A_Es, E_G)
+        _transfmat_g_to_a!(T, A_Es, E_G)
         transformwith(elmat, T)
         # Compute the resultants
         eforc = elmat * edisp
