@@ -500,10 +500,17 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
             end
         end
     end
-    @show length([v for v in normal_valid if v != true])
+    
     # Mark the engine as being associated with geometry
     self._associatedgeometry = true
     return self
+end
+
+function num_normals(self::FEMMShellT3FF)
+    normals, normal_valid = self._normals, self._normal_valid
+    total_normals = length(normal_valid)
+    invalid_normals = length([v for v in normal_valid if v != true])
+    return total_normals, invalid_normals
 end
 
 """
