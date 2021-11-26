@@ -29,7 +29,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(formul, n = 8, visualize = true)
+function _execute_dsg_model(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -39,6 +39,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     thickness = 0.25; # geometrical dimensions are in feet
     R = 25.0;
     L = 50.0;
+    formul = FEMMShellT3FFModule
     
     tolerance = R/n/1000
     fens, fes = T3block(40/360*2*pi,L/2,n,n);
@@ -96,7 +97,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     U = K\F
     scattersysvec!(dchi, U[:])
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
-    @info "Solution: $(round(resultpercent, digits = 4))%"
+    @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
     # Visualization
     if visualize
@@ -113,10 +114,10 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return true
 end
 
-function test_convergence(formul)
-    @info "Scordelis-Lo shell, formulation=$(formul)"
-    for n in [4, 8, 10, 12, 16, 24, 32, 64, 128]
-        _execute_dsg_model(formul, n, false)
+function test_convergence(ns = [2, 4, 8, 16])
+    @info "Scordelis-Lo shell"
+    for n in ns
+        _execute_dsg_model(n, false)
     end
     return true
 end
@@ -124,5 +125,10 @@ end
 end # module
 
 using .scordelis_lo_examples
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
-scordelis_lo_examples.test_convergence(FEMMShellT3FFModule)
+scordelis_lo_examples.test_convergence()
+
+# ns = [2, 4, 8]
+# [ Info: Solution for 54 dofs: 73.982%                    
+# [ Info: Solution for 150 dofs: 66.6193%
+# [ Info: Solution for 486 dofs: 85.5858%
+# [ Info: Solution for 1734 dofs: 95.4205%  
