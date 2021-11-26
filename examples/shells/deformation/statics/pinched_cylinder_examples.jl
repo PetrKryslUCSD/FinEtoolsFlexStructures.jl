@@ -9,6 +9,7 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function _execute(n = 2, visualize = true)
     E = 3e6;
@@ -88,6 +89,19 @@ function _execute(n = 2, visualize = true)
     U = K\F
     scattersysvec!(dchi, U[:])
     @show n,  dchi.values[nl, 3]/analyt_sol*100
+
+    # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
+
+    # Generate a graphical display of displacements and rotations
+    scalars = []
+    for nc in 1:6
+        push!(scalars, ("dchi$nc", deepcopy(dchi.values[:, nc])))
+    end
+    vectors = []
+    push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
+    push!(vectors, ("UR", deepcopy(dchi.values[:, 4:6])))
+    vtkwrite("pinched_cylinder-$n-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
+
 
     # Visualization
     if !visualize
