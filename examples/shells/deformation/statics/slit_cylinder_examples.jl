@@ -65,13 +65,21 @@ function _execute(n = 2, visualize = true)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     # Load
-    loadbdry = subset(bfes, al0)
+    # loadbdry = subset(bfes, al0)
+    # lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
+    # fi = ForceIntensity(FFlt[0, 1/4, 0, 0, 0, 0]);
+    # F = distribloads(lfemm, geom0, dchi, fi, 1);
+    # loadbdry = subset(bfes, al360)
+    # lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
+    # fi = ForceIntensity(FFlt[0, -1/4, 0, 0, 0, 0]);
+    # F += distribloads(lfemm, geom0, dchi, fi, 1);
+    loadbdry = subset(bfes, ll0)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 1/4, 0, 0, 0, 0]);
+    fi = ForceIntensity(FFlt[0, 0, 0, 0, 1/4, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
-    loadbdry = subset(bfes, al360)
+    loadbdry = subset(bfes, llL2)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, -1/4, 0, 0, 0, 0]);
+    fi = ForceIntensity(FFlt[0, 0, 0, 0, -1/4, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
@@ -94,7 +102,7 @@ end
 
 function test_convergence()
     @info "Slit cylinder"
-    for n in [8, ] # 3:64 #
+    for n in [18, ] # 3:64 #
         _execute(n, !false)
     end
     return true
