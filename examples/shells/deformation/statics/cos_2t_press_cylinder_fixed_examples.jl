@@ -1,4 +1,19 @@
-# Pressurized cylinder with no supports
+# Pressurized cylinder clamped around the ends.
+# 
+# Example introduced in
+# @article{Lee2004,
+#    author = {Lee, P. S. and Bathe, K. J.},
+#    title = {Development of MITC isotropic triangular shell finite elements},
+#    journal = {Computers & Structures},
+#    volume = {82},
+#    number = {11-12},
+#    pages = {945-962},
+#    ISSN = {0045-7949},
+#    DOI = {10.1016/j.compstruc.2004.02.004},
+#    year = {2004},
+#    type = {Journal Article}
+# }
+
 module cos_2t_press_cylinder_fixed_examples
 
 using LinearAlgebra
@@ -11,16 +26,12 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotat
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-# analytical solution for the vertical deflection and the midpoint of the
-# fixed edge 
-analyt_sol=-0.3024;
 # Parameters:
-E=4.32e8;
-nu=0.0;
-thickness = 0.25; # geometrical dimensions are in feet
-pressure = 100.0;
-R = 25.0;
-L = 50.0;
+E = 2.0e5
+nu = 1/3;
+pressure = 1.0;
+R = 1.0;
+L = 2.0;
 
 # The cylinder axis is parallel to Y
 
@@ -44,7 +55,7 @@ function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_lab
     return forceout
 end
 
-function _execute_dsg_model(formul, n = 8, visualize = true)
+function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
     tolerance = R/n/1000
     fens, fes = T3block(90/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -107,7 +118,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     U = K\F
     scattersysvec!(dchi, U[:])
     strainenergy = 1/2 * U' * K * U
-    @info "Strain Energy: $(round(strainenergy, digits = 4))"
+    @info "Strain Energy: $(round(strainenergy, digits = 9))"
 
     # Generate a graphical display of resultants
     ocsys = CSys(3, 3, cylindrical!)
@@ -148,10 +159,10 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return strainenergy
 end
 
-function test_convergence(formul)
+function test_convergence(formul, thickness = R/10000)
     @info "Pressurized Cylindrical shell, fixed ends, formulation=$(formul)"
     for n in [8, 16, 32, 64, 128]
-        _execute_dsg_model(formul, n, false)
+        _execute_dsg_model(formul, n, thickness, false)
     end
     return true
 end
