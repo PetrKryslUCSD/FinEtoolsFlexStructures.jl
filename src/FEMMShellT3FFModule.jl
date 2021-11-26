@@ -468,6 +468,7 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
     E_G = self._E_G
     normals, normal_valid = self._normals, self._normal_valid
     nnormal = fill(0.0, 3)
+
     # Compute the normals at the nodes
     for el in 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
@@ -476,9 +477,9 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
         for n in [i, j, k]
             _compute_nodal_normal!(nnormal, self.mcsys, geom.values[n, :], J0, self.integdomain.fes.label[el])
             normals[n, :] .+= nnormal
-            # @assert dot(vec(normals[n, :]), vec(geom.values[n, :])) / norm(vec(normals[n, :])) / norm(vec(geom.values[n, :])) ≈ 1.0
         end
     end
+    
     # Normalize to unit length
     for j in 1:size(normals, 1)
         nn = norm(normals[j, :])
