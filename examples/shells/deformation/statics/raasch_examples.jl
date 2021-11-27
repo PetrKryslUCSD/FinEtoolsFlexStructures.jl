@@ -131,6 +131,8 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     targetu =  mean(dchi.values[nl, 3])
     @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
+    # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
+
     # Generate a graphical display of displacements and rotations
     scalars = []
     for nc in 1:6
