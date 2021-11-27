@@ -128,21 +128,21 @@ function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("m$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_fixed-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_cylinder_fixed-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("n$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_fixed-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_cylinder_fixed-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     scalars = []
     for nc in 1:2
         fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_fixed-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_cylinder_fixed-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
     # Visualization
     if visualize
@@ -159,7 +159,7 @@ function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
     return strainenergy
 end
 
-function test_convergence(formul, thickness = R/10000)
+function test_convergence(formul, thickness = R/100)
     @info "Pressurized Cylindrical shell, fixed ends, formulation=$(formul)"
     for n in [8, 16, 32, 64, 128]
         _execute_dsg_model(formul, n, thickness, false)
