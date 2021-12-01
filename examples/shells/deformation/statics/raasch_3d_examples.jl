@@ -14,7 +14,7 @@ on the free end. The distributed nodal loads on the free end are equivalent to
 a uniformly distributed load of 8.7563 N/m (0.05 lb/in). In two of the tests an
 equivalent shear force is applied as a distributed shear traction instead.
 
-
+The solution reported in the Abaqus documentation is 5.02.
 """
 module raasch_3d_examples
 
@@ -25,16 +25,16 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 using Infiltrator
 
-function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1, nT = 4)
+function _execute(visualize = true, nL = 9, nW = 1, nT = 4)
     E = 3300.0;
     nu = 0.35;
     thickness  =  2.0;
     tolerance = min(46/nL/100, 20/nW/100, thickness/nT/10)
     # analytical solution for the vertical deflection under the load
-    analyt_sol = 5.09;
+    analyt_sol = 5.022012648671993;
     R = 46.0;
 
-    fens, fes = H8block(210.0, 20.0, thickness, nL, nW, nT)
+    fens, fes = H20block(210.0, 20.0, thickness, nL, nW, nT)
     fens.xyz[:, 3] .+= - thickness/2
     r = (r0, t) -> r0 + t 
     for k in 1:count(fens)
@@ -64,7 +64,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     geom = NodalField(fens.xyz)
     u0 = NodalField(zeros(size(fens.xyz,1), 3))
 
-    femm = FEMMDeforLinearMSH8(MR, IntegDomain(fes, GaussRule(3, 2)), material)
+    femm = FEMMDeforLinear(MR, IntegDomain(fes, GaussRule(3, 2)), material)
     femm = associategeometry!(femm, geom)
 
     # Apply EBC's
@@ -94,22 +94,29 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     scattersysvec!(u0, U[:])
     nl = selectnode(fens; box = Float64[0 Inf -16 -16 0 20], inflate = tolerance)
     targetu =  mean(u0.values[nl, 3])
-    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution (input $(input)): $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 6)*100)%"
 
-    return targetu/analyt_sol
+    return targetu
 end
 
 function test_convergence()
     
     @info "Raasch hook, 3D mesh"
 
-    for n in 1:7
-        _execute("", 1.0, false, 9*2^(n-1), 2^(n-1)+1, 2+(n-1))
+    results = Float64[]
+    ns = 4:6
+    for n in ns
+        # _execute(false, 9*2^(n-1), 2^(n-1)+1, 2+(n-1))
+        push!(results, _execute(false, 19*n, 4*n, n))
     end
-    return true
+    return 1 ./ ns, results
 end
 
 end # module
 
+using FinEtools.AlgoBaseModule: richextrapol
 using .raasch_3d_examples
-raasch_3d_examples.test_convergence()
+hs, results = raasch_3d_examples.test_convergence()
+q1, q2, q3 = results
+@show (q2^2-q1*q3)/(2*q2-q1-q3)
+@show richextrapol(results, hs)
