@@ -36,7 +36,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     thickness  =  2.0;
     tolerance = thickness/2
     # analytical solution for the vertical deflection under the load
-    analyt_sol = 5.02;
+    analyt_sol = 5.022012648671993;
     R = 46.0;
     formul = FEMMShellT3FFModule
     # formul = FEMMShellT3DSGMTModule
