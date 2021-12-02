@@ -136,11 +136,12 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
         push!(scalars, ("m$nc", fld.values))
     end
     vtkwrite("z_cant-$input-$nrefs-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    pointAstresses = Float64[]
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
-        @show fld.values[nl[1], 1]/thickness
+        push!(pointAstresses, fld.values[nl[1], 1]/thickness)
         push!(scalars, ("n$nc", fld.values))
     end
     vtkwrite("z_cant-$input-$nrefs-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
@@ -151,8 +152,6 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
         push!(scalars, ("q$nc", fld.values))
     end
     vtkwrite("z_cant-$input-$nrefs-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
-
-    @show 
 
     # Visualization
     if !visualize
@@ -165,7 +164,7 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
         plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
     dims = 1)
     pl = render(plots)
-    return true
+    return pointAstresses
 end
 
 function test_convergence()
