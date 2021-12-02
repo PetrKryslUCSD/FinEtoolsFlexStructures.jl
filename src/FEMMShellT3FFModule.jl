@@ -131,7 +131,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, mcsys, 
-        material, 0.1, 30.0,
+        material, 1.0, 30.0,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -872,3 +872,6 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
 end
 
 end # module
+
+# @show nvalid
+# @show [v for v in abs.(eigen(elmat).values) if v > 1.0e-3]
