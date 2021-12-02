@@ -28,6 +28,17 @@ function _execute(n = 2, visualize = true)
     fens, fes = Q4spheren(R, n)
     fens, fes = Q4toT3(fens, fes)
 
+    spherical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+        r = vec(XYZ); 
+        csmatout[:, 3] .= vec(r)/norm(vec(r))
+        csmatout[:, 2] .= (0.0, 0.0, 1.0)
+        cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
+        csmatout[:, 1] .= vec(view(csmatout, :, 1))/norm(vec(view(csmatout, :, 1)))
+        cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))
+        return csmatout
+    end
+    ocsys = CSys(3, 3, spherical!)
+    
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
     # Report
@@ -35,8 +46,9 @@ function _execute(n = 2, visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     femm.drilling_stiffness_scale = 0.1
+    femm.threshold_angle = 45.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -90,6 +102,8 @@ function _execute(n = 2, visualize = true)
     resultpercent =  dchi.values[nl, 1][1]*100
     @info "Solution: $(round(resultpercent/analyt_sol, digits = 4))%"
 
+    # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
+
     # Visualization
     if !visualize
         return true
@@ -106,6 +120,7 @@ end
 
 function test_convergence()
     @info "Hemisphere benchmark"
+    # for n in [2, ]
     for n in [2, 4, 8, 16, 32]
         _execute(n, false)
     end
