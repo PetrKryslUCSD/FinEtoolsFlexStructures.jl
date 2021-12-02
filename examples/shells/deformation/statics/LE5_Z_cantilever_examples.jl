@@ -26,8 +26,17 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-using Infiltrator
+function zcant!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)  
+    r = vec(XYZ); 
+    cross3!(r, view(tangents, :, 1), view(tangents, :, 2))
+    csmatout[:, 3] .= vec(r)/norm(vec(r))
+    csmatout[:, 1] .= (1.0, 0.0, 0.0)
+    cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))
+    return csmatout
+end
+
 
 function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     E = 210e9;
@@ -49,10 +58,10 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
     end
     
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
-    
+    ocsys = CSys(3, 3, zcant!)
     
     # Report
-        @info "Mesh: $input, nrefs = $nrefs"
+    @info "Mesh: $input, nrefs = $nrefs"
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -106,6 +115,44 @@ function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize
     scattersysvec!(dchi, U[:])
     targetu =  minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
     @info "Target: $(round.(targetu, digits=8))"
+
+    # Generate a graphical display of displacements and rotations
+    scalars = []
+    for nc in 1:6
+        push!(scalars, ("dchi$nc", deepcopy(dchi.values[:, nc])))
+    end
+    vectors = []
+    push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
+    push!(vectors, ("UR", deepcopy(dchi.values[:, 4:6])))
+    vtkwrite("z_cant-$input-$nrefs-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
+
+    # Generate a graphical display of resultants
+    nl = selectnode(fens; nearestto = Float64[2.5 1.0 1.0])
+    
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("m$nc", fld.values))
+    end
+    vtkwrite("z_cant-$input-$nrefs-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        @show fld.values[nl[1], 1]/thickness
+        push!(scalars, ("n$nc", fld.values))
+    end
+    vtkwrite("z_cant-$input-$nrefs-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    scalars = []
+    for nc in 1:2
+        fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("q$nc", fld.values))
+    end
+    vtkwrite("z_cant-$input-$nrefs-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+
+    @show 
 
     # Visualization
     if !visualize
