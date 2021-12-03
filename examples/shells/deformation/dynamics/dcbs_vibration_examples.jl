@@ -2,7 +2,7 @@
 Vibration analysis of double-cell box structure
 
 Reference values: 20.280 25.43 28.79 30.62 [Hz]
-From: Fan, Luah, Free vibration analysis of arbitrary thin shall structures by using spline finite element, Journal Sound Vib, (179), 763-776, 1995.
+From: Fan, Luah, Free vibration analysis of arbitrary thin shell structures by using spline finite element, Journal Sound Vib, (179), 763-776, 1995.
 """
 module dbcs_vibration_examples
 
@@ -10,10 +10,8 @@ using Arpack
 using FinEtools
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -104,7 +102,7 @@ end
 
 
 function test_convergence()
-    formul = FEMMShellT3DSGModule
+    formul = FEMMShellT3FFModule
     @info "FV12 free vibration, formulation=$(formul)"
     for n in [1, 2, 3, 4]
         _execute_dsg_model(formul, n, false)
