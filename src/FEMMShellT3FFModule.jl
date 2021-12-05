@@ -76,6 +76,7 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     material::M # material object.
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
+    mult_el_size::Float64
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
@@ -131,7 +132,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, mcsys, 
-        material, 1.0, 30.0,
+        material, 1.0, 30.0, 0.2,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -537,6 +538,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     scf = 5/6;  # shear correction factor
     Dt .*= scf
     drilling_stiffness_scale = self.drilling_stiffness_scale
+    mult_el_size = self.mult_el_size
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -554,7 +556,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
         _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
-        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Transformation from the nodal (A) to the element (E) basis
@@ -698,8 +700,9 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     transformwith = Transformer(elmat)
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
-    scf=5/6;  # shear correction factor
+    scf = 5/6;  # shear correction factor
     Dt .*= scf
+    mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
@@ -744,7 +747,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         mul!(edisp_e, T, edisp_n)
         updatecsmat!(outputcsys, centroid, J0, fes.label[i]);
         if dot(view(outputcsys.csmat, :, 3), view(E_G, :, 3)) < 0.95
-            @warn "Ordinate Systems Mismatched?"
+            @warn "Coordinate systems mismatched?"
         end
         o_e = E_G' * outputcsys.csmat
         o2_e = o_e[1:2, 1:2]
@@ -770,7 +773,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             _Bsmat!(Bs, ecoords_e)
             he = sqrt(2*Ae)
             shr = Bs * edisp_e
-            frc = ((t^3/(t^2+0.2*he^2)))*Dt * shr
+            frc = ((t^3/(t^2+mult_el_size*he^2)))*Dt * shr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end
@@ -802,6 +805,7 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
     scf = 5/6;  # shear correction factor
     Dt .*= scf
     drilling_stiffness_scale = self.drilling_stiffness_scale
+    mult_el_size = self.mult_el_size
     edisp = fill(0.0, 18)
     nodal_moments = 0.0 .* deepcopy(normals)
     nodal_rotations = 0.0 .* deepcopy(normals)
@@ -822,7 +826,7 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
         _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
-        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+0.2*he^2))*Ae, Dt, DtBs)
+        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Now treat the transformation from the element to the nodal triad

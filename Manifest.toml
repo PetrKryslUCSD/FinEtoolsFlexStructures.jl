@@ -218,9 +218,9 @@ version = "0.12.7"
 
 [[FinEtools]]
 deps = ["Arpack", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "a6fd6f9c201aca9a01661796cbf8cc4f35df5a55"
+git-tree-sha1 = "1060dcf0c9267371335d2c35b5b20549e1a7d439"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.2.8"
+version = "5.3.1"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
