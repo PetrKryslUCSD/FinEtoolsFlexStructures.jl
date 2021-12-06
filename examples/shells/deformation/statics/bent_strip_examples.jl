@@ -1,0 +1,122 @@
+# Simply supported square plate with center concentrated load
+module bent_strip_examples
+
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
+using FinEtoolsFlexStructures.FEMMShellT3FFAModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+
+    # Generate a graphical display of resultants
+function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+    csmatout[:, 1] .= (1.0, 0.0, 0.0)
+    csmatout[:, 2] .= (0.0, 1.0, 0.0)
+    csmatout[:, 3] .= (0.0, 0.0, 1.0)
+    return csmatout
+end
+function _execute_dsg_model(formul, n = 2, visualize = true)
+    E = 1e3;
+    nu = 0.3;
+    thickness = 0.1
+    W = 1.0
+    L = 10.0;
+    q = 1.0 * thickness^3;
+    # analytical solution for the vertical deflection under the load
+    analyt_sol=-1.5875;
+
+    tolerance = L/n/1000
+    fens, fes = T3block(L, W, 5*n, n);
+    fens.xyz = xyz3(fens)
+
+    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [1, 2, 3, 6]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[L L -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [1, 2, 3, 6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    associategeometry!(femm, geom0)
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Load
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 2);
+
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    @show minimum(dchi.values[:, 3])/analyt_sol*100
+
+    # Visualization
+    if visualize
+
+    ocsys = CSys(3, 3, cartesian!)
+    scalars = []
+    for nc in 1:3
+        fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+        # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("m$nc", fld.values))
+    end
+    vtkwrite("bent_strip_examples-m.vtu", fens, fes; scalars = scalars)
+        # Generate a graphical display of resultants
+    scalars = []
+    for nc in 1:2
+        fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+        push!(scalars, ("q$nc", fld.values))
+        fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+        push!(scalars, ("eq$nc", fld.values))
+    end
+    vtkwrite("bent_strip_examples-q.vtu", fens, fes; scalars = scalars)
+
+    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    update_rotation_field!(Rfield0, dchi)
+    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        #plot_nodes(fens),
+        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+        dims = 1)
+    pl = render(plots)
+    return true
+end
+end
+
+function test_convergence()
+    formul = FEMMShellT3FFAModule
+    @info "Simply supported square plated with concentrated force,"
+    @info " formulation=$(formul)"
+
+    for n in [2, 4, 8, ]
+        _execute_dsg_model(formul, n, true)
+    end
+    return true
+end
+
+end # module
+
+using .bent_strip_examples
+m = bent_strip_examples
+m.test_convergence()
