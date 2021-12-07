@@ -435,54 +435,6 @@ function _Bsmat!(Bs, ecoords_e)
 end
 
 """
-    _Bsmat!(Bs, gradN, N)
-Compute the linear transverse shear strain-displacement matrix.
-"""
-function _iso_Bsmat!(Bs, ecoords_e)
-    a, b = ecoords_e[2, :] .- ecoords_e[1, :]
-    c, d = ecoords_e[3, :] .- ecoords_e[1, :]
-    J = (a*d - b*c)
-    gradN_e = [(b-d)/J d/J; -b/J (c-a)/J; -c/J a/J]
-    fill!(Bs, 0.0)
-    for i in 1:__nn
-        Bs[1,6*(i-1)+3] = gradN_e[i,1];
-        Bs[1,6*(i-1)+5] = 1/3;
-        Bs[2,6*(i-1)+3] = gradN_e[i,2];
-        Bs[2,6*(i-1)+4] = -1/3;
-    end
-end
-
-function __Bsmat!(Bs, ecoords_e)
-    fill!(Bs, 0.0)
-    _Bsmat_orientation!(Bs, ecoords_e)
-    _Bsmat_orientation!(Bs, ecoords_e[[2,3,1], :])
-    _Bsmat_orientation!(Bs, ecoords_e[[3,1,2], :])
-    Bs .*= (1.0/3)
-    return Bs
-end
-
-function _Bsmat_orientation!(Bs, ecoords_e)
-    x = @view ecoords_e[:, 1]
-    y = @view ecoords_e[:, 2]
-    X = hcat(x, y, ones(3, 1))
-    C = inv(X)
-    alp = @view C[1, :]
-    bet = @view C[2, :]
-    gam = @view C[3, :]
-    nux(i, k) = alp[k]/2*(x[i]^2-x[1]^2)+bet[k]*(y[i]*x[i]-y[1]*x[1])+gam[k]*(x[i]-x[1])
-    nuy(i, k) = alp[k]*(y[i]*x[i]-y[1]*x[1])+bet[k]/2*(y[i]^2-y[1]^2)+gam[k]*(y[i]-y[1])
-    for i in 1:__nn
-        Bs[1,6*(i-1)+3] += alp[i]
-        Bs[1,6*(1-1)+3] += -alp[i]
-        Bs[1,6*(i-1)+5] += (alp[1]*nux(1, i)+alp[2]*nux(2, i)+alp[3]*nux(3, i));
-        Bs[2,6*(i-1)+3] += bet[i]
-        Bs[2,6*(1-1)+3] += -bet[i]
-        Bs[2,6*(i-1)+4] += -(bet[1]*nuy(1, i)+bet[2]*nuy(2, i)+bet[3]*nuy(3, i));
-    end
-    return Bs
-end
-
-"""
     _Bmmat!(Bm, gradN)
 
 Compute the linear membrane strain-displacement matrix.

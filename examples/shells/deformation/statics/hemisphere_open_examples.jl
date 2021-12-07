@@ -80,6 +80,7 @@ function _execute_w_approx_normals(n = 8, visualize = true, drilling_stiffness_m
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
     
     femm.drilling_stiffness_scale = 0.1 * drilling_stiffness_multiplier
+    femm.mult_el_size = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
     num_normals = formul.num_normals

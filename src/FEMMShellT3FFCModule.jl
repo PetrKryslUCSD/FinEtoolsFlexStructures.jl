@@ -364,77 +364,22 @@ end
     _Bsmat!(Bs, gradN, N)
 
 Compute the linear transverse shear strain-displacement matrix.
+
+International Journal of Applied Mechanics
+Vol. 9, No. 4 (2017) 1750055 (30 pages)
+c⃝ World Scientific Publishing Europe Ltd.
+DOI: 10.1142/S1758825117500557
+A Central Point-Based Discrete Shear Gap Method
+for Plates and Shells Analysis Using
+Triangular Elements
+X. Y. Cui∗ and L. Tian
+State Key Laboratory of Advanced Design and
+Manufacturing for Vehicle Body Hunan University
+Changsha 410082, P. R. China
+∗cuixy@hnu.edu.cn
+Received 18 February 2017
 """
 function _Bsmat!(Bs, ecoords_e)
-    Bs .= 0.0 
-
-    # Orientation 1
-    s, p, q = 3, 1, 2
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-    Ae = (a*d - b*c)/2
-    m = (1/2/Ae) * (1/3) # multiplier
-
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-    
-    # Orientation 2
-    s, p, q = 1, 2, 3
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-
-
-    # Orientation 3
-    s, p, q = 2, 3, 1
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-    
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-
-    return Bs
-end
-
-function __Bsmat!(Bs, ecoords_e)
     x = @view ecoords_e[:, 1]
     y = @view ecoords_e[:, 2]
     Vx, Vy = x[2] .- x[1], y[2] .- y[1]
@@ -442,36 +387,36 @@ function __Bsmat!(Bs, ecoords_e)
     J = (Vx*Wy - Vy*Wx)
     m = ((y[2]-y[3])/J, (y[3]-y[1])/J, (y[1]-y[2])/J)
     n = (-(x[2]-x[3])/J, -(x[3]-x[1])/J, -(x[1]-x[2])/J)
-    x0 = (x[1]+x[2]+x[3])/3
-    y0 = (y[1]+y[2]+y[3])/3
-    a = x[1]-x0
-    b = y[1]-y0
-    c = x[2]-x0
-    d = y[2]-y0
-    e = x[3]-x0
-    f = y[3]-y0
+    xo = (x[1]+x[2]+x[3])/3
+    yo = (y[1]+y[2]+y[3])/3
+    a = x[1]-xo
+    b = y[1]-yo
+    c = x[2]-xo
+    d = y[2]-yo
+    e = x[3]-xo
+    f = y[3]-yo
     fill!(Bs, 0.0)
-    s = 1
-    Bs[1, 6*(s-1)+3] = 2/3*m[1]-1/3*m[2]-1/3*m[3]
-    Bs[1, 6*(s-1)+4] = -2/3*b*m[1]-1/6*d*m[2]-1/6*f*m[3]
-    Bs[1, 6*(s-1)+5] = +2/3*a*m[1]+1/6*c*m[2]+1/6*e*m[3]
-    Bs[2, 6*(s-1)+3] = 2/3*n[1]-1/3*n[2]-1/3*n[3]
-    Bs[2, 6*(s-1)+4] = -2/3*b*n[1]-1/6*d*n[2]-1/6*f*n[3]
-    Bs[2, 6*(s-1)+5] = +2/3*a*n[1]+1/6*c*n[2]+1/6*e*n[3]
-    s = 2
-    Bs[1, 6*(s-1)+3] = -1/3*m[1]+2/3*m[2]-1/3*m[3]
-    Bs[1, 6*(s-1)+4] = -1/6*b*m[1]-2/3*d*m[2]-1/6*f*m[3]
-    Bs[1, 6*(s-1)+5] = +1/6*a*m[1]+2/3*c*m[2]+1/6*e*m[3]
-    Bs[2, 6*(s-1)+3] = -1/3*n[1]+2/3*n[2]-1/3*n[3]
-    Bs[2, 6*(s-1)+4] = -1/6*b*n[1]-2/3*d*n[2]-1/6*f*n[3]
-    Bs[2, 6*(s-1)+5] = +1/6*a*n[1]+2/3*c*n[2]+1/6*e*n[3]
-    s = 3
-    Bs[1, 6*(s-1)+3] = -1/3*m[1]-1/3*m[2]+2/3*m[3]
-    Bs[1, 6*(s-1)+4] = -1/6*b*m[1]-1/6*d*m[2]-2/3*f*m[3]
-    Bs[1, 6*(s-1)+5] = +1/6*a*m[1]+1/6*c*m[2]+2/3*e*m[3]
-    Bs[2, 6*(s-1)+3] = -1/3*n[1]+2/3*n[2]-1/3*n[3]
-    Bs[2, 6*(s-1)+4] = -1/6*b*n[1]-1/6*d*n[2]-2/3*f*n[3]
-    Bs[2, 6*(s-1)+5] = +1/6*a*n[1]+1/6*c*n[2]+2/3*e*n[3]
+    s = 6*(1-1)
+    Bs[1, s+3] = 2/3*m[1]-1/3*m[2]-1/3*m[3]
+    Bs[1, s+4] = -2/3*b*m[1]-1/6*d*m[2]-1/6*f*m[3]
+    Bs[1, s+5] = +2/3*a*m[1]+1/6*c*m[2]+1/6*e*m[3]
+    Bs[2, s+3] = 2/3*n[1]-1/3*n[2]-1/3*n[3]
+    Bs[2, s+4] = -2/3*b*n[1]-1/6*d*n[2]-1/6*f*n[3]
+    Bs[2, s+5] = +2/3*a*n[1]+1/6*c*n[2]+1/6*e*n[3]
+    s = 6*(2-1)
+    Bs[1, s+3] = -1/3*m[1]+2/3*m[2]-1/3*m[3]
+    Bs[1, s+4] = -1/6*b*m[1]-2/3*d*m[2]-1/6*f*m[3]
+    Bs[1, s+5] = +1/6*a*m[1]+2/3*c*m[2]+1/6*e*m[3]
+    Bs[2, s+3] = -1/3*n[1]+2/3*n[2]-1/3*n[3]
+    Bs[2, s+4] = -1/6*b*n[1]-2/3*d*n[2]-1/6*f*n[3]
+    Bs[2, s+5] = +1/6*a*n[1]+2/3*c*n[2]+1/6*e*n[3]
+    s = 6*(3-1)
+    Bs[1, s+3] = -1/3*m[1]-1/3*m[2]+2/3*m[3]
+    Bs[1, s+4] = -1/6*b*m[1]-1/6*d*m[2]-2/3*f*m[3]
+    Bs[1, s+5] = +1/6*a*m[1]+1/6*c*m[2]+2/3*e*m[3]
+    Bs[2, s+3] = -1/3*n[1]-1/3*n[2]+2/3*n[3]
+    Bs[2, s+4] = -1/6*b*n[1]-1/6*d*n[2]-2/3*f*n[3]
+    Bs[2, s+5] = +1/6*a*n[1]+1/6*c*n[2]+2/3*e*n[3]
     return Bs
 end
 
