@@ -46,6 +46,7 @@ function _execute(n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.mult_el_size = 0.2
     femm.drilling_stiffness_scale = 1.0
     associate = formul.associategeometry!
     stiffness = formul.stiffness

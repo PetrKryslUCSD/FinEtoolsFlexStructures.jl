@@ -132,7 +132,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, mcsys, 
-        material, 1.0, 30.0, 0.2,
+        material, 1.0, 30.0, 5/12/1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,

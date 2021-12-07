@@ -71,7 +71,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness),  mater)
     femm.drilling_stiffness_scale = 1.0e-4
-    femm.mult_el_size = 0.2
+    femm.mult_el_size = 5/12
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -144,7 +144,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
         end
-        vtkwrite("scordelis_lo_examples-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scordelis_lo_examples-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
         # vtkwrite("scordelis_lo_examples-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
@@ -177,4 +177,4 @@ end # module
 using .scordelis_lo_examples
 
 # Visualized internal resultants
-ns, results = scordelis_lo_examples.test_convergence([12*16,], true)
+ns, results = scordelis_lo_examples.test_convergence([2*16,], true)
