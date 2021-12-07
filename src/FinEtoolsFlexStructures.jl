@@ -24,5 +24,6 @@ include("FEMMPointGroundedSpringModule.jl")
 
 include("FEMMShellT3FFModule.jl")
 include("FEMMShellT3FFAModule.jl")
+include("FEMMShellT3FFCModule.jl")
 
 end # module
