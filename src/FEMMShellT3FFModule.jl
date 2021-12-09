@@ -369,7 +369,7 @@ function _Bsmat!(Bs, ecoords_e)
     Bs .= 0.0 
 
     # Orientation 1
-    s, p, q = 3, 1, 2
+    s, p, q = 1, 2, 3
     a, b = ecoords_e[p, :] .- ecoords_e[s, :]
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
     Ae = (a*d - b*c)/2
@@ -391,7 +391,7 @@ function _Bsmat!(Bs, ecoords_e)
     Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
     
     # Orientation 2
-    s, p, q = 1, 2, 3
+    s, p, q = 2, 3, 1
     a, b = ecoords_e[p, :] .- ecoords_e[s, :]
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
 
@@ -412,7 +412,7 @@ function _Bsmat!(Bs, ecoords_e)
 
 
     # Orientation 3
-    s, p, q = 2, 3, 1
+    s, p, q = 3, 1, 2
     a, b = ecoords_e[p, :] .- ecoords_e[s, :]
     c, d = ecoords_e[q, :] .- ecoords_e[s, :]
     
@@ -775,7 +775,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             frc = ((t^3/(t^2+mult_el_size*he^2)))*Dt * shr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
-        end
+        end 
         # Call the inspector
         idat = inspector(idat, i, fes.conn[i], ecoords, out, centroid);
         # end # Loop over quadrature points
