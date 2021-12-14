@@ -361,6 +361,12 @@ git-tree-sha1 = "2ef87eeaa28713cb010f9fb0be288b6c1a4ecd53"
 uuid = "f7e6163d-2fa5-5f23-b69c-1db539e41963"
 version = "0.1.0+0"
 
+[[KrylovKit]]
+deps = ["LinearAlgebra", "Printf"]
+git-tree-sha1 = "0328ad9966ae29ccefb4e1b9bfd8c8867e4360df"
+uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
+version = "0.5.3"
+
 [[LaTeXStrings]]
 git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
