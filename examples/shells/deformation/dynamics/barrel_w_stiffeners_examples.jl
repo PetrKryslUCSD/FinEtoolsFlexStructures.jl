@@ -23,6 +23,8 @@ using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using DataDrop: with_extension
+# using KrylovKit
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function _execute_model(formul, input, visualize = true)
     E = 200e3*phun("MPa")
@@ -36,6 +38,7 @@ function _execute_model(formul, input, visualize = true)
 
     output = FinEtools.MeshImportModule.import_H5MESH(joinpath(dirname(@__FILE__()), input))
     fens, fes  = output["fens"], output["fesets"][1]
+    fens.xyz .*= phun("mm");
 
     # output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
     # fens = output["fens"]
@@ -46,7 +49,6 @@ function _execute_model(formul, input, visualize = true)
     # fes = renumberconn!(fes, new_numbering);
 
     # fens, fes = mergenodes(fens, fes, thickness/10)
-    
     
     # FinEtools.MeshExportModule.H5MESH.write_H5MESH(with_extension(input, "h5mesh"), fens, fes)
     
@@ -93,19 +95,20 @@ function _execute_model(formul, input, visualize = true)
     # Solve
     neigvs = 40
     tim = @elapsed begin
-        evals, evecs, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+        evals, evecs, convinfo = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+        # evals, evecs, convinfo = geneigsolve((K+OmegaShift*M, M), neigvs,  :SR, krylovdim = 80)
     end
-    # @show nconv
+    @show convinfo
     evals[:] = evals .- OmegaShift;
     fs = real(sqrt.(complex(evals)))/(2*pi)
-    @info "Frequencies: $(round.(fs[7:10], digits=4))"
+    @info "Frequencies: $(round.(fs[7:15], digits=4))"
     @info "Time $tim [sec]"
 
     # Visualization
     if visualize
         for ev in 7:30
             U = evecs[:, ev]
-            scattersysvec!(dchi, (0.5*L)/maximum(abs.(U)).*U)
+            scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
             vtkwrite("$(input)-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
