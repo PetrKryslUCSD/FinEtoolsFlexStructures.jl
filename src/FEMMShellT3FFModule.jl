@@ -29,28 +29,24 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 Class for the finite element modeling machine of the Flat-Facet shell with the
 Discrete Shear Gap technology and a consistent handling of the normals. 
 
-With averaging of the transverse strain-displacement matrix to provide isotropic
-transverse shear response. Also, the formulation is developed to correctly
-handle the coupling of twisting moments and transverse shear (such as in the
-twisted beam or the Raasch hook problems) by incorporating "nodal" normals.
+With averaging of the transverse strain-displacement matrix or averaging of the
+transverse shear stiffness matrix to provide isotropic transverse shear
+response. 
+
+Also, the formulation is developed to correctly handle the coupling of twisting
+moments and transverse shear (such as in the twisted beam or the Raasch hook
+problems) by incorporating "nodal" normals.
 
 Some of the programming developed consistently with the paper
 
 [1] Cui et al, Analysis of plates and shells using an edge-based smoothed finite
 element method, Comput Mech (2010) 45:141–156 DOI 10.1007/s00466-009-0429-9
 
-In the below reference, the sign next to Ae in equation (44) is wrong:
-
-[2] A superconvergent alpha finite element method (S a FEM) for static and
-free vibration analysis of shell structures
-Chai et al. (2017).
-
 The stabilization factor of the shear term of
 
-[3] Mikko Lyly, Rolf Stenberg and Teemu Vihinen
-A stable bilinear element for the
-Reissner-Mindlin plate model
-Computer Methods in Applied Mechanics and Engineering 110 (1993) 343-357 
+[2] Mikko Lyly, Rolf Stenberg and Teemu Vihinen, A stable bilinear element for
+the Reissner-Mindlin plate model Computer Methods in Applied Mechanics and
+Engineering 110 (1993) 343-357 
 
 is incorporated. Refer to expressions (3.12) and (3.13).
 
