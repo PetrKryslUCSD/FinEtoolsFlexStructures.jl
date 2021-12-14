@@ -17,6 +17,7 @@ function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_lab
     csmatout[:, 3] .= (0.0, 0.0, 1.0)
     return csmatout
 end
+
 function _execute_dsg_model(formul, n = 2, visualize = true)
     E = 1e3;
     nu = 0.3;

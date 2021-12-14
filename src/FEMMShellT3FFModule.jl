@@ -17,6 +17,12 @@ using Infiltrator
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
 
+# Formulation for the transverse shear stiffness which averages the
+# strain-displacement matrix.
+const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
+# Formulation for the transverse shear stiffness which averages the
+# stiffness matrix.
+const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 """
     FEMMShellT3FF{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
@@ -74,6 +80,7 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     mcsys::CSys # updater of the material orientation matrix
     material::M # material object.
+    transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
     mult_el_size::Float64
@@ -132,7 +139,8 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
     _DtBs = similar(_Bs)
 
     return FEMMShellT3FF(integdomain, mcsys, 
-        material, 1.0, 30.0, 5/12/1.5,
+        material, 
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -199,18 +207,15 @@ function _e_g!(E_G, J0)
     L0 = norm(a);
     E_G[:,1] = a/L0;
     # This is the tangent to the coordinate curve 2
-    b = J0[:, 2]
-    #     E_G(:,3)=skewmat(E_G(:,1))*b;
     b = @view J0[:, 2]
     # Now compute the normal
-    E_G[:, 3] .= (-E_G[3,1]*b[2]+E_G[2,1]*b[3],
-                  E_G[3,1]*b[1]-E_G[1,1]*b[3],
-                 -E_G[2,1]*b[1]+E_G[1,1]*b[2]);
+    E_G[:, 3] .= (-E_G[3, 1]*b[2]+E_G[2, 1]*b[3],
+                   E_G[3, 1]*b[1]-E_G[1, 1]*b[3],
+                  -E_G[2, 1]*b[1]+E_G[1, 1]*b[2]);
     E_G[:, 3] /= norm(@view E_G[:, 3]);
-    #     E_G(:,2)=skewmat(E_G(:,3))*E_G(:,1);
-    E_G[:, 2] .= (-E_G[3,3]*E_G[2,1]+E_G[2,3]*E_G[3,1],
-                  E_G[3,3]*E_G[1,1]-E_G[1,3]*E_G[3,1],
-                 -E_G[2,3]*E_G[1,1]+E_G[1,3]*E_G[2,1]);
+    E_G[:, 2] .= (-E_G[3, 3]*E_G[2, 1]+E_G[2, 3]*E_G[3, 1],
+                   E_G[3, 3]*E_G[1, 1]-E_G[1, 3]*E_G[3, 1],
+                  -E_G[2, 3]*E_G[1, 1]+E_G[1, 3]*E_G[2, 1]);
     return E_G
 end
 
@@ -360,77 +365,46 @@ function _gradN_e_Ae!(gradN_e, ecoords_e)
     return gradN_e, J/2
 end
 
+function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
+    # The computed entries are added. The matrix is not zeroed out initially.
+    # That is the responsibility of the caller.
+
+    # Orientation 
+    s, p, q = ordering
+    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
+    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
+    m = (1/2/Ae) # multiplier
+
+    # The first node in the triangle 
+    # Node s
+    co = (s - 1) * 6 # column offset
+    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
+    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
+    # The other two nodes
+    # Node p
+    co = (p - 1) * 6 # column offset
+    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
+    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
+    # Node q
+    co = (q - 1) * 6 # column offset
+    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
+    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
+    
+    return Bs
+end
+
 """
     _Bsmat!(Bs, gradN, N)
 
 Compute the linear transverse shear strain-displacement matrix.
 """
-function _Bsmat!(Bs, ecoords_e)
-    Bs .= 0.0 
-
-    # Orientation 1
-    s, p, q = 1, 2, 3
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-    Ae = (a*d - b*c)/2
-    m = (1/2/Ae) * (1/3) # multiplier
-
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-    
-    # Orientation 2
-    s, p, q = 2, 3, 1
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-
-
-    # Orientation 3
-    s, p, q = 3, 1, 2
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
-    
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-
+function _Bsmat!(Bs, ecoords_e, Ae)
+    Bs .= 0.0 # Zero out initially, then add the three contributions  
+    _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
+    _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
+    _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
+    # Now averaging of the three contributions
+    Bs .*= (1/3)
     return Bs
 end
 
@@ -509,11 +483,16 @@ function associategeometry!(self::FEMMShellT3FF,  geom::NodalField{FFlt})
     return self
 end
 
+"""
+    num_normals(self::FEMMShellT3FF)
+
+Compute the summary of the nodal normals.
+"""
 function num_normals(self::FEMMShellT3FF)
     normals, normal_valid = self._normals, self._normal_valid
     total_normals = length(normal_valid)
-    invalid_normals = length([v for v in normal_valid if v != true])
-    return total_normals, invalid_normals
+    total_invalid_normals = length([v for v in normal_valid if v != true])
+    return total_normals, total_invalid_normals
 end
 
 """
@@ -537,6 +516,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     scf = 5/6;  # shear correction factor
     Dt .*= scf
     drilling_stiffness_scale = self.drilling_stiffness_scale
+    transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for i in 1:count(fes) # Loop over elements
@@ -553,9 +533,18 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
         _Bbmat!(Bb, gradN_e)
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
-        _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
-        add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
+        if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
+            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+        else
+            _Bsmat!(Bs, ecoords_e, Ae)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
+        end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Transformation from the nodal (A) to the element (E) basis
@@ -607,6 +596,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     rho::FFlt = massdensity(self.material); # mass density
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
+    drilling_stiffness_scale = self.drilling_stiffness_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -640,7 +630,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
             if nvalid[k]
                 d = 6
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += rfactor / 1e6
+                elmat[c, c] += rfactor * drilling_stiffness_scale / 1e3
             end
         end
         # Transform into global coordinates
@@ -769,7 +759,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
         end
         if quant == TRANSVERSE_SHEAR
-            _Bsmat!(Bs, ecoords_e)
+            _Bsmat!(Bs, ecoords_e, Ae)
             he = sqrt(2*Ae)
             shr = Bs * edisp_e
             frc = ((t^3/(t^2+mult_el_size*he^2)))*Dt * shr
@@ -823,8 +813,8 @@ function _resultant_check(self::FEMMShellT3FF, geom0::NodalField{FFlt}, u1::Noda
         add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
         _Bbmat!(Bb, gradN_e)
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
-        _Bsmat!(Bs, ecoords_e)
         he = sqrt(2*Ae)
+        _Bsmat!(Bs, ecoords_e, Ae)
         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
@@ -878,3 +868,68 @@ end # module
 
 # @show nvalid
 # @show [v for v in abs.(eigen(elmat).values) if v > 1.0e-3]
+
+
+"""
+    _Bsmat!(Bs, gradN, N)
+
+Compute the linear transverse shear strain-displacement matrix.
+
+International Journal of Applied Mechanics
+Vol. 9, No. 4 (2017) 1750055 (30 pages)
+c⃝ World Scientific Publishing Europe Ltd.
+DOI: 10.1142/S1758825117500557
+A Central Point-Based Discrete Shear Gap Method
+for Plates and Shells Analysis Using
+Triangular Elements
+X. Y. Cui∗ and L. Tian
+State Key Laboratory of Advanced Design and
+Manufacturing for Vehicle Body Hunan University
+Changsha 410082, P. R. China
+∗cuixy@hnu.edu.cn
+Received 18 February 2017
+
+This matrix computation is precisely the same as the original averaging
+I implemented, even though this is based on the central point.
+
+"""
+# function _Bsmat!(Bs, ecoords_e)
+#     x = @view ecoords_e[:, 1]
+#     y = @view ecoords_e[:, 2]
+#     Vx, Vy = x[2] .- x[1], y[2] .- y[1]
+#     Wx, Wy = x[3] .- x[1], y[3] .- y[1]
+#     J = (Vx*Wy - Vy*Wx)
+#     m = ((y[2]-y[3])/J, (y[3]-y[1])/J, (y[1]-y[2])/J)
+#     n = (-(x[2]-x[3])/J, -(x[3]-x[1])/J, -(x[1]-x[2])/J)
+#     xo = (x[1]+x[2]+x[3])/3
+#     yo = (y[1]+y[2]+y[3])/3
+#     a = x[1]-xo
+#     b = y[1]-yo
+#     c = x[2]-xo
+#     d = y[2]-yo
+#     e = x[3]-xo
+#     f = y[3]-yo
+#     fill!(Bs, 0.0)
+#     s = 6*(1-1)
+#     Bs[1, s+3] = 2/3*m[1]-1/3*m[2]-1/3*m[3]
+#     Bs[1, s+4] = -2/3*b*m[1]-1/6*d*m[2]-1/6*f*m[3]
+#     Bs[1, s+5] = +2/3*a*m[1]+1/6*c*m[2]+1/6*e*m[3]
+#     Bs[2, s+3] = 2/3*n[1]-1/3*n[2]-1/3*n[3]
+#     Bs[2, s+4] = -2/3*b*n[1]-1/6*d*n[2]-1/6*f*n[3]
+#     Bs[2, s+5] = +2/3*a*n[1]+1/6*c*n[2]+1/6*e*n[3]
+#     s = 6*(2-1)
+#     Bs[1, s+3] = -1/3*m[1]+2/3*m[2]-1/3*m[3]
+#     Bs[1, s+4] = -1/6*b*m[1]-2/3*d*m[2]-1/6*f*m[3]
+#     Bs[1, s+5] = +1/6*a*m[1]+2/3*c*m[2]+1/6*e*m[3]
+#     Bs[2, s+3] = -1/3*n[1]+2/3*n[2]-1/3*n[3]
+#     Bs[2, s+4] = -1/6*b*n[1]-2/3*d*n[2]-1/6*f*n[3]
+#     Bs[2, s+5] = +1/6*a*n[1]+2/3*c*n[2]+1/6*e*n[3]
+#     s = 6*(3-1)
+#     Bs[1, s+3] = -1/3*m[1]-1/3*m[2]+2/3*m[3]
+#     Bs[1, s+4] = -1/6*b*m[1]-1/6*d*m[2]-2/3*f*m[3]
+#     Bs[1, s+5] = +1/6*a*m[1]+1/6*c*m[2]+2/3*e*m[3]
+#     Bs[2, s+3] = -1/3*n[1]-1/3*n[2]+2/3*n[3]
+#     Bs[2, s+4] = -1/6*b*n[1]-1/6*d*n[2]-2/3*f*n[3]
+#     Bs[2, s+5] = +1/6*a*n[1]+1/6*c*n[2]+2/3*e*n[3]
+#     return Bs
+# end

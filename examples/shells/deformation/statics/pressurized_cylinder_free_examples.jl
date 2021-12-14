@@ -13,6 +13,16 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 using Infiltrator
 
+function cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+    n = cross(tangents[:, 1], tangents[:, 2]) 
+    n = n/norm(n)
+    # r = vec(XYZ); r[2] = 0.0
+    csmatout[:, 3] .= n
+    csmatout[:, 2] .= (0.0, 1.0, 0.0)
+    cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
+    return csmatout
+end
+
 function _execute_dsg_model(formul, n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
@@ -94,15 +104,6 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     # @info "Solution: $(round(resultpercent, digits = 4))%"
 
     # Generate a graphical display of resultants
-    cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
-        n = cross(tangents[:, 1], tangents[:, 2]) 
-        n = n/norm(n)
-        # r = vec(XYZ); r[2] = 0.0
-        csmatout[:, 3] .= n
-        csmatout[:, 2] .= (0.0, 1.0, 0.0)
-        cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
-        return csmatout
-    end
     ocsys = CSys(3, 3, cylindrical!)
     scalars = []
     for nc in 1:3

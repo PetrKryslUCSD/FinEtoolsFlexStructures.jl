@@ -29,7 +29,7 @@ using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, p
 
 using Infiltrator
 
-function _execute_dsg_model(n = 8, visualize = true)
+function _execute_model(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -54,6 +54,7 @@ function _execute_dsg_model(n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -117,7 +118,7 @@ end
 function test_convergence(ns = [2, 4, 8, 16])
     @info "Scordelis-Lo shell"
     for n in ns
-        _execute_dsg_model(n, false)
+        _execute_model(n, false)
     end
     return true
 end
