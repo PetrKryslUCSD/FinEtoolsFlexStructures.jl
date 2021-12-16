@@ -2,12 +2,12 @@
 
 ## Table of Contents
 
-- [CrossSectionModule](#CrossSectionModule)
-- [FEMMCorotBeamModule](#FEMMCorotBeamModule)
-- [FEMMShellT3FFModule](#FEMMShellT3FFModule)
+- [CrossSectionModule](@ref)
+- [FEMMCorotBeamModule](@ref)
+- [FEMMShellT3FFModule](@ref)
 
 
-## <a name="CrossSectionModule"></a>CrossSectionModule
+## CrossSectionModule
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.CrossSectionModule]
@@ -15,7 +15,7 @@ Private = true
 Order = [:function]
 ```
 
-## <a name="FEMMCorotBeamModule"></a>FEMMCorotBeamModule
+## FEMMCorotBeamModule
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
@@ -23,7 +23,7 @@ Private = true
 Order = [:function]
 ```
 
-## <a name="FEMMShellT3FFModule"></a>FEMMShellT3FFModule
+## FEMMShellT3FFModule
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMShellT3FFModule]
