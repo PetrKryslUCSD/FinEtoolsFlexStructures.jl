@@ -107,6 +107,11 @@ mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
 end
 
 
+"""
+    FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:AbstractFESet, F<:Function, M}
+
+Constructor of the T3FF shell FEMM.
+"""
 function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:AbstractFESet, F<:Function, M}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
@@ -177,14 +182,23 @@ function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
     return n
 end
 
+"""
+    make(integdomain, mcsys, material)
+
+Make a T3FF FEMM from the integration domain,  and a material.
+Default isoparametric method for computing the normals is used.
+"""
 function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
     return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
 end
 
-function make(integdomain, material)
-    return FEMMShellT3FF(integdomain, material)
-end
 
+"""
+    make(integdomain, mcsys, material)
+
+Make a T3FF FEMM from the integration domain, a coordinate system to define the
+orientation of the normals, and a material.
+"""
 function make(integdomain, mcsys, material)
     return FEMMShellT3FF(integdomain, mcsys, material)
 end
@@ -364,8 +378,10 @@ function _gradN_e_Ae!(gradN_e, ecoords_e)
 end
 
 function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
-    # The computed entries are added. The matrix is not zeroed out initially.
-    # That is the responsibility of the caller.
+    # Compute the linear transverse shear strain-displacement matrix for one
+    # particular ordering of the nodes. The computed entries are ADDED. The
+    # matrix is NOT zeroed out initially. That is the responsibility of the
+    # caller.
 
     # Orientation 
     s, p, q = ordering
@@ -391,12 +407,8 @@ function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
     return Bs
 end
 
-"""
-    _Bsmat!(Bs, gradN, N)
-
-Compute the linear transverse shear strain-displacement matrix.
-"""
 function _Bsmat!(Bs, ecoords_e, Ae)
+    # Compute the linear transverse shear strain-displacement matrix.
     Bs .= 0.0 # Zero out initially, then add the three contributions  
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
@@ -406,12 +418,8 @@ function _Bsmat!(Bs, ecoords_e, Ae)
     return Bs
 end
 
-"""
-    _Bmmat!(Bm, gradN)
-
-Compute the linear membrane strain-displacement matrix.
-"""
 function _Bmmat!(Bm, gradN)
+    # Compute the linear membrane strain-displacement matrix.
     fill!(Bm, 0.0)
     for i in 1:__nn
         Bm[1,6*(i-1)+1] = gradN[i,1];
