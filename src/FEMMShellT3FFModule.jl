@@ -322,7 +322,7 @@ end
         nvalid[k] = normal_valid[c[k]]
         if nvalid[k] 
             # If the nodal normal is valid, pull it back into the element frame.
-            o.nk_e .= E_G'*o.nk
+            mul!(o.nk_e, transpose(E_G), o.nk)
         else
             # Otherwise the element normal replaces the nodal normal.
             o.nk_e .= 0.0; o.nk_e[3] = 1.0
@@ -331,7 +331,9 @@ end
         if norm(o.r) > 1.0e-12
             rotmat3!(A_Es[k], o.r) 
         else
-            A_Es[k] .= I(3)
+            # A_Es[k] .= I(3)
+            A_Es[k] .= 0.0
+            A_Es[k][1, 1] = A_Es[k][2, 2] = A_Es[k][3, 3] = 1.0
         end
     end
     return A_Es, nvalid
@@ -470,10 +472,21 @@ end
 function _gradN_e_Ae!(gradN_e, ecoords_e)
     # Compute the gradient with respect to the element coordinates, three
     # gradients in two coordinates, and the area of the triangle
-    a, b = ecoords_e[2, :] .- ecoords_e[1, :]
-    c, d = ecoords_e[3, :] .- ecoords_e[1, :]
-    J = (a*d - b*c)
-    gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
+    # a, b = ecoords_e[2, :] .- ecoords_e[1, :]
+    # c, d = ecoords_e[3, :] .- ecoords_e[1, :]
+    # J = (a*d - b*c)
+    # gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
+     a = ecoords_e[2, 1] - ecoords_e[1, 1]
+     b = ecoords_e[2, 2] - ecoords_e[1, 2]
+     c = ecoords_e[3, 1] - ecoords_e[1, 1]
+     d = ecoords_e[3, 2] - ecoords_e[1, 2]
+     J = (a*d - b*c)
+     gradN_e[1, 1] = (b-d)/J
+     gradN_e[2, 1] = d/J
+     gradN_e[3, 1] = -b/J
+     gradN_e[1, 2] = (c-a)/J
+     gradN_e[2, 2] = -c/J
+     gradN_e[3, 2] = a/J
     return gradN_e, J/2
 end
 
@@ -485,8 +498,10 @@ function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
 
     # Orientation 
     s, p, q = ordering
-    a, b = ecoords_e[p, :] .- ecoords_e[s, :]
-    c, d = ecoords_e[q, :] .- ecoords_e[s, :]
+    a = ecoords_e[p, 1] - ecoords_e[s, 1]
+    b = ecoords_e[p, 2] - ecoords_e[s, 2]
+    c = ecoords_e[q, 1] - ecoords_e[s, 1]
+    d = ecoords_e[q, 2] - ecoords_e[s, 2]
     m = (1/2/Ae) # multiplier
 
     # The first node in the triangle 
