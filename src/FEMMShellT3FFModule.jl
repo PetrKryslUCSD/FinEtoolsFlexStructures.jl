@@ -23,6 +23,8 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
 # Formulation for the transverse shear stiffness which averages the
 # stiffness matrix.
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
+
+
 """
     FEMMShellT3FF{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
@@ -53,7 +55,7 @@ is incorporated. Refer to expressions (3.12) and (3.13).
 The treatment of the transformation between the element and nodal coordinates
 is carried out using a clean alternative to the publication
 
-[4] Finite Elements in Analysis and Design 30 (1998) 235—242
+[3] Finite Elements in Analysis and Design 30 (1998) 235—242
 The treatment of shell normals in ﬁnite element analysis
 Richard H. MacNeal, Charles T. Wilson, Robert L. Harder, Claus C. Hoﬀ
 The MacNeal-Schwendler Corporation, 815 Colorado Blvd., Los Angeles, CA 90041, USA
