@@ -223,28 +223,38 @@ end
 function _compute_J!(J0, ecoords)
     # Compute the Jacobian matrix: the Jacobian matrix is constant within the
     # triangle
-    x, y, z = ecoords[2, :].-ecoords[1, :]
-    J0[:, 1] .= (x, y, z)
-    x, y, z = ecoords[3, :].-ecoords[1, :]
-    J0[:, 2] .= (x, y, z)
+    # x, y, z = ecoords[2, :].-ecoords[1, :]
+    # J0[:, 1] .= (x, y, z)
+    # x, y, z = ecoords[3, :].-ecoords[1, :]
+    # J0[:, 2] .= (x, y, z)
+    for j in 1:3 
+        J0[j, 1] = ecoords[2, j] - ecoords[1, j]
+        J0[j, 2] = ecoords[3, j] - ecoords[1, j]  
+    end
     return J0
 end
 
 function _e_g!(E_G, J0)
     # This is the tangent to the coordinate curve 1
-    a = @view J0[:, 1]
-    L0 = norm(a);
-    E_G[:,1] = a/L0;
+    for j in 1:3
+        E_G[j,1]  = J0[j, 1]
+    end
+    n = sqrt(E_G[1, 1]^2 + E_G[2, 1]^2 + E_G[3, 1]^2)
+    for j in 1:3
+        E_G[j,1]  /= n
+    end
     # This is the tangent to the coordinate curve 2
-    b = @view J0[:, 2]
     # Now compute the normal
-    E_G[:, 3] .= (-E_G[3, 1]*b[2]+E_G[2, 1]*b[3],
-                   E_G[3, 1]*b[1]-E_G[1, 1]*b[3],
-                  -E_G[2, 1]*b[1]+E_G[1, 1]*b[2]);
-    E_G[:, 3] /= norm(@view E_G[:, 3]);
-    E_G[:, 2] .= (-E_G[3, 3]*E_G[2, 1]+E_G[2, 3]*E_G[3, 1],
-                   E_G[3, 3]*E_G[1, 1]-E_G[1, 3]*E_G[3, 1],
-                  -E_G[2, 3]*E_G[1, 1]+E_G[1, 3]*E_G[2, 1]);
+    E_G[1, 3] = -E_G[3, 1]*J0[2, 2]+E_G[2, 1]*J0[3, 2]
+    E_G[2, 3] =  E_G[3, 1]*J0[1, 2]-E_G[1, 1]*J0[3, 2]
+    E_G[3, 3] = -E_G[2, 1]*J0[1, 2]+E_G[1, 1]*J0[2, 2]
+    n = sqrt(E_G[1, 3]^2 + E_G[2, 3]^2 + E_G[3, 3]^2);
+    for j in 1:3
+        E_G[j, 3]  /= n
+    end
+    E_G[1, 2] = -E_G[3, 3]*E_G[2, 1]+E_G[2, 3]*E_G[3, 1]
+    E_G[2, 2] =  E_G[3, 3]*E_G[1, 1]-E_G[1, 3]*E_G[3, 1]
+    E_G[3, 2] = -E_G[2, 3]*E_G[1, 1]+E_G[1, 3]*E_G[2, 1]
     return E_G
 end
 
@@ -258,11 +268,10 @@ function _ecoords_e!(ecoords_e, J0, E_G)
 end
 
 function _centroid!(centroid, ecoords)
-    centroid[:] .= (
-        (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3,
-        (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3,
-        (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
-        )
+    centroid[1]  = (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3
+    centroid[2]  = (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3
+    centroid[3]  = (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
+    return centroid
 end
     
 function _shell_material_stiffness(material)
