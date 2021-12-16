@@ -1,7 +1,7 @@
 # Types
 
-Documentation of [types](types.html).
+Documentation of [types](../types.html).
 
 # Functions
 
-Documentation of [functions](functions.html).
+Documentation of [functions](../functions.html).
