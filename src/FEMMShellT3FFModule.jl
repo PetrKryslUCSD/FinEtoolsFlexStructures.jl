@@ -444,17 +444,22 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
     
-    # TO DO avoid a temporary
     T .= 0.0
     for i in 1:__nn
         roffst = (i-1)*__ndof
         iA_E = A_Es[i] 
         iA_E_33 = iA_E[3, 3]
-        r = roffst+1:roffst+3
-        T[r, r] .= iA_E
-        r = roffst+4:roffst+5
-        # TO DO avoid temporary
-        T[r, r] .= iA_E[1:2, 1:2] - (1/iA_E_33).*(vec(iA_E[1:2, 3])*vec(iA_E[3, 1:2])') 
+        # T[r, r] .= iA_E
+        for cl in 1:3
+            for rw in 1:3
+                T[roffst+rw, roffst+cl] = iA_E[rw, cl]
+            end
+        end
+        for cl in 1:2
+            for rw in 1:2
+                T[roffst+3+rw, roffst+3+cl] = iA_E[rw, cl] - (1/iA_E_33)*iA_E[rw, 3]*iA_E[cl, 3]
+            end
+        end
         m1 = (1/iA_E_33)*iA_E[1, 3]
         m2 = (1/iA_E_33)*iA_E[2, 3]
         for j in 1:__nn

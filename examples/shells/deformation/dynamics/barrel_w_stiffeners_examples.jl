@@ -36,6 +36,9 @@ function _execute_model(formul, input, visualize = true)
     # Report
     @info "Mesh: $input"
 
+    if !isfile(joinpath(dirname(@__FILE__()), input))
+        run(`unzip -q -d $(dirname(@__FILE__())) $(joinpath(dirname(@__FILE__()), "barrel_w_stiffeners-s3-mesh.zip"))`)
+    end
     output = FinEtools.MeshImportModule.import_H5MESH(joinpath(dirname(@__FILE__()), input))
     fens, fes  = output["fens"], output["fesets"][1]
     fens.xyz .*= phun("mm");
@@ -135,4 +138,4 @@ end # module
 
 using .barrel_w_stiffeners_examples
 m = barrel_w_stiffeners_examples
-m.test_convergence()
+@time m.test_convergence()
