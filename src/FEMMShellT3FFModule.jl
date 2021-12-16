@@ -28,8 +28,9 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 """
     FEMMShellT3FF{S<:AbstractFESet, F<:Function} <: AbstractFEMM
 
-Class for the finite element modeling machine of the Flat-Facet shell with the
-Discrete Shear Gap technology and a consistent handling of the normals. 
+Class for the finite element modeling machine of the T3 triangular Flat-Facet
+shell with the Discrete Shear Gap technology and a consistent handling of the
+normals. 
 
 With averaging of the transverse strain-displacement matrix or averaging of the
 transverse shear stiffness matrix to provide isotropic transverse shear
@@ -70,7 +71,7 @@ freedom in the nodal basis.
 
 The following features are incorporated to deal with nodal normals:
 - Nodal normals are averages of the normals of elements that meet at a node.
-- A crease in the surface is take into account. In that case the normal are not
+- A crease in the surface is taken into account. In that case the normal are not
   averaged across the crease. At the nodes along the crease every element uses
   the normal to its surface instead of the nodal normal.
 
@@ -194,16 +195,20 @@ function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
     return n
 end
 
+
+function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+    return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
+end
+
 """
     make(integdomain, mcsys, material)
 
 Make a T3FF FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normals is used.
 """
-function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
-    return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
+function make(integdomain, material)
+    return FEMMShellT3FF(integdomain, material)
 end
-
 
 """
     make(integdomain, mcsys, material)
@@ -280,6 +285,49 @@ function _shell_material_stiffness(material)
     return Dps, Dt
 end
 
+struct NodalTriadsE
+    r::FFltVec
+    nk_e::FFltVec
+    nk::FFltVec
+    f3_e::FFltVec
+end
+
+function NodalTriadsE()
+    NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
+end
+   
+(o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
+    # Components of nodal cartesian ordinate systems such that the third
+    # direction is the direction of the nodal normal, and the angle to rotate
+    # the element normal into the nodal normal is as short as possible; these
+    # components are given on the local element coordinate system basis
+    # vectors (basis E). If the angle of rotation is excessively small, the
+    # nodal matrix is the identity. 
+    # 
+    # The array `A_Es` holds the triads that are the nodal-to-element
+    # transformation matrices. The array `nvalid` indicates for the three nodes
+    # which of the normals is valid (`true`).
+
+    for k in 1:length(A_Es)
+        o.nk .= vec(view(normals, c[k], :))
+        nvalid[k] = normal_valid[c[k]]
+        if nvalid[k] 
+            # If the nodal normal is valid, pull it back into the element frame.
+            o.nk_e .= E_G'*o.nk
+        else
+            # Otherwise the element normal replaces the nodal normal.
+            o.nk_e .= 0.0; o.nk_e[3] = 1.0
+        end
+        cross3!(o.r, o.f3_e, o.nk_e)
+        if norm(o.r) > 1.0e-12
+            rotmat3!(A_Es[k], o.r) 
+        else
+            A_Es[k] .= I(3)
+        end
+    end
+    return A_Es, nvalid
+end
+
 function _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, c)
     # Components of nodal cartesian ordinate systems such that the third
     # direction is the direction of the nodal normal, and the angle to rotate
@@ -315,6 +363,37 @@ function _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, c)
         end
     end
     return A_Es, nvalid
+end
+
+struct TransfmatGToA
+    Tblock::FFltMat
+end
+
+function TransfmatGToA()
+    TransfmatGToA(fill(0.0, 3, 3))
+end
+
+(o::TransfmatGToA)(T, A_Es, E_G) = begin
+    # Global-to-nodal transformation matrix. 
+
+    # The 3x3 blocks consist of the nodal triad expressed on the global basis.
+    # The nodal basis vectors in the array `A_Es[i]` are expressed on the
+    # element basis, and are then rotated with `E_G` into the global coordinate
+    # system.
+
+    # Output
+    # - `T` = transformation matrix, input in the global basis, output in the
+    #   nodal basis
+    T .= 0.0
+    for i in 1:__nn
+        mul!(o.Tblock,  transpose(A_Es[i]), transpose(E_G))
+        offset = (i-1)*__ndof
+        r = offset+1:offset+3
+        @. T[r, r] = o.Tblock
+        r = offset+4:offset+6
+        @. T[r, r] = o.Tblock
+    end
+    return T
 end
 
 function _transfmat_g_to_a!(T, A_Es, E_G)
@@ -534,6 +613,8 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = Transformer(elmat)
+    _nodal_triads_e! = NodalTriadsE()
+    _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
@@ -558,12 +639,10 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
         # he = sqrt(2*Ae) # we avoid taking the square root here, replacing he^2 with 2*Ae
         if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
-            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
-            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
-            Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
+            for  o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
+                Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, o)
+                add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
+            end
         else
             _Bsmat!(Bs, ecoords_e, Ae)
             add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae, Dt, DtBs)
@@ -616,6 +695,8 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = Transformer(elmat)
+    _nodal_triads_e! = NodalTriadsE()
+    _transfmat_g_to_a! = TransfmatGToA()
     rho::FFlt = massdensity(self.material); # mass density
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
