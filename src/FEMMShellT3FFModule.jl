@@ -73,6 +73,18 @@ The following features are incorporated to deal with nodal normals:
 - A crease in the surface is take into account. In that case the normal are not
   averaged across the crease. At the nodes along the crease every element uses
   the normal to its surface instead of the nodal normal.
+
+Configuration:
+
+These attributes of the FEMM can be set after it's been created.
+- `transv_shear_formulation`: which formulation for the transverse shear stiffness? 
+    + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_B` - averaged strains
+    + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_K` - averaged stiffness
+- `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
+- `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
+  then this threshold, the nodal normal at that note is marked as invalid.
+- `mult_el_size`: multiplier of the square of the element size, used to control
+  transverse shear stiffness.
 """
 mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
@@ -544,17 +556,17 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
         _Bbmat!(Bb, gradN_e)
         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
-        he = sqrt(2*Ae)
+        # he = sqrt(2*Ae) # we avoid taking the square root here, replacing he^2 with 2*Ae
         if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
             Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
             Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
             Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae/3, Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
         else
             _Bsmat!(Bs, ecoords_e, Ae)
-            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
+            add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae, Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
@@ -773,7 +785,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             _Bsmat!(Bs, ecoords_e, Ae)
             he = sqrt(2*Ae)
             shr = Bs * edisp_e
-            frc = ((t^3/(t^2+mult_el_size*he^2)))*Dt * shr
+            frc = ((t^3/(t^2+mult_el_size*2*Ae)))*Dt * shr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end 
