@@ -1,14 +1,7 @@
 # Types
 
-```@autodocs
-Private = true
-Order = [:type]
-```
+Documentation of [types](types.html).
 
 # Functions
 
-
-```@autodocs
-Private = true
-Order = [:function]
-```
+Documentation of [functions](functions.html).
