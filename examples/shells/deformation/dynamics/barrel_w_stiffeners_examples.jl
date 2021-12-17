@@ -98,7 +98,7 @@ function _execute_model(formul, input, visualize = true)
     # Solve
     neigvs = 40
     tim = @elapsed begin
-        evals, evecs, convinfo = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+        evals, evecs, convinfo = eigs(Symmetric(K+OmegaShift*M), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
         # evals, evecs, convinfo = geneigsolve((K+OmegaShift*M, M), neigvs,  :SR, krylovdim = 80)
     end
     @show convinfo
