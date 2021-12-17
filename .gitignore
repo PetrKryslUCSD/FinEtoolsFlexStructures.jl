@@ -12,3 +12,4 @@
 docs/build/
 .vscode/
 *.bak
+Manifest.toml
