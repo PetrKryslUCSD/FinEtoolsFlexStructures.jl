@@ -31,8 +31,22 @@
 
 ## Examples
 
+The project was developed with Julia 1.6, and is operational with any version above that.
+
+Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
+as a result of cloning the repository.
+
+The project can be activated and initialized by
+```
+include("top.jl")
+```
+
 There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl).
 
 ## Visualization
 
 This is possible using [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`FinEtoolsFlexStructures.VisUtilModule`](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.VisUtilModule.jl).
+Animation of deformation during a static or dynamic simulation can be done with `PlotlyJS`.
+
+Export to  [Paraview](https://www.paraview.org/)  is also available. Only static pictures are supported this way.
+
