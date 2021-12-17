@@ -1,4 +1,4 @@
-# Pinched cylinder with diagphram supports and concentrated force
+
 module scordelis_lo_dsg3_verification
 
 using Test
@@ -89,16 +89,17 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    66.60559668780701,
-    85.57474282895569,
-    89.87150728557539,
-    92.52173091974855,
-    95.4225137166831, 
-    97.66243080996651
+    66.54771615057949,
+    85.54615143134853,              
+    89.85075281481419,
+    92.50616661644985,
+    95.40469210310079,
+    97.65376880486126
     ]
     for (n, res) in  zip([4, 8, 10, 12, 16, 24], results)
         v = _execute(n, false)
         @test isapprox(res, v, rtol = 1.0e-4)
+        # @show v
     end
     return true
 end
@@ -220,14 +221,15 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    96.32049617852304,
-    96.28654617911712,
-    97.22832838599399,
-    98.39267809570217,
+    91.7059961843231,
+    95.9355786538892,
+    97.19276899988246,
+    98.38896641657374
     ]
     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
         v = _execute("raasch_s4_" * m * ".inp", false)
         @test isapprox(res, v, rtol = 1.0e-4)
+        # @show v
     end
     return true
 end
@@ -305,8 +307,8 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
-    femm.mult_el_size = 0.2
-    femm.drilling_stiffness_scale = 1.0
+    # femm.mult_el_size = 0.2
+    # femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -349,41 +351,41 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     results = [
-    57.75018765506612, 
-    74.13862651110597, 
-    87.40098459192473,
-    95.4633643434613,                                                       
-    83.63588917033569,                                                    
-    91.39754527393814,                                                      
-    96.5922583423222,                                                       
-    98.66128847112462,                                                      
-    73.80761873503538,                                                      
-    86.67159157990508,                                                      
-    93.16799868490061,                                                      
-    96.51101392349429,                                                      
-    84.35366406235917,                                                      
-    89.08379145405587,                                                      
-    93.60828078721634,                                                      
-    96.64123677105148,   
+    39.709921740907355,
+    68.87306876326497,
+    86.01944734315117,
+    95.04101960524827,
+    53.10262177376127,
+    83.8593790803426,
+    94.91359387874728,  
+    98.21549248655576,
+    48.16757753755567,
+    79.43420077873479,
+    92.54464819755955,
+    96.85008269135751,
+    50.577029703967334,         
+    80.34160167730624,
+    92.48675665271801,
+    96.7096641005938,   
     ]
     for n in [2, 4, 8, 16, ]
         v = _execute(params_thicker_dir_2..., 2*n, n, false)
-        # @show v
+        # println(v, ",")
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = _execute(params_thicker_dir_3..., 2*n, n, false)
-        # @show v
+        # println(v, ",")
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = _execute(params_thinner_dir_2..., 2*n, n, false)
-        # @show v
+        # println(v, ",")
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     for n in [2, 4, 8, 16, ]
         v = _execute(params_thinner_dir_3..., 2*n, n, false)
-        # @show v
+        # println(v, ",")
         @test isapprox(v, popat!(results, 1), rtol = 1.0e-3)
     end
     return true
@@ -686,7 +688,7 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
     end
     # vtkwrite("$(input)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     test_results = [                          
-    (-13.784764125688811, 20.911098908931017),                          
+    (-13.784764125688811, 21.165312065421237),                          
     (-7.4216963152916255, 25.679801383392967)  
     ]
     scalars = []
