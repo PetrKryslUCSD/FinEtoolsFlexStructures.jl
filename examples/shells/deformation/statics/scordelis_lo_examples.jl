@@ -115,7 +115,7 @@ function _execute_model(n = 8, visualize = true)
     return true
 end
 
-function test_convergence(ns = [2, 4, 8, 16])
+function test_convergence(ns = [4, 8, 10, 12, 16, 24])
     @info "Scordelis-Lo shell"
     for n in ns
         _execute_model(n, false)
