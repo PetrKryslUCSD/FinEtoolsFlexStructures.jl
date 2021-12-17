@@ -169,23 +169,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
 end
 
 function isoparametric!(E_G::FFltMat, XYZ::FFltMat, J0::FFltMat, fe_label::FInt)
-    # This is the tangent to the coordinate curve 1
-    a = @view J0[:, 1]
-    L0 = norm(a);
-    E_G[:,1] = a/L0;
-    # This is the tangent to the coordinate curve 2
-    b = J0[:, 2]
-    #     E_G(:,3)=skewmat(E_G(:,1))*b;
-    b = @view J0[:, 2]
-    # Now compute the normal
-    E_G[:, 3] .= (-E_G[3,1]*b[2]+E_G[2,1]*b[3],
-                   E_G[3,1]*b[1]-E_G[1,1]*b[3],
-                  -E_G[2,1]*b[1]+E_G[1,1]*b[2]);
-    E_G[:, 3] /= norm(@view E_G[:, 3]);
-    #     E_G(:,2)=skewmat(E_G(:,3))*E_G(:,1);
-    E_G[:, 2] .= (-E_G[3,3]*E_G[2,1]+E_G[2,3]*E_G[3,1],
-                   E_G[3,3]*E_G[1,1]-E_G[1,3]*E_G[3,1],
-                  -E_G[2,3]*E_G[1,1]+E_G[1,3]*E_G[2,1]);
+    return _e_g!(E_G, J0)
     return E_G
 end
 
