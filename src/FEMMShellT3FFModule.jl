@@ -79,7 +79,7 @@ Configuration:
 
 These attributes of the FEMM can be set after it's been created.
 - `transv_shear_formulation`: which formulation for the transverse shear stiffness? 
-    + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_B` - averaged strains
+    + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_B` - averaged strains (default)
     + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_K` - averaged stiffness
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
@@ -156,6 +156,10 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
 
     return FEMMShellT3FF(integdomain, mcsys, 
         material, 
+        # transv_shear_formulation::FInt
+        # drilling_stiffness_scale::Float64
+        # threshold_angle::Float64
+        # mult_el_size::Float64
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
         false,
         _normals, _normal_valid,
@@ -170,7 +174,6 @@ end
 
 function isoparametric!(E_G::FFltMat, XYZ::FFltMat, J0::FFltMat, fe_label::FInt)
     return _e_g!(E_G, J0)
-    return E_G
 end
 
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
@@ -219,7 +222,7 @@ function _compute_J!(J0, ecoords)
 end
 
 function _e_g!(E_G, J0)
-    # This is the tangent to the coordinate curve 1
+    # J0[:, 1] is the tangent to the coordinate curve 1
     for j in 1:3
         E_G[j,1]  = J0[j, 1]
     end
@@ -227,7 +230,7 @@ function _e_g!(E_G, J0)
     for j in 1:3
         E_G[j,1]  /= n
     end
-    # This is the tangent to the coordinate curve 2
+    # J0[:, 2] is the tangent to the coordinate curve 2
     # Now compute the normal
     E_G[1, 3] = -E_G[3, 1]*J0[2, 2]+E_G[2, 1]*J0[3, 2]
     E_G[2, 3] =  E_G[3, 1]*J0[1, 2]-E_G[1, 1]*J0[3, 2]
