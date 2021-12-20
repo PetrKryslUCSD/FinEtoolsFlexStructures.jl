@@ -7,16 +7,13 @@ using FinEtools
 using ..FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam
 using ..FinEtoolsFlexStructures.FESetCorotBeamModule: cat
 
-# Mesh of a generally curved beam member given by the location of the
-# vertices of the spline curve.
-#
-# function [fens,fes] = Beam_member(xyz,nL,constructor,Parameters)
-#
-# xyz = M rows, one vertex location per row;
-# nL = Divided into this many elements
-# constructor=constructor of the finite element set, default @fe_set_beam3
-# Parameters= see fe_set_beam3
-# 
+
+"""
+    frame_member(xyz, nL, crosssection; label = 0)
+
+Mesh of a generally curved beam member given by the location of the
+vertices of the spline curve.
+"""
 function frame_member(xyz, nL, crosssection; label = 0)
     npts = size(xyz,1);
     s = fill(0.0, npts);
@@ -76,6 +73,13 @@ function frame_member(xyz, nL, crosssection; label = 0)
     return fens, fes
 end
 
+"""
+    fuse_members(members; tolerance = 0.001)
+
+Fuse members by merging the meshes for the members.
+
+Computes an array of meshes.
+"""
 function fuse_members(members; tolerance = 0.001)
     Meshes = Array{Tuple{FENodeSet, AbstractFESet},1}()
     for m in members
@@ -84,6 +88,14 @@ function fuse_members(members; tolerance = 0.001)
     return mergenmeshes(Meshes, tolerance);
 end
 
+"""
+    merge_members(members; tolerance = 0.001)
+
+Merge together meshes of the members.
+
+Uses `fuse_members` to merge the nodes, then concatenates the
+finite elements.
+"""
 function merge_members(members; tolerance = 0.001)
     fens, allfes = fuse_members(members; tolerance = tolerance)
     fes = allfes[1]

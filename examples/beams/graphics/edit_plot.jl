@@ -2,7 +2,7 @@ using FinEtools
 using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionCircle, CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
-using FinEtoolsFlexStructures.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d, plot_from_json
+using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d, plot_from_json
 using PlotlyJS
 using JSON
 

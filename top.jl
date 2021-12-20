@@ -1,4 +1,5 @@
 # FinEtoolsFlexStructures
-using Pkg; Pkg.activate("."); Pkg.instantiate(); using Revise
-using FinEtoolsFlexStructures
-@info "FinEtoolsFlexStructures ready"
+using Pkg; Pkg.activate("./Examples"); Pkg.instantiate(); using Revise
+# using FinEtoolsFlexStructures
+@info "FinEtoolsFlexStructures Examples ready"
+

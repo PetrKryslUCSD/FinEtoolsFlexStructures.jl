@@ -82,7 +82,7 @@ Order = [:function]
 ## VisUtilModule functions
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.VisUtilModule]
+Modules = [Examples.VisUtilModule]
 Private = true
 Order = [:function]
 ```

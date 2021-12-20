@@ -15,9 +15,6 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using FinEtoolsFlexStructures.VisUtilModule: plot_points, plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio
-using PlotlyJS
-using JSON
 using Test
 function test()
     # Parameters:

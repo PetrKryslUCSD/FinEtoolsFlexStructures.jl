@@ -5,7 +5,6 @@ __precompile__(true)
 using FinEtools
 
 include("RotUtilModule.jl")
-include("VisUtilModule.jl")
 include("TransformerModule.jl")
 
 include("CrossSectionModule.jl")
