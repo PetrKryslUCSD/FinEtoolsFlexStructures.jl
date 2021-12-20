@@ -174,4 +174,8 @@ function allrun()
     return true
 end # function allrun
 
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
 end # module
+nothing
