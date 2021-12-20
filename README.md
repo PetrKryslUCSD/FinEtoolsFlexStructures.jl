@@ -29,6 +29,16 @@
 - 02/20/2020: Beams: Nonlinear transient dynamic analysis implemented.
 - 02/16/2020: Beams: Buckling analysis implemented.
 
+## Testing
+
+Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
+as a result of cloning the repository.
+The present package can be tested with
+```
+using Pkg; Pkg.activate("."); Pkg.instantiate(); 
+using Pkg; Pkg.test(); 
+```
+
 ## Examples
 
 The project was developed with Julia 1.6, and is operational with any version above that.
@@ -36,16 +46,23 @@ The project was developed with Julia 1.6, and is operational with any version ab
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
 as a result of cloning the repository.
 
-The project can be activated and initialized by
+The project needed for running examples can be activated and initialized by
 ```
-include("top.jl")
+using Pkg; Pkg.activate("./Examples"); Pkg.instantiate(); using Revise
 ```
 
-There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl).
+There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl). As an example:
+```
+julia> include(".\\Examples\\shells\\dynamics\\dcbs_vibration_examples.jl")                                                        
+WARNING: replacing module dbcs_vibration_examples.                                              
+Main.dbcs_vibration_examples  
+                                                                                                
+julia> dbcs_vibration_examples.allrun() 
+```
 
 ## Visualization
 
-This is possible using [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`FinEtoolsFlexStructures.VisUtilModule`](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.VisUtilModule.jl).
+This is possible using [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`Examples`](https://github.com/PetrKryslUCSD/Examples.VisUtilModule.jl) (module `VisUtilModule`).
 Animation of deformation during a static or dynamic simulation can be done with `PlotlyJS`.
 
 Export to  [Paraview](https://www.paraview.org/)  is also available. Only static pictures are supported this way.
