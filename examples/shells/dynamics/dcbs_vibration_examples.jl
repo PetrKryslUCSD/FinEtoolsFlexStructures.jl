@@ -113,10 +113,13 @@ end
 
 function allrun()
     println("#####################################################")
-    println("#  test_convergence ")
-     test_convergence()
+    println("# test_convergence ")
+    test_convergence()
     return true
 end # function allrun
 
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
 
 end # module
+nothing

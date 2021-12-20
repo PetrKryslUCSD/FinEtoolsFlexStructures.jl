@@ -21,10 +21,8 @@ module FV52_vibration_examples
 using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
@@ -112,16 +110,24 @@ end
 
 
 function test_convergence()
-    formul = FEMMShellT3DSGModule
+    formul = FEMMShellT3FFModule
     @info "FV12 free vibration, formulation=$(formul)"
+    @info "(out of plane only): 45.897  109.44  109.44  167.89  "
     for n in [2, 4, 8, 16, 32, 64]
         _execute_dsg_model(formul, n, false)
     end
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .FV52_vibration_examples
-m = FV52_vibration_examples
-m.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing
