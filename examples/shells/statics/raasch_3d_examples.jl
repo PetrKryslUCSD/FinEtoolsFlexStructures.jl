@@ -22,8 +22,8 @@ using LinearAlgebra, Statistics
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using FinEtools.AlgoBaseModule: richextrapol
 
-using Infiltrator
 
 function _execute(visualize = true, nL = 9, nW = 1, nT = 4)
     E = 3300.0;
@@ -112,11 +112,25 @@ function test_convergence()
     return 1 ./ ns, results
 end
 
-end # module
+function extrapolate()
+    hs, results = test_convergence()
+    q1, q2, q3 = results
+    @show (q2^2-q1*q3)/(2*q2-q1-q3)
+    @show richextrapol(results, hs)
+end
 
-using FinEtools.AlgoBaseModule: richextrapol
-using .raasch_3d_examples
-hs, results = raasch_3d_examples.test_convergence()
-q1, q2, q3 = results
-@show (q2^2-q1*q3)/(2*q2-q1-q3)
-@show richextrapol(results, hs)
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    println("#####################################################")
+    println("# extrapolate ")
+    extrapolate()
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

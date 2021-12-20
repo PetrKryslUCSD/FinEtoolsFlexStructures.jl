@@ -161,7 +161,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     result
 end
 
-function test_convergence(ns = [4, 6, 8, 16, 32], visualize = false)
+function test_convergence(ns = [16, 32], visualize = true)
     formul = FEMMShellT3FFModule
     @info "Scordelis-Lo shell"
     results = []
@@ -172,9 +172,15 @@ function test_convergence(ns = [4, 6, 8, 16, 32], visualize = false)
     return ns, results
 end
 
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
 end # module
-
-using .scordelis_lo_examples
-
-# Visualized internal resultants
-ns, results = scordelis_lo_examples.test_convergence([2*16,], true)
+nothing

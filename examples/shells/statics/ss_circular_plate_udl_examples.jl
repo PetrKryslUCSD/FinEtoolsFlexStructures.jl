@@ -10,7 +10,7 @@ using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-using Infiltrator
+
 
 function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visualize = true)
     E = 200*phun("GPa");
@@ -119,8 +119,15 @@ function test_convergence()
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .ss_circular_plate_udl_examples
-m = ss_circular_plate_udl_examples
-m.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

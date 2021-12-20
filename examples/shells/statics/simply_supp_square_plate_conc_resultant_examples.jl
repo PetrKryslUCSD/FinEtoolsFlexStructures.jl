@@ -20,7 +20,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     analyt_sol=-0.0168e3;
 
     tolerance = L/n/1000
-    @show fens, fes = T3block(L/2,L/2,n,n);
+    fens, fes = T3block(L/2,L/2,n,n);
     fens.xyz = xyz3(fens)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -116,8 +116,15 @@ function test_convergence()
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .simply_supp_square_plate_conc_resultant_examples
-m = simply_supp_square_plate_conc_resultant_examples
-m.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

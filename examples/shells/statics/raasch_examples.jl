@@ -28,7 +28,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotat
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-using Infiltrator
+
 
 function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1)
     E = 3300.0;
@@ -210,7 +210,7 @@ function test_dep_drilling_stiffness_scale()
         results = Float64[]
         # for m in ["1x9", "3x18", "5x36", "10x72", "20x144"]
             # v = _execute("raasch_s4_" * m * ".inp", drilling_stiffness_scale, false)
-        for n in 1:9
+        for n in 1:7
             v = _execute("", drilling_stiffness_scale, false, 9*2^(n-1), 1*2^(n-1))
                     push!(results, v)
         end
@@ -219,7 +219,18 @@ function test_dep_drilling_stiffness_scale()
     return all_drilling_stiffness_scale, all_results
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    println("#####################################################")
+    println("# test_dep_drilling_stiffness_scale ")
+    test_dep_drilling_stiffness_scale()
+    return true
+end # function allrun
 
-using .raasch_examples
-raasch_examples.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

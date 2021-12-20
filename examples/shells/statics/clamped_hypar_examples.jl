@@ -148,7 +148,15 @@ end
 # results = [1.251888013432877, 1.0155533090845452, 0.9678060658415124, 0.9718188010061173, 0.9812934066246979, 0.9889499817887738, 0.9953521405300628] 
 # @gp :- ns results "with lp"
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .clamped_hypar_examples
-clamped_hypar_examples.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

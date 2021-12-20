@@ -125,30 +125,15 @@ function test_convergence()
     return true
 end
 
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
 end # module
-
-using .pinched_cylinder_examples
-pinched_cylinder_examples.test_convergence()
-
-# [ Info: Mesh: 4 elements per side                                          
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (4, [41.55321964302738])    
-# [ Info: Mesh: 8 elements per side                                          
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (8, [76.87858207030617])    
-# [ Info: Mesh: 12 elements per side                                         
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (12, [87.73634899399313])   
-# [ Info: Mesh: 16 elements per side                                         
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (16, [92.41804796585181])   
-# [ Info: Mesh: 24 elements per side                                         
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (24, [96.49232304717079])   
-# [ Info: Mesh: 48 elements per side                                         
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (48, [99.6766661386644])    
-# [ Info: Mesh: 96 elements per side                                         
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (96, [100.81626349991888])  
-# [ Info: Mesh: 128 elements per side                                        
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (128, [101.05826709146844]) 
-# [ Info: Mesh: 256 elements per side                                        
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (256, [101.43102704824867]) 
-# [ Info: Mesh: 400 elements per side                                        
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (400, [101.6018373070541])  
-# [ Info: Mesh: 600 elements per side                                        
-# (n, (dchi.values[nl, 3] / analyt_sol) * 100) = (600, [101.73923429243655]) 
+nothing

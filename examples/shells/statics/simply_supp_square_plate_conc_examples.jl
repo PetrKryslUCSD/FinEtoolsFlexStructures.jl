@@ -107,8 +107,15 @@ function test_convergence()
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .simply_supp_square_plate_conc_examples
-m = simply_supp_square_plate_conc_examples
-m.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

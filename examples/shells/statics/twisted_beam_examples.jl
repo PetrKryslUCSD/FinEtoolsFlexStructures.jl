@@ -137,8 +137,15 @@ function test_convergence()
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .twisted_beam_examples
-twisted_beam_examples.test_convergence()
-# twisted_beam_examples.test_convergence(FEMMShellT3DSGMTModule)
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

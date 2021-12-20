@@ -159,7 +159,7 @@ function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
     return strainenergy
 end
 
-function test_convergence(formul, thickness = R/100)
+function test_convergence(formul = FEMMShellT3FFModule, thickness = R/100)
     @info "Pressurized Cylindrical shell, fixed ends, formulation=$(formul)"
     for n in [8, 16, 32, 64, 128]
         _execute_dsg_model(formul, n, thickness, false)
@@ -167,8 +167,15 @@ function test_convergence(formul, thickness = R/100)
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .cos_2t_press_cylinder_fixed_examples
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
-cos_2t_press_cylinder_fixed_examples.test_convergence(FEMMShellT3FFModule)
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

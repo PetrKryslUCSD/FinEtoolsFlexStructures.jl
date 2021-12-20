@@ -5,13 +5,12 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-using Infiltrator
+
 
 function cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
     n = cross(tangents[:, 1], tangents[:, 2]) 
@@ -142,7 +141,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     return true
 end
 
-function test_convergence(formul)
+function test_convergence(formul = FEMMShellT3FFModule)
     @info "Pressurized Cylindrical shell, formulation=$(formul)"
     for n in [100, ]
         _execute_dsg_model(formul, n, false)
@@ -150,8 +149,16 @@ function test_convergence(formul)
     return true
 end
 
-end # module
 
-using .pressurized_cylinder_free_examples
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
-pressurized_cylinder_free_examples.test_convergence(FEMMShellT3FFModule)
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing

@@ -1,4 +1,4 @@
-# Simply supported square plate with center concentrated load
+# Simply supported rectangular plate with center concentrated load
 module simply_supp_rect_plate_conc_resultant_examples
 
 using FinEtools
@@ -119,17 +119,25 @@ end
 
 function test_convergence()
     formul = FEMMShellT3FFModule
-    @info "Simply supported square plated with concentrated force,"
+    @info "Simply supported rectangular plated with concentrated force,"
     @info " formulation=$(formul)"
-
+@warn "Analytical solution needs to be provided: not right at the moment"
     for n in [10, ]
         _execute_dsg_model(formul, n, true)
     end
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .simply_supp_rect_plate_conc_resultant_examples
-m = simply_supp_rect_plate_conc_resultant_examples
-m.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing
+

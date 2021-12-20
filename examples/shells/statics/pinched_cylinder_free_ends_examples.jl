@@ -11,7 +11,7 @@ module pinched_cylinder_free_ends_examples
 
 using FinEtools
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
@@ -119,7 +119,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     return true
 end
 
-function test_convergence(formul)
+function test_convergence(formul = FEMMShellT3FFModule)
     @info "Pinched cylinder, formulation=$(formul)"
     for n in [2, 4, 8, 16, 32] # 3:64 #
         _execute_dsg_model(formul, n, false)
@@ -127,8 +127,16 @@ function test_convergence(formul)
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .pinched_cylinder_free_ends_examples
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
-pinched_cylinder_free_ends_examples.test_convergence(FEMMShellT3FFModule)
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing
+

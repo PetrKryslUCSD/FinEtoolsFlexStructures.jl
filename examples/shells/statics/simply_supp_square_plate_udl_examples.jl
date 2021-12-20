@@ -10,7 +10,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotat
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-using Infiltrator
+
 
 function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
@@ -279,19 +279,26 @@ function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001])
     formul = FEMMShellT3FFModule
     @info "Simply supported square plate with uniform load,"
     for n in [8]
-       for tL_ratio in tL_ratios
-        @info "thickness/length = $tL_ratio formulation=$(formul)"
-        _execute_full_model(formul, n, tL_ratio, false)
+        for tL_ratio in tL_ratios
+            @info "thickness/length = $tL_ratio formulation=$(formul)"
+            _execute_full_model(formul, n, tL_ratio, false)
+        end
     end
-end
     return true
 end
 
+function allrun()
+    println("#####################################################")
+    println("# test_convergence_full ")
+    test_convergence_full()
+    println("#####################################################")
+    println("# test_convergence_full_thickness ")
+    test_convergence_full_thickness()
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
 end # module
-
-using .simply_supp_square_plate_udl_examples
-m = simply_supp_square_plate_udl_examples
-m.test_convergence_quarter()
-m.test_convergence_full()
-m.test_convergence_full_thickness()
-
+nothing

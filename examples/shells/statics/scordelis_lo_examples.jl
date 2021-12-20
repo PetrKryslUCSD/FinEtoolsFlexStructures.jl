@@ -27,7 +27,7 @@ using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-using Infiltrator
+
 
 function _execute_model(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
@@ -123,10 +123,18 @@ function test_convergence(ns = [4, 8, 10, 12, 16, 24])
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .scordelis_lo_examples
-scordelis_lo_examples.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing
 
 # ns = [2, 4, 8]
 # [ Info: Solution for 54 dofs: 73.982%                    
