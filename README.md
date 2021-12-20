@@ -19,6 +19,7 @@
 
 ## News
 
+- 12/20/2021: Reorganized examples into a project.
 - 12/14/2021: The shell element T3FF fully tested, and described in a paper (to be submitted).
 - 08/18/2021: Implemented fully linear statics and dynamics of shells using the DSG triangle with various improvements. Robust and accurate element.
 - 05/23/2021: Updated for Julia 1.6.
@@ -53,11 +54,29 @@ using Pkg; Pkg.activate("./Examples"); Pkg.instantiate(); using Revise
 
 There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl). As an example:
 ```
-julia> include(".\\Examples\\shells\\dynamics\\dcbs_vibration_examples.jl")                                                        
-WARNING: replacing module dbcs_vibration_examples.                                              
-Main.dbcs_vibration_examples  
-                                                                                                
-julia> dbcs_vibration_examples.allrun() 
+julia> include(".\\examples\\shells\\dynamics\\dcbs_vibration_examples.jl")                                                              
+WARNING: replacing module dbcs_vibration_examples.                                                                                                                                                    
+[ Info: All examples may be executed with                                                                                                                                                             
+using .Main.dbcs_vibration_examples; Main.dbcs_vibration_examples.allrun()                                                                                                                            
+                                                                                                                                                                                                      
+julia> using .Main.dbcs_vibration_examples; Main.dbcs_vibration_examples.allrun()                                                                                                                     
+                                                                                                                                                                                                      
+#####################################################                                                                                                                                                 
+# test_convergence                                                                                                                                                                                    
+[ Info: FV12 free vibration, formulation=FinEtoolsFlexStructures.FEMMShellT3FFModule                                                                                                                  
+[ Info: Mesh: 1 elements per side                                                                                                                                                                     
+count(fens) = 143                                                                                                                                                                                     
+fs = [21.613635088738015, 29.23401281588026, 30.925491823018966, 34.36778956332975]                                                                                                                   
+[ Info: Mesh: 2 elements per side                                                                                                                                                                     
+count(fens) = 567                                                                                                                                                                                     
+fs = [20.569847475978634, 26.277349178877216, 30.027181006351178, 30.68607366768112]                                                                                                                  
+[ Info: Mesh: 3 elements per side                                                                                                                                                                     
+count(fens) = 2255                                                                                                                                                                                    
+fs = [20.350441226155656, 25.67267626791537, 29.124064583761363, 30.620439988286456]                                                                                                                  
+[ Info: Mesh: 4 elements per side                                                                                                                                                                     
+count(fens) = 8991                                                                                                                                                                                    
+fs = [20.301524870325565, 25.533290848730623, 28.914284995255777, 30.620822302876647]                                                                                                                 
+true      
 ```
 
 ## Visualization
