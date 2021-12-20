@@ -7,11 +7,8 @@ using LinearAlgebra
 using Arpack
 using FinEtools
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3, local_frame!
-using FinEtoolsFlexStructures.FEMMShellT3DSGOModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGICModule
-using FinEtoolsFlexStructures.FEMMShellT3DSGModule
-using FinEtoolsFlexStructures.FEMMShellCSDSG3Module
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 
@@ -36,8 +33,7 @@ function standard_single_dsg3()
 
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
-    formul = FEMMShellCSDSG3Module
-    formul = FEMMShellT3DSGModule
+    formul = FEMMShellT3FFModule
 
     # @show Bb[:, [4, 5, 10, 11, 16, 17]]
     # @show Bs[:, [4, 5, 10, 11, 16, 17]]
@@ -226,12 +222,13 @@ end
 
 function allrun()
     println("#####################################################")
-    println("# single_dsg3 ")
-    single_dsg3()
+    println("# standard_single_dsg3 ")
+    standard_single_dsg3()
     return true
 end # function allrun
 
-end # module
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
 
-using .single_element_examples
-single_element_examples.distorted_single_dsg3()
+end # module
+nothing

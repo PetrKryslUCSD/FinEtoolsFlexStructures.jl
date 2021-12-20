@@ -22,7 +22,6 @@ using LinearAlgebra
 using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
 using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
@@ -173,7 +172,15 @@ function test_convergence()
     return true
 end
 
-end # module
+function allrun()
+    println("#####################################################")
+    println("# test_convergence ")
+    test_convergence()
+    return true
+end # function allrun
 
-using .barrel_vault_examples
-barrel_vault_examples.test_convergence()
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
+nothing
