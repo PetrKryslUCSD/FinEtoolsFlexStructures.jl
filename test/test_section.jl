@@ -66,7 +66,7 @@ end
 using .mcrosssection2
 mcrosssection2.test()
 
-module mcrosssection2y
+module mcrosssection3y
 using FinEtools
 using FinEtoolsFlexStructures.CrossSectionModule
 using Test
@@ -80,8 +80,8 @@ function test()
     true
 end
 end
-using .mcrosssection2y
-mcrosssection2y.test()
+using .mcrosssection3y
+mcrosssection3y.test()
 
 module mcrosssection3
 using FinEtools
