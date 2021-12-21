@@ -1,7 +1,7 @@
 name = "FinEtoolsFlexStructures"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
 authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
-version = "0.3.1"
+version = "1.0.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
@@ -24,4 +24,4 @@ FinEtools = "^5"
 FinEtoolsDeforLinear = "^1"
 Revise = "^3"
 SymRCM = "^0.2"
-julia = "~1.6"
+julia = "^1.6"
