@@ -7,7 +7,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 function _execute(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
@@ -131,7 +131,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     E = 3300.0;
@@ -271,7 +271,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 params_thicker_dir_3 = (t =  0.32, force = 1.0, dir = 3, uex = 0.005424534868469); 
 params_thicker_dir_2 = (t =  0.32, force = 1.0, dir = 2, uex = 0.001753248285256); 
@@ -414,7 +414,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 
 function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
@@ -545,7 +545,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)

@@ -15,7 +15,7 @@ mass = FEMMCorotBeamModule.mass
 distribloads_global = FEMMCorotBeamModule.distribloads_global
 restoringforce = FEMMCorotBeamModule.restoringforce
 gyroscopic = FEMMCorotBeamModule.gyroscopic
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra

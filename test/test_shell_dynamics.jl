@@ -21,7 +21,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 function _execute(n = 8, visualize = true)
     E = 200e3*phun("MPa")

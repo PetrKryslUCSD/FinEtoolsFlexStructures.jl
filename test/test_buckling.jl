@@ -8,7 +8,7 @@ using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
 stiffness = FEMMCorotBeamModule.stiffness
 mass = FEMMCorotBeamModule.mass
 geostiffness = FEMMCorotBeamModule.geostiffness
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, linear_update_rotation_field!, update_rotation_field!
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra

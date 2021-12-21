@@ -36,24 +36,24 @@ function update_rotation_field!(Rfield, dchi)
     return Rfield
 end
 
-"""
-    linear_update_rotation_field!(Rfield, dchi)
+# """
+#     linear_update_rotation_field!(Rfield, dchi)
 
-Update rotation field by linear incremental rotation. 
-"""
-function linear_update_rotation_field!(Rfield, dchi)
-    Rs = Rfield.values; 
-    Adelta = dchi.values[:, 4:6]; 
-    R = fill(0.0, 3, 3)
-    Sdelta = fill(0.0, 3, 3)
-    Rupdated = fill(0.0, 3, 3)
-    for i in 1:size(Rs,1)
-        R[:] .= @view Rs[i, :];
-        skewmat!(Sdelta, @view Adelta[i,:])
-        mul!(Rupdated, Sdelta, R)
-        Rs[i,:] .= @view Rupdated[:];
-    end 
-    return Rfield
-end
+# Update rotation field by linear incremental rotation. 
+# """
+# function linear_update_rotation_field!(Rfield, dchi)
+#     Rs = Rfield.values; 
+#     Adelta = dchi.values[:, 4:6]; 
+#     R = fill(0.0, 3, 3)
+#     Sdelta = fill(0.0, 3, 3)
+#     Rupdated = fill(0.0, 3, 3)
+#     for i in 1:size(Rs,1)
+#         R[:] .= @view Rs[i, :];
+#         skewmat!(Sdelta, @view Adelta[i,:])
+#         mul!(Rupdated, Sdelta, R)
+#         Rs[i,:] .= @view Rupdated[:];
+#     end 
+#     return Rfield
+# end
 
 end # module
