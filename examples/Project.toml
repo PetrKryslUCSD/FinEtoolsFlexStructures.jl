@@ -12,6 +12,7 @@ FinEtoolsFlexStructures = "723391e6-6814-4d1d-921c-018f691214d8"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 
 [compat]
 Arpack = "^0.5"
