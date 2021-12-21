@@ -18,8 +18,10 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Arpack = "^0.5"
+DataDrop = "^0.1"
 Dierckx = "^0.5"
 FinEtools = "^5"
 FinEtoolsDeforLinear = "^1"
+Revise = "^3"
 SymRCM = "^0.2"
 julia = "~1.6"
