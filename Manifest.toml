@@ -87,24 +87,6 @@ git-tree-sha1 = "ded953804d019afa9a3f98981d99b33e3db7b6da"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.7.0"
 
-[[ColorSchemes]]
-deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random"]
-git-tree-sha1 = "a851fec56cb73cfdf43762999ec72eff5b86882a"
-uuid = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
-version = "3.15.0"
-
-[[ColorTypes]]
-deps = ["FixedPointNumbers", "Random"]
-git-tree-sha1 = "024fe24d83e4a5bf5fc80501a314ce0d1aa35597"
-uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
-version = "0.11.0"
-
-[[Colors]]
-deps = ["ColorTypes", "FixedPointNumbers", "Reexport"]
-git-tree-sha1 = "417b0ed7b8b838aa6ca0a87aadf1bb9eb111ce40"
-uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
-version = "0.12.8"
-
 [[CommonSubexpressions]]
 deps = ["MacroTools", "Test"]
 git-tree-sha1 = "7b8a93dba8af7e3b42fecabf646260105ac373f7"
@@ -205,23 +187,11 @@ git-tree-sha1 = "ede27371f8b9f299a6053f5c8386870a29d8f9c0"
 uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
 version = "1.2.1"
 
-[[FixedPointNumbers]]
-deps = ["Statistics"]
-git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
-uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
-version = "0.8.4"
-
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "LogExpFunctions", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions", "StaticArrays"]
 git-tree-sha1 = "2b72a5624e289ee18256111657663721d59c143e"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.24"
-
-[[Gnuplot]]
-deps = ["ColorSchemes", "ColorTypes", "Colors", "DataStructures", "REPL", "ReplMaker", "StatsBase", "StructC14N", "Test"]
-git-tree-sha1 = "637ee67f78c4adb222ee11c590bd1d0a1a50ba88"
-uuid = "dc211083-a33a-5b79-959f-2ff34033469d"
-version = "1.4.0"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
@@ -257,12 +227,6 @@ version = "2.5.0+0"
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
-
-[[Infiltrator]]
-deps = ["REPL"]
-git-tree-sha1 = "1bbcd4d9df8fffda7bfaa1660477d29d4c435c6c"
-uuid = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
-version = "1.1.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -469,17 +433,6 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
-[[Reexport]]
-git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
-uuid = "189a3867-3050-52da-a836-e630ba90ab69"
-version = "1.2.2"
-
-[[ReplMaker]]
-deps = ["REPL", "Unicode"]
-git-tree-sha1 = "76098218397ec93b925b70ce355144d539b1a8b4"
-uuid = "b873ce64-0db9-51f5-a568-4457d8e49576"
-version = "0.2.5"
-
 [[Requires]]
 deps = ["UUIDs"]
 git-tree-sha1 = "8f82019e525f4d5c669692772a6f4b0a58b06a6a"
@@ -564,12 +517,6 @@ deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missin
 git-tree-sha1 = "2bb0cb32026a66037360606510fca5984ccc6b75"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.33.13"
-
-[[StructC14N]]
-deps = ["Test"]
-git-tree-sha1 = "932b930747486efdc5f78297480c311d58374d04"
-uuid = "d2514e9c-36c4-5b8e-97e2-51e7675c221c"
-version = "0.3.0"
 
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]

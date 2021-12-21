@@ -12,7 +12,6 @@ using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, a
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: Transformer
 
-using Infiltrator
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
