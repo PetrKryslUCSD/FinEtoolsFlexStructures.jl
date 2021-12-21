@@ -20,7 +20,7 @@
 ## News
 
 - 12/20/2021: Reorganized examples into a project.
-- 12/14/2021: The shell element T3FF fully tested, and described in a paper (to be submitted).
+- 12/14/2021: The shell element T3FF fully tested, and described in a paper (submitted).
 - 08/18/2021: Implemented fully linear statics and dynamics of shells using the DSG triangle with various improvements. Robust and accurate element.
 - 05/23/2021: Updated for Julia 1.6.
 - 08/23/2020: Added a separate tutorial package, [FinEtoolsFlexStructuresTutorials.jl](https://petrkryslucsd.github.io/FinEtoolsFlexStructuresTutorials.jl)).
