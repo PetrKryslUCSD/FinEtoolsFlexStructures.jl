@@ -27,7 +27,8 @@ function tippling_1()
     magn_scale = 10000
     neigvs = 4;
 
-    # Reference frequencies
+    # Reference buckling factors: note that there are pairs, positive and
+    # negative. This is due to the symmetry of the problem.
     reffs = [48.5475, 124.1839]
 
     # Cross-sectional properties

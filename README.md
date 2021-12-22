@@ -78,6 +78,8 @@ count(fens) = 8991
 fs = [20.301524870325565, 25.533290848730623, 28.914284995255777, 30.620822302876647]                                                                                                                 
 true      
 ```
+There is usually some indication of what the correct answer should be in 
+the document string of the module: refer to the file defining the examples.
 
 ## Visualization
 
