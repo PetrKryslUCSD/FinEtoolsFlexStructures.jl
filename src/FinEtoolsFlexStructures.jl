@@ -8,6 +8,7 @@ include("RotUtilModule.jl")
 include("TransformerModule.jl")
 
 include("CrossSectionModule.jl")
+include("CompositeLayupModule.jl")
 
 include("FESetCorotBeamModule.jl")
 include("FESetShellQ4Module.jl")
