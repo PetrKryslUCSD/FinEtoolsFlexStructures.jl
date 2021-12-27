@@ -130,7 +130,7 @@ function test_convergence()
     input = "barrel_w_stiffeners-s3.h5mesh"
     formul = FEMMShellT3FFModule
     @info "Barrel With Stiffeners, free vibration, formulation=$(formul)"
-    _execute_model(formul, input, true)
+    @time _execute_model(formul, input, true)
     return true
 end
 
