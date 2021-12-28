@@ -10,7 +10,7 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: Transformer
+using ..TransformerModule: QTEQTransformer
 
 
 const __nn = 3 # number of nodes
@@ -627,7 +627,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = Transformer(elmat)
+    transformwith = QTEQTransformer(elmat)
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
@@ -709,7 +709,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = Transformer(elmat)
+    transformwith = QTEQTransformer(elmat)
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     rho::FFlt = massdensity(self.material); # mass density
@@ -805,7 +805,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = Transformer(elmat)
+    transformwith = QTEQTransformer(elmat)
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
@@ -907,7 +907,7 @@ end
 #     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
 #     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
 #     elmat = self._elmat
-#     transformwith = Transformer(elmat)
+#     transformwith = QTEQTransformer(elmat)
 #     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
 #     Dps, Dt = _shell_material_stiffness(self.material)
 #     scf = 5/6;  # shear correction factor

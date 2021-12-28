@@ -20,3 +20,6 @@ end
 @time @testset "Shell dynamics" begin
     include("test_shell_dynamics.jl")
 end
+@time @testset "Composite Layup" begin
+    include("test_composite_layup.jl")
+end
