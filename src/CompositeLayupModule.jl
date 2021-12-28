@@ -113,4 +113,26 @@ function  plane_stress_T_matrix_eng!(::Type{DeforModelRed2DStress}, Tm::Array{T,
     return Tm
 end
 
+"""
+    plane_stress_Tinv_matrix!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+
+Compute the transformation matrix between strain engineering components on the
+ply coordinate system into the layout coordinate system.
+
+`angle` = angle between the first basis vector of the layup coordinate system
+    and the first basis vector of the ply coordinate system
+
+The matrix of transformation is `Tme = R \\ Tm * R`, where `Tm`
+is the transformation matrix in tensor components, and `R` is the Reuter matrix,
+`R = [1 0 0; 0 1 0; 0 0 2]`.
+"""
+function  plane_stress_Tinv_matrix_eng!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+    m=cos(angle); 
+    n=sin(angle); 
+    Tinvm[1, 1] = (m^2); Tinvm[1, 2] = (n^2);  Tinvm[1, 3] = (-m*n)
+    Tinvm[2, 1] = (n^2); Tinvm[2, 2] = (m^2);  Tinvm[2, 3] = (m*n)
+    Tinvm[3, 1] = (2*m*n); Tinvm[3, 2] = (-2*m*n); Tinvm[3, 3] = (m*m-n*n)
+    return Tinvm
+end
+
 end # module
