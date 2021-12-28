@@ -323,3 +323,44 @@ end
 end
 using .mlayup12
 mlayup12.test()
+
+module mlayup13
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test()
+    CM = CompositeLayupModule
+    # From Barbero's Introduction ... book Example 5.7
+    E1 = 67192*phun("MPa")
+    E2 = 12139*phun("MPa")
+    G12 = 7638*phun("MPa")
+    nu12 = 0.365;
+    rho= 8000*phun("KG/M^3");
+    thickness = 1.0*phun("m");
+    CM = CompositeLayupModule
+    mater = CM.lamina_material(E1, E2, nu12, G12, G12, G12)
+    A = fill(0.0, 3, 3)
+    B = fill(0.0, 3, 3)
+    C = fill(0.0, 3, 3)
+    
+    for angle in [45]
+        ply1 = CM.Ply("ply1", mater, thickness, angle)
+        # @show ply1._Dps./phun("MPa")
+        @test norm(ply1._Dps./phun("MPa") - [68849.10243290635 4540.006665496835 0.0; 
+                                                4540.006665496834 12438.374426018723 0.0; 
+                                                0.0 0.0 7637.999999999999]) < 1.0e-15 * E2
+        cl = CM.CompositeLayup("sample", [ply1, ])
+        @test cl.plies[1].angle == angle
+        A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
+        # @show A./phun("MPa")
+        @test norm(A ./ phun("MPa") - [30229.872547479692 14953.872547479687 14102.68200172191;
+                                       14953.872547479687 30229.872547479685 14102.682001721907; 
+                                       14102.682001721909 14102.682001721909 18051.865881982852]) < 1.0e-15 * E2
+    end
+    true
+end
+end
+using .mlayup13
+mlayup13.test()

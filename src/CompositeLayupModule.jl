@@ -3,6 +3,7 @@ module CompositeLayupModule
 using FinEtools
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
+using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.TransformerModule: QEQTTransformer
 
 abstract type AbstractPly end
@@ -42,6 +43,11 @@ function Ply(name, material::M, thickness, angle) where {M}
     end
     
     return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
+end
+
+function lamina_material(E1, E2, nu12, G12, G13, G23)
+    rho = 0.0
+    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, 0.0, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
 end
 
 struct CompositeLayup
