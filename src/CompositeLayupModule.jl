@@ -3,11 +3,11 @@ module CompositeLayupModule
 using FinEtools
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
-using FinEtoolsDeforLinear.DeforModelRedModule: DeforModelRed2DStress
+using FinEtoolsFlexStructures.TransformerModule: QEQTTransformer
 
 abstract type AbstractPly end
 
-struct CompositeLayupPly{M} <: AbstractPly
+struct Ply{M} <: AbstractPly
     name::String
     material::M
     thickness::FFlt
@@ -16,7 +16,7 @@ struct CompositeLayupPly{M} <: AbstractPly
     _Dts::FFltMat # transverse shear stiffness matrix
 end
 
-function CompositeLayupPly(name, material::M, thickness, angle) where {M}
+function Ply(name, material::M, thickness, angle) where {M}
     # First we extract the full three dimensional stiffness matrix of the
     # material
     D = fill(0.0, 6, 6)
@@ -41,7 +41,7 @@ function CompositeLayupPly(name, material::M, thickness, angle) where {M}
         Dts[i,i] = D[ix[i], ix[i]];
     end
     
-    return CompositeLayupPly(name, material, thickness, angle, Dps, Dts)
+    return Ply(name, material, thickness, angle, Dps, Dts)
 end
 
 struct CompositeLayup
@@ -49,12 +49,23 @@ struct CompositeLayup
     plies::Vector{AbstractPly}
 end
 
-function plane_stress_stiffness!(cl::CompositeLayup, D)
+function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
+    A .= zero(eltype(A))
+    Dps = deepcopy(A)
+    T = deepcopy(A)
+    tf = QEQTTransformer(Dps)
     # Transform into the composite layup coordinate system.
+    for p in cl.plies
+        plane_stress_T_matrix!(T, -p.angle/180*pi)
+        @. Dps = p._Dps
+        Dps = tf(Dps, T)
+        @. A += p.thickness * Dps
+    end
+    return A, B, C
 end
 
 """
-    plane_stress_T_matrix!(::Type{DeforModelRed2DStress},  Tinvm::Array{T, 2},
+    plane_stress_T_matrix!( Tinvm::Array{T, 2},
      angle) where {T}
 
 Compute the transformation matrix between strain tensor components on the layup
@@ -63,7 +74,7 @@ coordinate system into the ply coordinate system.
 `angle` = angle between the first basis vector of the layup coordinate system
     and the first basis vector of the ply coordinate system
 """
-function  plane_stress_T_matrix!(::Type{DeforModelRed2DStress}, Tm::Array{T, 2}, angle) where {T}
+function  plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
     Tm[1, 1] =  (m^2);  Tm[1, 2] = (n^2);   Tm[1, 3] = (2*m*n)
@@ -73,7 +84,7 @@ function  plane_stress_T_matrix!(::Type{DeforModelRed2DStress}, Tm::Array{T, 2},
 end
 
 """
-    plane_stress_Tinv_matrix!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+    plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
 
 Compute the transformation matrix between strain tensor components on the ply
 coordinate system into the layout coordinate system.
@@ -81,7 +92,7 @@ coordinate system into the layout coordinate system.
 `angle` = angle between the first basis vector of the layup coordinate system
     and the first basis vector of the ply coordinate system
 """
-function  plane_stress_Tinv_matrix!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+function  plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
     Tinvm[1, 1] = (m^2); Tinvm[1, 2] = (n^2);  Tinvm[1, 3] = (-2*m*n)
@@ -91,7 +102,7 @@ function  plane_stress_Tinv_matrix!(::Type{DeforModelRed2DStress}, Tinvm::Array{
 end
 
 """
-    plane_stress_T_matrix_eng!(::Type{DeforModelRed2DStress},  Tinvm::Array{T, 2},
+    plane_stress_T_matrix_eng!( Tinvm::Array{T, 2},
      angle) where {T}
 
 Compute the transformation matrix between strain engineering components on the
@@ -104,7 +115,7 @@ The matrix of transformation is `Tme = R * Tm / R`, where `Tm`
 is the transformation matrix in tensor components, and `R` is the Reuter matrix,
 `R = [1 0 0; 0 1 0; 0 0 2]`.
 """
-function  plane_stress_T_matrix_eng!(::Type{DeforModelRed2DStress}, Tm::Array{T, 2}, angle) where {T}
+function  plane_stress_T_matrix_eng!(Tm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
     Tm[1, 1] =  (m^2);  Tm[1, 2] = (n^2);   Tm[1, 3] = (m*n)
@@ -114,7 +125,7 @@ function  plane_stress_T_matrix_eng!(::Type{DeforModelRed2DStress}, Tm::Array{T,
 end
 
 """
-    plane_stress_Tinv_matrix!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+    plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
 
 Compute the transformation matrix between strain engineering components on the
 ply coordinate system into the layout coordinate system.
@@ -126,7 +137,7 @@ The matrix of transformation is `Tme = R * Tm / R`, where `Tm`
 is the transformation matrix in tensor components, and `R` is the Reuter matrix,
 `R = [1 0 0; 0 1 0; 0 0 2]`.
 """
-function  plane_stress_Tinv_matrix_eng!(::Type{DeforModelRed2DStress}, Tinvm::Array{T, 2}, angle) where {T}
+function  plane_stress_Tinv_matrix_eng!(Tinvm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
     Tinvm[1, 1] = (m^2); Tinvm[1, 2] = (n^2);  Tinvm[1, 3] = (-m*n)

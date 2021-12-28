@@ -59,7 +59,7 @@ end
     (o::QEQTTransformer)(E, Q)
 
 Perform the transformation on the matrix `E` with the transformation matrix
-`Q`: `Ebar = Q^T * E * Q`.
+`Q`: `Ebar = Q * E * Q^T`.
 """
 (o::QEQTTransformer)(E, Q) = begin
     @assert size(o._buff) == size(Q)
