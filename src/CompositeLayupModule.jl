@@ -41,7 +41,7 @@ function Ply(name, material::M, thickness, angle) where {M}
         Dts[i,i] = D[ix[i], ix[i]];
     end
     
-    return Ply(name, material, thickness, angle, Dps, Dts)
+    return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
 end
 
 struct CompositeLayup
@@ -50,6 +50,10 @@ struct CompositeLayup
 end
 
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
+    # Aij coefficients represent in-plane stiffness of the laminate, the Cij
+    # coefficients represent bending stiffness, the Bij represent
+    # bending-extension coupling, and the Hij represent intralaminar shear
+    # stiffness.
     A .= zero(eltype(A))
     Dps = deepcopy(A)
     T = deepcopy(A)
