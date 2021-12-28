@@ -122,7 +122,7 @@ ply coordinate system into the layout coordinate system.
 `angle` = angle between the first basis vector of the layup coordinate system
     and the first basis vector of the ply coordinate system
 
-The matrix of transformation is `Tme = R \\ Tm * R`, where `Tm`
+The matrix of transformation is `Tme = R * Tm / R`, where `Tm`
 is the transformation matrix in tensor components, and `R` is the Reuter matrix,
 `R = [1 0 0; 0 1 0; 0 0 2]`.
 """
