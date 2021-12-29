@@ -70,7 +70,7 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     T = deepcopy(A)
     tf = QEQTTransformer(Dps)
     # Transform into the composite layup coordinate system.
-    @show layup_thickness = sum(p.thickness for p in cl.plies)
+    layup_thickness = sum(p.thickness for p in cl.plies)
     zs = -layup_thickness/2 - cl.offset
     for p in cl.plies
         ze = zs + p.thickness

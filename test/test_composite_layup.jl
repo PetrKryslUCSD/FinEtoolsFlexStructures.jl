@@ -403,9 +403,46 @@ function test()
         [30229.872547479692 14953.872547479687 0.0; 
         14953.872547479687 30229.872547479685 0.0; 
         0.0 0.0 18051.865881982852] ) < 1.0e-15 * E2
-    @show B./phun("MPa")
+    
     true
 end
 end
 using .mlayup14
 mlayup14.test()
+
+module mlayup15
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test()
+    CM = CompositeLayupModule
+    # From Barbero's Introduction ... book Example 5.7
+    E1 = 67192*phun("MPa")
+    E2 = 12139*phun("MPa")
+    G12 = 7638*phun("MPa")
+    nu12 = 0.365;
+    rho= 8000*phun("KG/M^3");
+    thickness = 0.001*phun("m");
+    CM = CompositeLayupModule
+    mater = CM.lamina_material(E1, E2, nu12, G12, G12, G12)
+    A = fill(0.0, 3, 3)
+    B = fill(0.0, 3, 3)
+    C = fill(0.0, 3, 3)
+    # "cross-ply" fabric: no coupling of extension and bending
+    ply1 = CM.Ply("ply1", mater, thickness, 0)
+    ply2 = CM.Ply("ply2", mater, thickness, 90)
+    ply3 = CM.Ply("ply3", mater, thickness, 0)
+    ply4 = CM.Ply("ply4", mater, thickness, 90)
+    ply5 = CM.Ply("ply5", mater, thickness, 0)
+    cl = CM.CompositeLayup("sample", [ply1, ply2, ply3, ply4, ply5])
+    A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
+        # @show A./phun("MPa")
+    @test norm(B) < 1.0e-15 * E2
+    
+    true
+end
+end
+using .mlayup15
+mlayup15.test()
