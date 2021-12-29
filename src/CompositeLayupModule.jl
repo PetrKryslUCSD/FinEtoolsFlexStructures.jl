@@ -9,10 +9,10 @@ using FinEtoolsFlexStructures.TransformerModule: QEQTTransformer
 abstract type AbstractPly end
 
 struct Ply{M} <: AbstractPly
-    name::String
-    material::M
-    thickness::FFlt
-    angle::FFlt
+    name::String # name of the ply
+    material::M # material of the ply
+    thickness::FFlt # thickness of the ply
+    angle::FFlt # angle in degrees
     _Dps::FFltMat # plane stress stiffness matrix
     _Dts::FFltMat # transverse shear stiffness matrix
 end
@@ -41,7 +41,6 @@ function Ply(name, material::M, thickness, angle) where {M}
     for i = 1:2
         Dts[i,i] = D[ix[i], ix[i]];
     end
-    
     return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
 end
 
@@ -52,7 +51,13 @@ end
 
 struct CompositeLayup
     name::String
-    plies::Vector{AbstractPly}
+    offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
+    plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)
+end
+
+function CompositeLayup(name, plies)
+    offset = 0.0
+    return CompositeLayup(name, offset, plies)
 end
 
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
@@ -65,11 +70,21 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     T = deepcopy(A)
     tf = QEQTTransformer(Dps)
     # Transform into the composite layup coordinate system.
+    @show layup_thickness = sum(p.thickness for p in cl.plies)
+    zs = -layup_thickness/2 - cl.offset
     for p in cl.plies
+        ze = zs + p.thickness
         plane_stress_T_matrix!(T, -p.angle/180*pi)
+        # Transform the plane stress matrix into the layup coordinates
         @. Dps = p._Dps
         Dps = tf(Dps, T)
-        @. A += p.thickness * Dps
+        # Compute the in-plane stiffness
+        @. A += (ze - zs) * Dps
+        # Compute the extension-bending coupling stiffness
+        @. B += (ze^2 - zs^2)/2 * Dps
+        # Compute the bending stiffness
+        @. C += (ze^3 - zs^3)/3 * Dps
+        zs += p.thickness
     end
     return A, B, C
 end
