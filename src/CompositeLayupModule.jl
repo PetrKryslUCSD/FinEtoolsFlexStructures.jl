@@ -6,6 +6,18 @@ using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.TransformerModule: QEQTTransformer
 
+"""
+    cartesian_csys(axes)
+
+Create a material Cartesian coordinate system.
+
+- `axes` = tuple of signed labels of the axes. For instance, `(1, 2, 3)` creates
+  a coordinate system identical to the global cartesian coordinate system. `
+  (2, 1, -3)` creates a coordinate system so that the first material basis
+  vector is along the second global basis vector, the second material basis
+  vector is along the first global basis vector, and the third material basis
+  vector is opposite to the third global basis vector.
+"""
 function cartesian_csys(axes)
     function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
         csmatout[:] .= 0.0
@@ -56,11 +68,51 @@ function Ply(name, material::M, thickness, angle) where {M}
     return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
 end
 
+"""
+    lamina_material(E1, E2, nu12, G12, G13, G23)
+
+Create a transversely isotropic lamina material with default (zero) mass
+density.
+"""
 function lamina_material(E1, E2, nu12, G12, G13, G23)
     rho = 0.0
     return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, 0.0, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
 end
 
+"""
+    lamina_material(rho, E1, E2, nu12, G12, G13, G23)
+
+Create a transversely isotropic lamina material.
+"""
+function lamina_material(rho, E1, E2, nu12, G12, G13, G23)
+    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, 0.0, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
+end
+
+"""
+    lamina_material(E, nu)
+
+Create an isotropic lamina material with default (zero) mass
+density.
+"""
+function lamina_material(E, nu)
+    rho = 0.0
+    return MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+end
+
+"""
+    lamina_material(rho, E, nu)
+
+Create an isotropic lamina material.
+"""
+function lamina_material(rho, E, nu)
+    return MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+end
+
+"""
+    CompositeLayup
+
+Type for composite layup.
+"""
 struct CompositeLayup
     name::String
     offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
