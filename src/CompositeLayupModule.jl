@@ -6,6 +6,18 @@ using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.TransformerModule: QEQTTransformer
 
+function cartesian_csys(axes)
+    function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+        csmatout[:] .= 0.0
+        for j in 1:3
+            aj = abs(axes[j]); sj = sign(axes[j])
+            csmatout[aj, j] = sj * 1.0
+        end
+        return csmatout
+    end
+    return  CSys(3, 3, cartesian!)
+end
+     
 abstract type AbstractPly end
 
 struct Ply{M} <: AbstractPly
@@ -53,11 +65,16 @@ struct CompositeLayup
     name::String
     offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
     plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)
+    mcsys::CSys # updater of the material orientation matrix
 end
 
-function CompositeLayup(name, plies)
+function CompositeLayup(name, plies, mcsys)
     offset = 0.0
-    return CompositeLayup(name, offset, plies)
+    return CompositeLayup(name, offset, plies, mcsys)
+end
+
+struct CompositeLayups
+    layups::Vector{CompositeLayup}
 end
 
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
@@ -87,6 +104,31 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
         zs += p.thickness
     end
     return A, B, C
+end
+
+function laminate_transverse_stiffness!(cl::CompositeLayup, H)
+    # Hij represent intralaminar shear stiffness.
+    H .= zero(eltype(H))
+    Dts = deepcopy(H)
+    T = deepcopy(H)
+    tf = QEQTTransformer(Dts)
+    # Transform into the composite layup coordinate system.
+    layup_thickness = sum(p.thickness for p in cl.plies)
+    zs = -layup_thickness/2 - cl.offset
+    for p in cl.plies
+        ze = zs + p.thickness
+        transverse_shear_T_matrix!(T, p.angle/180*pi)
+        # Transform the plane stress matrix into the layup coordinates
+        @. Dts = p._Dts
+        Dts = tf(Dts, T)
+        # Compute the transverse shear stiffness The correction factor
+        # accounting for the parable distribution of the shear stress is due to
+        # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
+        # Materials, 2008
+        @. H += 5/4*(ze - zs - 4/3*(ze^3-zs^3)/layup_thickness^2) * Dts
+        zs += p.thickness
+    end
+    return H
 end
 
 """
@@ -169,6 +211,15 @@ function  plane_stress_Tinv_matrix_eng!(Tinvm::Array{T, 2}, angle) where {T}
     Tinvm[2, 1] = (n^2); Tinvm[2, 2] = (m^2);  Tinvm[2, 3] = (m*n)
     Tinvm[3, 1] = (2*m*n); Tinvm[3, 2] = (-2*m*n); Tinvm[3, 3] = (m*m-n*n)
     return Tinvm
+end
+
+function  transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
+    m=cos(angle); 
+    n=sin(angle); 
+    # Barbero, Introduction, a in equation 5.7
+    Tm[1, 1] =  m;  Tm[1, 2] = n;   
+    Tm[2, 1] = -n;  Tm[2, 2] = m;  
+    return Tm
 end
 
 end # module
