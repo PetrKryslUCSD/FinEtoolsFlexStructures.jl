@@ -117,7 +117,7 @@ struct CompositeLayup
     name::String
     offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
     plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)
-    mcsys::CSys # updater of the material orientation matrix
+    csys::CSys # updater of the material orientation matrix
 end
 
 function CompositeLayup(name, plies, mcsys)
@@ -125,10 +125,20 @@ function CompositeLayup(name, plies, mcsys)
     return CompositeLayup(name, offset, plies, mcsys)
 end
 
-struct CompositeLayups
-    layup_list::Vector{CompositeLayup}
+"""
+    thickness(cl::CompositeLayup)
+
+Compute the thickness of the layup (some of the thicknesses of the plies).
+"""
+function thickness(cl::CompositeLayup)
+    return sum(p.thickness for p in cl.plies)
 end
 
+"""
+    laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
+
+Compute the laminate stiffnesses, membrane, extension-bending coupling, and bending.
+"""
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     # Aij coefficients represent in-plane stiffness of the laminate, the Cij
     # coefficients represent bending stiffness, the Bij represent
@@ -139,7 +149,7 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     T = deepcopy(A)
     tf = QEQTTransformer(Dps)
     # Transform into the composite layup coordinate system.
-    layup_thickness = sum(p.thickness for p in cl.plies)
+    layup_thickness = thickness(cl)
     zs = -layup_thickness/2 - cl.offset
     for p in cl.plies
         ze = zs + p.thickness
@@ -158,6 +168,11 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     return A, B, C
 end
 
+"""
+    laminate_transverse_stiffness!(cl::CompositeLayup, H)
+
+Computed the laminate transverse stiffness.
+"""
 function laminate_transverse_stiffness!(cl::CompositeLayup, H)
     # Hij represent intralaminar shear stiffness.
     H .= zero(eltype(H))
@@ -196,6 +211,10 @@ coordinate system into the ply coordinate system.
 function  plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
+    return plane_stress_T_matrix!(Tm, m, n)
+end
+
+function  plane_stress_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
     Tm[1, 1] =  (m^2);  Tm[1, 2] = (n^2);   Tm[1, 3] = (2*m*n)
     Tm[2, 1] = (n^2);   Tm[2, 2] = (m^2);   Tm[2, 3] = (-2*m*n)
     Tm[3, 1] = (-m*n);  Tm[3, 2] = (m*n);   Tm[3, 3] = (m*m-n*n)
@@ -268,6 +287,10 @@ end
 function  transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
+    return transverse_shear_T_matrix!(Tm, m, n)
+end
+
+function  transverse_shear_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
     # Barbero, Introduction, a in equation 5.7
     Tm[1, 1] =  m;  Tm[1, 2] = n;   
     Tm[2, 1] = -n;  Tm[2, 2] = m;  

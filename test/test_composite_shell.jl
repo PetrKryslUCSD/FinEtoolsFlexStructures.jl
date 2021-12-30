@@ -6,6 +6,7 @@ using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using Test
 
 function test()
@@ -13,7 +14,7 @@ function test()
     CM = CompositeLayupModule
     # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
     ax = ay = 2000*phun("mm")
-    nx = ny = 3
+    nx = ny = 6
     # ASFD/9310
     E1 = 133860*phun("MPa")
     E2 = 7706*phun("MPa")
@@ -22,7 +23,7 @@ function test()
     nu12 = 0.301;
     nu23 = 0.396
     G23 = 2760*phun("MPa")
-    npairs = 2
+    npairs = 1
     thickness = 10*phun("mm");
     tolerance = ax/nx/100
     CM = CompositeLayupModule
@@ -34,15 +35,14 @@ function test()
         push!(plies, CM.Ply("ply_90_$p", mater, thickness, 90))
     end
     mcsys = CM.cartesian_csys((1, 2, 3))
-    cl = CM.CompositeLayup("example_3.1", plies, mcsys)
+    layup = CM.CompositeLayup("example_3.1", plies, mcsys)
 
     fens, fes = T3block(ax,ay,nx,ny);
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
 
-    layups = CM.CompositeLayups([cl])
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layups)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -74,16 +74,24 @@ function test()
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    # Midpoint of the free edge
-    nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*25 sin(40/360*2*pi)*25 L/2 L/2 -Inf Inf], inflate = tolerance)
-    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -90, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    # Edge load
+    bfes = meshboundary(fes)
+    l1 = selectelem(fens, bfes, box = Float64[-Inf Inf 0 0 0 0 ], inflate = tolerance)
+    lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
+    fi = ForceIntensity(FFlt[0, 1.0*phun("MPa")*thickness, 0, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 1);
+    l1 = selectelem(fens, bfes, box = Float64[-Inf Inf ay ay 0 0 ], inflate = tolerance)
+    lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
+    fi = ForceIntensity(FFlt[0, -1.0*phun("MPa")*thickness, 0, 0, 0, 0]);
+    F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    resultpercent = dchi.values[nl, 3][1]/analyt_sol*100
+    @show  maximum(dchi.values[:, 3])
+    @show minimum(dchi.values[:, 3])
+
+    vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
 
     true
 end

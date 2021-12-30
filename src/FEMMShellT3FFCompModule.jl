@@ -8,10 +8,10 @@ using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 import FinEtools.FEMMBaseModule: associategeometry!
 import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
-using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
+using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer
-using ..CompositeLayupModule: CompositeLayup, CompositeLayups
+using ..TransformerModule: QTEQTransformer, QEQTTransformer
+using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!
 
 
 const __nn = 3 # number of nodes
@@ -36,8 +36,7 @@ For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
 mutable struct FEMMShellT3FFComp{S<:AbstractFESet, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
-    layup_list::CompositeLayups # composite layups object.
-    layup_groups::Vector{Vector{FInt}}
+    layup_groups::Vector{Tuple{CompositeLayup, Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
@@ -68,11 +67,11 @@ end
 
 
 """
-    FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::M) where {S<:AbstractFESet, F<:Function, M}
+    FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:AbstractFESet, F<:Function}
 
-Constructor of the T3FFComp shell FEMM.
+Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 """
-function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::CompositeLayups) where {S<:AbstractFESet, F<:Function}
+function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:AbstractFESet, F<:Function}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -80,10 +79,7 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::CompositeLayu
         end
     end
     # When there is only a single layup, all elements belong to a single group
-    layup_groups = [collect(1:count(integdomain.fes))]
-    if length(layups.layup_list) > 1
-        @warn "More layups than layup groups: supply groups explicitly"
-    end
+    layup_groups = [(layup, collect(1:count(integdomain.fes)))]
     _normals = fill(0.0, _nnmax, 3)
     _normal_valid = fill(true, _nnmax)
     # Alocate the buffers
@@ -106,8 +102,7 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::CompositeLayu
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
-    return FEMMShellT3FFComp(integdomain, 
-        layups, layup_groups,
+    return FEMMShellT3FFComp(integdomain, layup_groups, 
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
         false,
         _normals, _normal_valid,
@@ -120,20 +115,19 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::CompositeLayu
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
 
+"""
+    make(integdomain, layup)
+
+Make a T3FFComp FEMM from the integration domain and a composite layup.
+"""
+function make(integdomain, layup)
+    return FEMMShellT3FFComp(integdomain, layup)
+end
+
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
     updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, labl);
     n[:] .= mcsys.csmat[:, 3]
     return n
-end
-
-"""
-    make(integdomain, layups)
-
-Make a T3FFComp FEMM from the integration domain,  and an array of composite
-layups.
-"""
-function make(integdomain, layups)
-    return FEMMShellT3FFComp(integdomain, layups)
 end
 
 function _compute_J!(J0, ecoords)
@@ -410,13 +404,17 @@ function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
     nnormal = fill(0.0, 3)
 
     # Compute the normals at the nodes
-    for el in 1:count(self.integdomain.fes)
-        i, j, k = self.integdomain.fes.conn[el]
-        J0[:, 1] = geom.values[j, :] - geom.values[i, :]
-        J0[:, 2] = geom.values[k, :] - geom.values[i, :]
-        for n in [i, j, k]
-            _compute_nodal_normal!(nnormal, self.mcsys, geom.values[n, :], J0, self.integdomain.fes.label[el])
-            normals[n, :] .+= nnormal
+    for lg in self.layup_groups
+        layup = lg[1]
+        eset = lg[2]
+        for el in eset
+            i, j, k = self.integdomain.fes.conn[el]
+            J0[:, 1] = geom.values[j, :] - geom.values[i, :]
+            J0[:, 2] = geom.values[k, :] - geom.values[i, :]
+            for n in [i, j, k]
+                _compute_nodal_normal!(nnormal, layup.csys, geom.values[n, :], J0, self.integdomain.fes.label[el])
+                normals[n, :] .+= nnormal
+            end
         end
     end
     
@@ -480,53 +478,74 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    A, B, C = zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    H = zeros(2, 2)
+    Tps, Tts = zeros(3, 3), zeros(2, 2)
+    tps! = QEQTTransformer(Tps)
+    tts! = QEQTTransformer(Tts)
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
     startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
     for lg in self.layup_groups
-        for i in lg # Loop over elements in the layup group
+        layup = lg[1]
+        eset = lg[2]
+        t = thickness(layup)
+        laminate_stiffnesses!(layup, A, B, C)
+        @show A, B, C
+        laminate_transverse_stiffness!(layup, H)
+        for i in eset # Loop over elements in the layup group
             gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
             _centroid!(centroid, ecoords)
             _compute_J!(J0, ecoords)
             _e_g!(E_G, J0)
             _ecoords_e!(ecoords_e, J0, E_G)
             gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-            t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
-        # Construct the Stiffness Matrix
+            # Transforme the laminate stiffnesses
+            updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
+            m = dot(view(E_G, :, 1), view(layup.csys.csmat, :, 1))
+            n = dot(view(E_G, :, 2), view(layup.csys.csmat, :, 1))
+            plane_stress_T_matrix!(Tps, m, n)
+            tps!(A, Tps); tps!(B, Tps); tps!(C, Tps); 
+            transverse_shear_T_matrix!(Tts, m, n)
+            tts!(H, Tts)
+            # Construct the Stiffness Matrix
             fill!(elmat,  0.0); # Initialize element matrix
             _Bmmat!(Bm, gradN_e)
-            add_btdb_ut_only!(elmat, Bm, t*Ae, Dps, DpsBmb)
+            add_btdb_ut_only!(elmat, Bm, Ae, A, DpsBmb)
             _Bbmat!(Bb, gradN_e)
-            add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
-        # he = sqrt(2*Ae) # we avoid taking the square root here, replacing he^2 with 2*Ae
+            add_btdb_ut_only!(elmat, Bb, Ae, C, DpsBmb)
+            add_b1tdb2!(elmat, Bm, Bb, Ae, B, DpsBmb)
+            add_b1tdb2!(elmat, Bb, Bm, Ae, B, DpsBmb)
+            # he = sqrt(2*Ae) # we avoid taking the square root here, replacing
+            # he^2 with 2*Ae
             if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
                 for  o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
                     Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, o)
-                    add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae/3, Dt, DtBs)
+                    add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))/3, H, DtBs)
                 end
             else
                 _Bsmat!(Bs, ecoords_e, Ae)
-                add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*2*Ae))*Ae, Dt, DtBs)
+                add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae)), H, DtBs)
             end
-        # Complete the elementwise matrix by filling in the lower triangle
+            # Complete the elementwise matrix by filling in the lower triangle
             complete_lt!(elmat)
-        # Transformation from the nodal (A) to the element (E) basis
+            # Transformation from the nodal (A) to the element (E) basis
             _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
             _transfmat_a_to_e!(T, A_Es, gradN_e)
             transformwith(elmat, T)
-        # Bending diagonal stiffness coefficients
+            # Bending diagonal stiffness coefficients
             kavg = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16],
                 elmat[5, 5], elmat[11, 11], elmat[17, 17])) * drilling_stiffness_scale
-        # Add the artificial drilling stiffness in the nodal basis, but only if
-        # the nodal normal is valid. 
+            # Add the artificial drilling stiffness in the nodal basis, but only
+            # if the nodal normal is valid. 
             nvalid[1] && (elmat[6,6] += kavg)
             nvalid[2] && (elmat[12,12] += kavg)
             nvalid[3] && (elmat[18,18] += kavg)
-        # Transform from global (G) into the nodal (A) basis
+            # Transform from global (G) into the nodal (A) basis
             _transfmat_g_to_a!(T, A_Es, E_G)
             transformwith(elmat, T)
-        # Assembly
+            # Assembly
             gatherdofnums!(dchi, dofnums, fes.conn[i]); 
             assemble!(assembler, elmat, dofnums, dofnums); 
         end # Loop over elements
