@@ -1,4 +1,7 @@
 using Test
+@time @testset "Composite shell" begin
+    include("test_composite_shell.jl")
+end
 @time @testset "Shell statics" begin
     include("test_shell_statics.jl")
 end

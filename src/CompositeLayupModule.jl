@@ -74,7 +74,7 @@ function CompositeLayup(name, plies, mcsys)
 end
 
 struct CompositeLayups
-    layups::Vector{CompositeLayup}
+    layup_list::Vector{CompositeLayup}
 end
 
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)

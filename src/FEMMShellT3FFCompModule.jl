@@ -34,9 +34,9 @@ normals for COMPOSITE materials.
 
 For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{S<:AbstractFESet, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
-    layups::M # composite layups object.
+    layup_list::CompositeLayups # composite layups object.
     layup_groups::Vector{Vector{FInt}}
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
@@ -81,7 +81,7 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layups::CompositeLayu
     end
     # When there is only a single layup, all elements belong to a single group
     layup_groups = [collect(1:count(integdomain.fes))]
-    if length(layups) > 1
+    if length(layups.layup_list) > 1
         @warn "More layups than layup groups: supply groups explicitly"
     end
     _normals = fill(0.0, _nnmax, 3)
