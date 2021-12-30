@@ -14,7 +14,7 @@ function test()
     CM = CompositeLayupModule
     # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
     ax = ay = 2000*phun("mm")
-    nx = ny = 6
+    nx = ny = 8
     # ASFD/9310
     E1 = 133860*phun("MPa")
     E2 = 7706*phun("MPa")
@@ -31,8 +31,8 @@ function test()
     mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
     plies = CM.Ply[]
     for p in npairs
-        push!(plies, CM.Ply("ply_0_$p", mater, thickness, 0))
-        push!(plies, CM.Ply("ply_90_$p", mater, thickness, 90))
+        push!(plies, CM.Ply("ply_0_$p", mater, thickness/npairs/2, 0))
+        push!(plies, CM.Ply("ply_90_$p", mater, thickness/npairs/2, 90))
     end
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("example_3.1", plies, mcsys)
@@ -53,12 +53,12 @@ function test()
 
     # Apply EBC's
     # Pin one of the corners
-    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
+    l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
     for i in [1,2, 3,]
         setebc!(dchi, l1, true, i)
     end
     # Roller at the other
-    l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
+    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
     for i in [2,]
         setebc!(dchi, l1, true, i)
     end
@@ -78,21 +78,22 @@ function test()
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf 0 0 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 1.0*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(FFlt[0, 0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf ay ay 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, -1.0*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(FFlt[0, -0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show  maximum(dchi.values[:, 3])
-    @show minimum(dchi.values[:, 3])
-
+    for i in 1:3
+        @show  maximum(dchi.values[:, i]) ./phun("mm")
+        @show minimum(dchi.values[:, i]) ./phun("mm")
+    end
     vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
-
+    @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.21397084474482295
     true
 end
 end
