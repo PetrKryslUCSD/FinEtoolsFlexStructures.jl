@@ -387,7 +387,7 @@ function test()
         @test norm(ply1._Dps./phun("MPa") - [68849.10243290635 4540.006665496835 0.0; 
                                                 4540.006665496834 12438.374426018723 0.0; 
                                                 0.0 0.0 7637.999999999999]) < 1.0e-15 * E2
-        cl = CM.CompositeLayup("sample", [ply1, ])
+        cl = CM.CompositeLayup("sample", [ply1, ], CM.cartesian_csys((1, 2, 3)))
         @test cl.plies[1].angle == angle
         A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("MPa")
@@ -432,7 +432,7 @@ function test()
         [68849.10243290635 4540.006665496835 0.0; 
         4540.006665496834 12438.374426018723 0.0; 
         0.0 0.0 7637.999999999999]) < 1.0e-15 * E2
-    cl = CM.CompositeLayup("sample", [ply1, ply2])
+    cl = CM.CompositeLayup("sample", [ply1, ply2], CM.cartesian_csys((1, 2, 3)))
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("MPa")
     @test norm(A ./ phun("MPa") - 
@@ -472,7 +472,7 @@ function test()
     ply3 = CM.Ply("ply3", mater, thickness, 0)
     ply4 = CM.Ply("ply4", mater, thickness, 90)
     ply5 = CM.Ply("ply5", mater, thickness, 0)
-    cl = CM.CompositeLayup("sample", [ply1, ply2, ply3, ply4, ply5])
+    cl = CM.CompositeLayup("sample", [ply1, ply2, ply3, ply4, ply5], CM.cartesian_csys((1, 2, 3)))
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("MPa")
     @test norm(B) < 1.0e-15 * E2
@@ -509,7 +509,7 @@ function test()
     H = fill(0.0, 2, 2)
     # "cross-ply" fabric: no coupling of extension and bending
     ply1 = CM.Ply("ply1", mater, thickness, -55)
-    cl = CM.CompositeLayup("sample", [ply1, ])
+    cl = CM.CompositeLayup("sample", [ply1, ], CM.cartesian_csys((1, 2, 3)))
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("GPa")/thickness
     @test norm(A./phun("GPa")/thickness - [
@@ -517,7 +517,7 @@ function test()
         5.70964888928013 15.47166067503043 -3.000261532585858; 
         -1.2171315230336193 -3.0002615325858573 6.238554718598339]) < 1.0e-15 * E2
     H = CM.laminate_transverse_stiffness!(cl, H)
-    @show H./phun("GPa")/thickness
+    # @show H./phun("GPa")/thickness
     @test norm(H./phun("GPa")/thickness - [
         3.3378632276560145 -0.1262916916205752; 
         -0.12629169162057502 3.245930394485983]) < 1.0e-15 * E2
@@ -528,39 +528,3 @@ using .mlayup16
 mlayup16.test()
 
 
-module mlayup17
-using LinearAlgebra: norm, Transpose, mul!, I
-using FinEtools
-using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.CompositeLayupModule
-using Test
-
-function test()
-    CM = CompositeLayupModule
-    # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
-    ax = ay = 2000*phun("mm")
-    # ASFD/9310
-    E1 = 133860*phun("MPa")
-    E2 = 7706*phun("MPa")
-    G12 = 4306*phun("MPa")
-    G13 = G12
-    nu12 = 0.301;
-    nu23 = 0.396
-    G23 = 2760*phun("MPa")
-    npairs = 2
-    thickness = 10*phun("mm");
-    mcsys = CM.cartesian_csys((1, 2, 3))
-    CM = CompositeLayupModule
-    mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
-    plies = CM.Ply[]
-    for p in npairs
-        push!(plies, CM.Ply("ply_0_$p", mater, thickness, 0))
-        push!(plies, CM.Ply("ply_90_$p", mater, thickness, 90))
-    end
-    cl = CM.CompositeLayup("example_3.1", plies, mcsys)
-    
-    true
-end
-end
-using .mlayup17
-mlayup17.test()

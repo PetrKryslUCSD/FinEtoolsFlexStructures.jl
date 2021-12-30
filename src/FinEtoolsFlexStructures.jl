@@ -1,6 +1,6 @@
 module FinEtoolsFlexStructures
 
-__precompile__(true)
+__precompile__(false)
 
 using FinEtools
 
@@ -23,5 +23,6 @@ include("FEMMPointMassModule.jl")
 include("FEMMPointGroundedSpringModule.jl")
 
 include("FEMMShellT3FFModule.jl")
+include("FEMMShellT3FFCompModule.jl")
 
 end # module
