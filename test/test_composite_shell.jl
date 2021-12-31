@@ -462,3 +462,93 @@ end
 using .mcompshell3
 mcompshell3.test_composite()
 mcompshell3.test_homogeneous()
+
+module mcompshell4
+# Example  from Section 6.17.1
+# Lazarus Teneketzis Tenek, John Argyris, Finite Element Analysis for Composite Structures, 1998
+# Clamped isotropic plate under uniform transverse pressure
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test_composite()
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    E = 200*phun("GPa");
+    nu = 0.3;
+    L = 1.0*phun("m");
+    t_radius_ratio = 0.001
+    thickness = L * t_radius_ratio;
+    q = 1.0*phun("kilo*Pa");
+    D = E*thickness^3/12/(1-nu^2)
+    wcref = 0.00126*q*L^4/D
+    nx = ny = 4
+    ply_thickness = thickness/3;
+    tolerance = L/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(E, nu)
+    plies = CM.Ply[
+    CM.Ply("p", mater, ply_thickness, 0),
+    CM.Ply("p", mater, ply_thickness, 45),
+    CM.Ply("p", mater, ply_thickness, 90),
+    ]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("Tenek, Argyris 6.17.1", plies, mcsys)
+
+    fens, fes = T3block(L,L,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), CM.thickness(layup)), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Clamped Condition
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1,2,3,4,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Edge load
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    for i in 1:3
+        # @show maximum(dchi.values[:, i])
+        # @show minimum(dchi.values[:, i])
+    end
+    vtkwrite("plate-6.17.1-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+     
+    @test isapprox(-minimum(dchi.values[:, 3]), wcref, rtol=0.02)
+    true
+end
+
+end
+using .mcompshell4
+mcompshell4.test_composite()
