@@ -552,3 +552,104 @@ end
 end
 using .mcompshell4
 mcompshell4.test_composite()
+
+
+module mcompshell5
+# Example  from Section 6.17.2
+# Lazarus Teneketzis Tenek, John Argyris, Finite Element Analysis for Composite Structures, 1998
+# Simply supported sandwich plate.
+# The deflection provided in the textbook of 31.45 mm is probably wrong.
+# The deflection of 2.026 mm was obtained with Abaqus.
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test()
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    Ef = 6.8*phun("GPa");
+    nuf = 0.3;
+    Ec = 480*phun("MPa");
+    nuc = 0.3
+    L = 0.1384*phun("m");
+    tf = 0.001*phun("m");
+    tc = 0.015*phun("m");
+    q = 1.0*phun("MPa");
+    nx = ny = 140
+    tolerance = L/nx/100
+    CM = CompositeLayupModule
+
+    plies = CM.Ply[
+    CM.Ply("face_1", CM.lamina_material(Ef, nuf), tf, 0),
+    CM.Ply("core", CM.lamina_material(Ec, nuc), tc, 0),
+    CM.Ply("face_2", CM.lamina_material(Ef, nuf), tf, 0),
+    ]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("Tenek, Argyris 6.17.2", plies, mcsys)
+
+    fens, fes = T3block(L,L,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), CM.thickness(layup)), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Pin one of the corners
+    l1 = selectnode(fens; box = Float64[L L 0 0 -Inf Inf], inflate = tolerance)
+    for i in [1,2, 3,]
+        setebc!(dchi, l1, true, i)
+    end
+        # Roller at the other
+    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
+    for i in [2,]
+        setebc!(dchi, l1, true, i)
+    end
+        # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [3]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Edge load
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    # for i in 1:3
+    #     @show maximum(dchi.values[:, i]) ./phun("mm")
+    #     @show minimum(dchi.values[:, i]) ./phun("mm")
+    # end
+    # vtkwrite("plate-6.17.2-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+     
+    @test isapprox(-minimum(dchi.values[:, 3]), 2.026e-3, rtol=0.02)
+    true
+end
+
+end
+using .mcompshell5
+mcompshell5.test()
