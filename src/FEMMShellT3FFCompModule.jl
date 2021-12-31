@@ -30,7 +30,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 Class for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
-normals for COMPOSITE materials. 
+normals. This formulation is suitable for modelling of COMPOSITE (layered) materials. 
 
 For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
