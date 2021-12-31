@@ -1,6 +1,6 @@
 module FinEtoolsFlexStructures
 
-__precompile__(true)
+__precompile__(false)
 
 using FinEtools
 
@@ -8,6 +8,7 @@ include("RotUtilModule.jl")
 include("TransformerModule.jl")
 
 include("CrossSectionModule.jl")
+include("CompositeLayupModule.jl")
 
 include("FESetCorotBeamModule.jl")
 include("FESetShellQ4Module.jl")
@@ -22,5 +23,6 @@ include("FEMMPointMassModule.jl")
 include("FEMMPointGroundedSpringModule.jl")
 
 include("FEMMShellT3FFModule.jl")
+include("FEMMShellT3FFCompModule.jl")
 
 end # module

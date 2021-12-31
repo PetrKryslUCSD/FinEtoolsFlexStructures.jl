@@ -1,4 +1,7 @@
 using Test
+@time @testset "Composite shell" begin
+    include("test_composite_shell.jl")
+end
 @time @testset "Shell statics" begin
     include("test_shell_statics.jl")
 end
@@ -19,4 +22,7 @@ end
 end
 @time @testset "Shell dynamics" begin
     include("test_shell_dynamics.jl")
+end
+@time @testset "Composite Layup" begin
+    include("test_composite_layup.jl")
 end
