@@ -3,10 +3,12 @@
 ## Table of Contents
 
 - [CrossSectionModule functions](@ref)
+- [CompositeLayupModule functions](@ref)
 - [FESetShellT3Module functions](@ref)
 - [MeshFrameMemberModule functions](@ref)
 - [FEMMCorotBeamModule functions](@ref)
 - [FEMMShellT3FFModule functions](@ref)
+- [FEMMShellT3FFCompModule functions](@ref)
 - [FEMMPointMassModule functions](@ref)
 - [FEMMPointGroundedSpringModule functions](@ref)
 - [RotUtilModule functions](@ref)
@@ -19,6 +21,14 @@
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.CrossSectionModule]
+Private = true
+Order = [:function]
+```
+
+## CompositeLayupModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.CompositeLayupModule]
 Private = true
 Order = [:function]
 ```
@@ -51,6 +61,14 @@ Order = [:function]
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMShellT3FFModule]
+Private = true
+Order = [:function]
+```
+
+## FEMMShellT3FFCompModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMShellT3FFCompModule]
 Private = true
 Order = [:function]
 ```
