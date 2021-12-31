@@ -1,6 +1,6 @@
 module FinEtoolsFlexStructures
 
-__precompile__(false)
+__precompile__(true)
 
 using FinEtools
 
