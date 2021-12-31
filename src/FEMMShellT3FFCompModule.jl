@@ -527,11 +527,11 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
                 for  o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
                     Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, o)
-                    add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))/3, sH, DtBs)
+                    add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))*Ae/3, sH, DtBs)
                 end
             else
                 _Bsmat!(Bs, ecoords_e, Ae)
-                add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae)), sH, DtBs)
+                add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))*Ae, sH, DtBs)
             end
             # Complete the elementwise matrix by filling in the lower triangle
             complete_lt!(elmat)

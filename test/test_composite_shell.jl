@@ -1,4 +1,5 @@
 module mcompshell0
+# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtoolsDeforLinear
@@ -12,7 +13,7 @@ using Test
 function test()
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
+    
     ax = ay = 2000*phun("mm")
     nx = ny = 8
     # ASFD/9310
@@ -93,7 +94,7 @@ function test()
         # @show minimum(dchi.values[:, i]) ./phun("mm")
     end
     # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
-    @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.21397084474482295
+    @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.22004349767718365
     true
 end
 end
@@ -101,6 +102,7 @@ using .mcompshell0
 mcompshell0.test()
 
 module mcompshell1
+# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtoolsDeforLinear
@@ -114,7 +116,7 @@ using Test
 function test()
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
+    
     ax = ay = 2000*phun("mm")
     nx = ny = 8
     # ASFD/9310
@@ -195,7 +197,7 @@ function test()
         # @show minimum(dchi.values[:, i]) ./phun("mm")
     end
     # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
-    @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.010121315960826563
+    @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.010276258430770539
     true
 end
 end
@@ -203,6 +205,7 @@ using .mcompshell1
 mcompshell1.test()
 
 module mcompshell2
+# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtoolsDeforLinear
@@ -216,7 +219,7 @@ using Test
 function test()
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
+    
     ax = ay = 2000*phun("mm")
     nx = ny = 8
     # ASFD/9310
@@ -299,11 +302,163 @@ function test()
         # @show minimum(dchi.values[:, i]) ./phun("mm")
     end
     # vtkwrite("plate-3.3-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
-     # The target value is 1.667 mm at either of the loaded edges;
-    # so the total displacement is approximately 2*1.667=3.334 
+
+     # The book: The target value is 1.667 mm at either of the loaded edges; so
+     # the total displacement is approximately 2*1.667=3.334. The Abaqus model
+     # on the other hand gives 1.658*2 = 3.316.
     @test maximum(dchi.values[:, 1]) ./phun("mm") ≈ 3.3161098653904544
     true
 end
 end
 using .mcompshell2
 mcompshell2.test()
+
+module mcompshell3
+# Example  from Section 6.17.1
+# Lazarus Teneketzis Tenek, John Argyris, Finite Element Analysis for Composite Structures, 1998
+# Clamped isotropic plate under uniform transverse pressure
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test_composite()
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    E = 200*phun("GPa");
+    nu = 0.3;
+    L = 1.0*phun("m");
+    t_radius_ratio = 0.001
+    thickness = L * t_radius_ratio;
+    q = 1.0*phun("kilo*Pa");
+    D = E*thickness^3/12/(1-nu^2)
+    wcref = 0.00126*q*L^4/D
+    nx = ny = 4
+    ply_thickness = thickness;
+    tolerance = L/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(E, nu)
+    plies = CM.Ply[
+    CM.Ply("p", mater, ply_thickness, 0),
+    ]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("Tenek, Argyris 6.17.1", plies, mcsys)
+
+    fens, fes = T3block(L,L,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), CM.thickness(layup)), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Clamped Condition
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1,2,3,4,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Edge load
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    for i in 1:3
+        # @show maximum(dchi.values[:, i])
+        # @show minimum(dchi.values[:, i])
+    end
+    vtkwrite("plate-6.17.1-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+     
+    @test isapprox(-minimum(dchi.values[:, 3]), wcref, rtol=0.02)
+    true
+end,
+function test_homogeneous()
+    formul = FEMMShellT3FFModule
+    E = 200*phun("GPa");
+    nu = 0.3;
+    L = 1.0*phun("m");
+    t_radius_ratio = 0.001
+    thickness = L * t_radius_ratio;
+    q = 1.0*phun("kilo*Pa");
+    D = E*thickness^3/12/(1-nu^2)
+    wcref = 0.00126*q*L^4/D
+    nx = ny = 4
+    ply_thickness = thickness;
+    tolerance = L/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(E, nu)
+
+    fens, fes = T3block(L,L,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Clamped Condition
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1,2,3,4,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Edge load
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    for i in 1:3
+        # @show maximum(dchi.values[:, i])
+        # @show minimum(dchi.values[:, i])
+    end
+    vtkwrite("plate-6.17.1-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+     
+    @test isapprox(-minimum(dchi.values[:, 3]), wcref, rtol=0.02)
+    true
+end
+end
+using .mcompshell3
+mcompshell3.test_composite()
+mcompshell3.test_homogeneous()
