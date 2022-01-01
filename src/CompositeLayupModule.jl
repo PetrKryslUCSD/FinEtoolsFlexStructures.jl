@@ -32,6 +32,11 @@ end
      
 abstract type AbstractPly end
 
+"""
+    Ply{M} <: AbstractPly
+
+Type of a ply.
+"""
 struct Ply{M} <: AbstractPly
     name::String # name of the ply
     material::M # material of the ply
@@ -41,6 +46,15 @@ struct Ply{M} <: AbstractPly
     _Dts::FFltMat # transverse shear stiffness matrix
 end
 
+"""
+    Ply{M} <: AbstractPly
+
+Create a ply.
+
+Provide name, material of the ply, thickness of the ply, an angle between the
+first bases vector of the layup coordinate system and the first direction of
+the ply material coordinate system.
+"""
 function Ply(name, material::M, thickness, angle) where {M}
     # First we extract the full three dimensional stiffness matrix of the
     # material
@@ -120,6 +134,15 @@ struct CompositeLayup
     csys::CSys # updater of the material orientation matrix
 end
 
+"""
+    CompositeLayup(name, plies, mcsys)
+
+Create a composite layup.
+
+Provide the name, the array of plies, and the coordinate system that defines the
+orientation of the composite layup. The first base spector of this coordinate
+system is the reference direction for the layup.
+"""
 function CompositeLayup(name, plies, mcsys)
     offset = 0.0
     return CompositeLayup(name, offset, plies, mcsys)
@@ -196,6 +219,21 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
         zs += p.thickness
     end
     return H
+end
+
+function laminate_inertia!(cl::CompositeLayup)
+    layup_thickness = sum(p.thickness for p in cl.plies)
+    zs = -layup_thickness/2 - cl.offset
+    mass_density = 0.0
+    moment_of_inertia_density = 0.0
+    for p in cl.plies
+        rho = massdensity(p.material); # mass density
+        ze = zs + p.thickness
+        mass_density += (ze - zs) * rho
+        moment_of_inertia_density += (ze^3 - zs^3) * rho / 3
+        zs += p.thickness
+    end
+    return mass_density, moment_of_inertia_density
 end
 
 """

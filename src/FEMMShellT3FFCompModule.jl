@@ -11,7 +11,7 @@ using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!,
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: QTEQTransformer, QEQTTransformer
-using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!
+using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
 
 const __nn = 3 # number of nodes
@@ -584,53 +584,61 @@ function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, 
     transformwith = QTEQTransformer(elmat)
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
-    rho::FFlt = massdensity(self.material); # mass density
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
     drilling_stiffness_scale = self.drilling_stiffness_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
-    for i = 1:count(fes) # Loop over elements
-        gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        _centroid!(centroid, ecoords)
-        _compute_J!(J0, ecoords)
-        _e_g!(E_G, J0)
-        _ecoords_e!(ecoords_e, J0, E_G)
-        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        # Compute the translational and rotational masses corresponding to nodes
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
-        tfactor = rho*(t*Ae)/3;
-        rfactor = rho*(t^3/12*Ae)/3;
-        # end # Loop over quadrature points
-        # Now treat the transformation from the element to the nodal triad
-        _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-        # Fill the elementwise matrix in the nodal basis: the matrix is lumped,
-        # hence diagonal, and no transformation from element to nodal is needed.
-        fill!(elmat,  0.0); # Initialize element matrix
-        for k in 1:npe
-            # Translation degrees of freedom
-            for d in 1:3
-                c = (k - 1) * __ndof + d
-                elmat[c, c] += tfactor
-            end
-            # Bending degrees of freedom
-            for d in 4:5
-                c = (k - 1) * __ndof + d
-                elmat[c, c] += rfactor
-            end
-            # Drilling rotations
-            if nvalid[k]
-                d = 6
-                c = (k - 1) * __ndof + d
-                elmat[c, c] += rfactor * drilling_stiffness_scale / 1e3
-            end
-        end
-        # Transform into global coordinates
-        _transfmat_g_to_a!(T, A_Es, E_G)
-        transformwith(elmat, T)
-        # Assemble
-        gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
-        assemble!(assembler,  elmat,  dofnums,  dofnums);# assemble symmetric matrix
-    end # Loop over elements
+    for lg in self.layup_groups
+            layup = lg[1]
+            eset = lg[2]
+            mass_density, moment_of_inertia_density = laminate_inertia!(layup)
+            for i in eset # Loop over elements in the layup group
+                gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
+                _centroid!(centroid, ecoords)
+                _compute_J!(J0, ecoords)
+                _e_g!(E_G, J0)
+                _ecoords_e!(ecoords_e, J0, E_G)
+                gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
+                # Compute the translational and rotational masses corresponding
+                # to nodes
+
+                tfactor = mass_density*(Ae/3);
+                rfactor = moment_of_inertia_density*(Ae/3);
+                # end # Loop over quadrature points
+
+                # Now treat the transformation from the element to the nodal
+                # triad
+                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+                # Fill the elementwise matrix in the nodal basis: the matrix is
+                # lumped, hence diagonal, and no transformation from element to
+                # nodal is needed.
+                fill!(elmat,  0.0); # Initialize element matrix
+                for k in 1:npe
+                    # Translation degrees of freedom
+                    for d in 1:3
+                        c = (k - 1) * __ndof + d
+                        elmat[c, c] += tfactor
+                    end
+                    # Bending degrees of freedom
+                    for d in 4:5
+                        c = (k - 1) * __ndof + d
+                        elmat[c, c] += rfactor
+                    end
+                    # Drilling rotations
+                    if nvalid[k]
+                        d = 6
+                        c = (k - 1) * __ndof + d
+                        elmat[c, c] += rfactor * drilling_stiffness_scale / 1e3
+                    end
+                end
+                # Transform into global coordinates
+                _transfmat_g_to_a!(T, A_Es, E_G)
+                transformwith(elmat, T)
+                # Assemble
+                gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
+                assemble!(assembler,  elmat,  dofnums,  dofnums);# assemble symmetric matrix
+            end # Loop over elements
+        end # Loop over layup groups
     return makematrix!(assembler);
 end
 
