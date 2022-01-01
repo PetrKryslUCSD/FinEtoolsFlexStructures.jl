@@ -75,6 +75,7 @@ function test_homogeneous()
     d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
     # @show nconv
     fs = real(sqrt.(complex(d))) / (2 * pi)
+    # From Blevins, Table 5.3, square plate SSSS
     # for m in 1:3
     #     for n in 1:3
     #         @show pi^2 * (m^2 + n^2) * sqrt(D/rho/thickness) / (2 * pi * ax^2)
