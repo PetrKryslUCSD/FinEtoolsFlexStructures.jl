@@ -528,3 +528,44 @@ using .mlayup16
 mlayup16.test()
 
 
+module mlayup17
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test()
+    CM = CompositeLayupModule
+    # From Barbero's Introduction ... book Example 5.1
+    E1 = 19981*phun("MPa")
+    E2 = 11389*phun("MPa")
+    G12 = 3789*phun("MPa")
+    G13 = G12
+    nu12 = 0.274;
+    nu23 = 0.385
+    G23 = E2 / 2 / (1 + nu23)
+    rho= 8000*phun("KG/
+        M^3");
+    lamina_thickness = 0.000635*phun("m");
+    CM = CompositeLayupModule
+    mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
+    A = fill(0.0, 3, 3)
+    B = fill(0.0, 3, 3)
+    C = fill(0.0, 3, 3)
+    H = fill(0.0, 2, 2)
+    # "angle-ply" fabric: coupling of extension and bending
+    cl = CM.CompositeLayup("sample", [
+        CM.Ply("ply1", mater, lamina_thickness, +55), 
+        CM.Ply("ply2", mater, lamina_thickness, -55)], CM.cartesian_csys((1, 2, 3)))
+    A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
+        # @show A./phun("GPa*mm")
+        # @show B./phun("GPa*mm^2")
+        # @show C./phun("GPa*mm^3")
+    @test norm(A ./ phun("GPa*mm") - [15.750094989634595 7.251254089385766 0.0; 7.251254089385766 19.649009057288648 0.0; 0.0 0.0 7.922964492619891]) < 1.0e-6 
+    @test norm(B ./ phun("GPa*mm^2") - [0.0 0.0 -0.49077785837523136; 0.0 0.0 -1.2097804564769328; -0.4907778583752312 -1.2097804564769326 0.0]) < 1.0e-6                 
+    @test norm(C ./ phun("GPa*mm^3") - [2.1169440173984704 0.9746289767308587 0.0; 0.9746289767308587 2.6409905590417386 0.0; 0.0 0.0 1.0649124525122187]) < 1.0e-6     
+    true
+end
+end
+using .mlayup17
+mlayup17.test()
