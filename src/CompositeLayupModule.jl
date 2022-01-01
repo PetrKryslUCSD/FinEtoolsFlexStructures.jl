@@ -90,7 +90,7 @@ density.
 """
 function lamina_material(E1, E2, nu12, G12, G13, G23)
     rho = 0.0
-    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, 0.0, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
+    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, nu12, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
 end
 
 """
@@ -99,7 +99,7 @@ end
 Create a transversely isotropic lamina material.
 """
 function lamina_material(rho, E1, E2, nu12, G12, G13, G23)
-    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, 0.0, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
+    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, nu12, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
 end
 
 """
@@ -168,6 +168,8 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
     # bending-extension coupling, and the Hij represent intralaminar shear
     # stiffness.
     A .= zero(eltype(A))
+    B .= zero(eltype(A))
+    C .= zero(eltype(A))
     Dps = deepcopy(A)
     T = deepcopy(A)
     tf = QEQTTransformer(Dps)
