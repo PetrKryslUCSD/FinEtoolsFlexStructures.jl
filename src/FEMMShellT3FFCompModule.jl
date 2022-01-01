@@ -480,7 +480,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     A, B, C, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
-    sA, sB, sC, sBT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
     tps! = QEQTTransformer(Tps)
@@ -503,15 +503,13 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             _ecoords_e!(ecoords_e, J0, E_G)
             gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
             # Working copies to be transformed
-            sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:]; 
-            sH[:] .= H[:]
+            sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
             # Transform the laminate stiffnesses
             updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
             m = dot(view(E_G, :, 1), view(layup.csys.csmat, :, 1))
             n = dot(view(E_G, :, 2), view(layup.csys.csmat, :, 1))
             plane_stress_T_matrix!(Tps, m, -n)
             tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
-            sBT[:] .= sB'[:]
             transverse_shear_T_matrix!(Tts, m, n)
             tts!(sH, Tts)
             # Construct the Stiffness Matrix
@@ -521,7 +519,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             _Bbmat!(Bb, gradN_e)
             add_btdb_ut_only!(elmat, Bb, Ae, sC, DpsBmb)
             add_b1tdb2!(elmat, Bm, Bb, Ae, sB, DpsBmb)
-            add_b1tdb2!(elmat, Bb, Bm, Ae, sBT, DpsBmb)
+            add_b1tdb2!(elmat, Bb, Bm, Ae, sB, DpsBmb)
             # he = sqrt(2*Ae) # we avoid taking the square root here, replacing
             # he^2 with 2*Ae
             if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
