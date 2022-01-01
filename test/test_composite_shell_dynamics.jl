@@ -310,7 +310,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using Test
 
-function test()
+function test(nplies = 10, axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     
@@ -331,10 +331,10 @@ function test()
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
-    plies = CM.Ply[CM.Ply("ply_1", mater, thickness, 0)]
+    plies = [CM.Ply("ply_$i", mater, thickness/nplies, 0) for i in 1:nplies]
 
-    mcsys = CM.cartesian_csys((1, 2, 3))
-    layup = CM.CompositeLayup("petyt_9.2", plies, mcsys)
+    mcsys = CM.cartesian_csys(axes)
+    layup = CM.CompositeLayup("Nayak 4.3", plies, mcsys)
 
     fens, fes = T3block(ax,ay,nx,ny);
     fens.xyz = xyz3(fens)
@@ -394,3 +394,6 @@ end
 end
 using .mcompshelldyn2
 mcompshelldyn2.test()
+mcompshelldyn2.test(3, (2, -1, 3))
+mcompshelldyn2.test(5, (-1, -2, 3))
+mcompshelldyn2.test(4, (-2, 1, 3))
