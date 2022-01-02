@@ -569,3 +569,54 @@ end
 end
 using .mlayup17
 mlayup17.test()
+
+
+module mlayup18
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test(npairs = 1)
+    # From Barbero's Introduction ... book Example 3.1
+    # ASFD/9310
+    E1 = 133860*phun("MPa")
+    E2 = 7706*phun("MPa")
+    G12 = 4306*phun("MPa")
+    G13 = G12
+    nu12 = 0.301;
+    nu23 = 0.396
+    G23 = 2760*phun("MPa")
+    npairs = 1
+    thickness = 10*phun("mm");
+    des = Dict(1 => 1585193, 5 => 317039, 20 => 79260)
+
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
+    
+    A = fill(0.0, 3, 3)
+    B = fill(0.0, 3, 3)
+    C = fill(0.0, 3, 3)
+    
+    plies = []
+    for j in 1:npairs
+        push!(plies, CM.Ply("ply1", mater, thickness/npairs/2, 0))
+        push!(plies, CM.Ply("ply1", mater, thickness/npairs/2, 90))
+    end
+    cl = CM.CompositeLayup("sample", plies, CM.cartesian_csys((1, 2, 3)))
+
+    A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
+    # @show B
+    v = des[npairs]
+    Btrue = [-v 0 0; 0 v 0; 0 0 0]
+    
+    @test norm(B - Btrue) < 1.0e-6 * v
+
+    true
+end
+end
+using .mlayup18
+mlayup18.test(1)
+mlayup18.test(5)
+mlayup18.test(20)
