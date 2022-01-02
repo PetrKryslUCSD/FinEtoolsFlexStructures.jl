@@ -948,3 +948,118 @@ end
 using .mcompshell8
 mcompshell8.test(+1)
 mcompshell8.test(-1)
+
+module mcompshell9
+# As mcompshell8, but the plate is oriented in the yz plane, with the loading in
+# the z direction.
+
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test(load_multiplier)
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    
+    ax = ay = 2000*phun("mm")
+    nx = ny = 8
+    # ASFD/9310
+    E1 = 133860*phun("MPa")
+    E2 = 7706*phun("MPa")
+    G12 = 4306*phun("MPa")
+    G13 = G12
+    nu12 = 0.301;
+    nu23 = 0.396
+    G23 = 2760*phun("MPa")
+    thickness = 10*phun("mm");
+    tolerance = ax/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
+    plies = CM.Ply[]
+    push!(plies, CM.Ply("ply_90", mater, thickness/2, 90))
+    push!(plies, CM.Ply("ply_0", mater, thickness/2, 0))
+    mcsys = CSys(Float64[
+        0 0 1; 
+        1 0 0; 
+        0 1 0])
+    layup = CM.CompositeLayup("example_3.1", plies, mcsys)
+
+    fens, fes = T3block(ax,ay,nx,ny);
+    fens.xyz = xyz3(fens)
+    for i in 1:count(fens)
+        x, y, z = fens.xyz[i, :]
+        fens.xyz[i, :] .= (z, x, y)
+    end
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Pin one of the corners
+    l1 = selectnode(fens; box = Float64[0 0 0 0 0 0], inflate = tolerance)
+    for i in [1,2, 3,]
+        setebc!(dchi, l1, true, i)
+    end
+    # Roller at the other
+    l1 = selectnode(fens; box = Float64[0 0 0 0 ax ax], inflate = tolerance)
+    for i in [2,]
+        setebc!(dchi, l1, true, i)
+    end
+    # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+
+    # Edge load
+    bfes = meshboundary(fes)
+    l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf ax ax], inflate = tolerance)
+    lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
+    fi = ForceIntensity(FFlt[0, 0, 0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
+    F = distribloads(lfemm, geom0, dchi, fi, 1);
+    l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf 0 0], inflate = tolerance)
+    lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
+    fi = ForceIntensity(FFlt[0, 0, -0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
+    F += distribloads(lfemm, geom0, dchi, fi, 1);
+    
+    # Solve
+    U = K\F
+    scattersysvec!(dchi, U[:])
+    for i in 1:3
+        # @show maximum(dchi.values[:, i]) ./phun("mm")
+        # @show minimum(dchi.values[:, i]) ./phun("mm")
+    end
+    # vtkwrite("plate-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+    
+    if load_multiplier < 0
+        @test minimum(dchi.values[:, 1]) ./phun("mm") ≈ -0.22004349767718365
+    else
+        @test maximum(dchi.values[:, 1]) ./phun("mm") ≈ 0.22004349767718365
+    end
+    true
+end
+end
+using .mcompshell9
+mcompshell9.test(+1)
+mcompshell9.test(-1)
