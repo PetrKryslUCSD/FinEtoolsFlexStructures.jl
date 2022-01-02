@@ -8,13 +8,13 @@
 
 [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl) used for 
 - Simulations of large-displacement response of three-dimensional flexible-beam structures. Linear static analysis, modal analysis, linear buckling analysis. Nonlinear statics and dynamics;
-- Simulations of shell structures. Linear static analysis, modal analysis.
+- Simulations of shell structures. Linear static analysis, modal analysis. Shells can be homogeneous or layered (laminated, composite).
 
 ## Current limitations
 
 - Only elastic structures can be modeled.
 - Only simple solid beam cross sections are implemented. Open thin-walled beams cannot be simulated at this point since the warping of the section is not enabled.
-- Shells need to be homogeneous. The layered model suitable for laminates and such is not implemented yet.
+- Shell reference surface offset not yet tested.
 - Neither beams nor shells can be attached with an offset (eccentricity).
 
 ## News

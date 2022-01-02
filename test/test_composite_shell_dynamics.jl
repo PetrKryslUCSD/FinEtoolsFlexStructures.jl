@@ -547,7 +547,7 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     
-    ax = ay = 100*phun("mm")
+    a = 100*phun("mm")
     nx = ny = 8
     # aragonite crystals
     E1 = 143.52*phun("GPa")
@@ -557,9 +557,10 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     nu12 = 0.25;
     G23 = E2*0.5
     rho = 1500.0*phun("kg/m^3") # only a guess
-    thickness = ax*tL_ratio;
+    thickness = a*tL_ratio;
     nd_fundamental = Dict(1/5 => 9.01, 1/10 => 10.449, 1/100 => 11.156)
-    tolerance = ax/nx/100
+    approx_nd_fundamental = Dict(1/5 => 8.754289808606417, 1/10 => 10.35796013315713, 1/100 => 11.160996567154124)
+    tolerance = a/nx/100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
@@ -571,7 +572,7 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     mcsys = CM.cartesian_csys(axes)
     layup = CM.CompositeLayup("Nayak 4.4", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(a,a,nx,ny);
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -586,21 +587,29 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # Pin one of the corners
-    l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2, 3,]
-        setebc!(dchi, l1, true, i)
-    end
-    # Roller at the other
-    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,]
-        setebc!(dchi, l1, true, i)
-    end
     # Simple support
-    l1 = connectednodes(meshboundary(fes))
-    for i in [1, 2, 3]
-        setebc!(dchi, l1, true, i)
-    end
+        # The boundary conditions are a bit peculiar: refer to the paper
+        l1 = selectnode(fens; box = Float64[0 0 -Inf Inf 0 0], inflate = tolerance)
+        for i in [2, 4]
+            setebc!(dchi, l1, true, i)
+        end
+        l1 = selectnode(fens; box = Float64[a a -Inf Inf 0 0], inflate = tolerance)
+        for i in [2, 4]
+            setebc!(dchi, l1, true, i)
+        end
+        l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 0 0], inflate = tolerance)
+        for i in [1, 5]
+            setebc!(dchi, l1, true, i)
+        end
+        l1 = selectnode(fens; box = Float64[-Inf Inf a a 0 0], inflate = tolerance)
+        for i in [1, 5]
+            setebc!(dchi, l1, true, i)
+        end
+        # Simple support
+        l1 = connectednodes(meshboundary(fes))
+        for i in [3]
+            setebc!(dchi, l1, true, i)
+        end
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -615,15 +624,16 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     
-    @show nd_fundamental[tL_ratio]
-    @show 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)
+    # @show nd_fundamental[tL_ratio]
+    # @show 2*pi*fs[1]*a^2/thickness*sqrt(rho/E2)
+    @test 2*pi*fs[1]*a^2/thickness*sqrt(rho/E2) ≈ approx_nd_fundamental[tL_ratio]
     # @test abs(nd_fundamental[tL_ratio] - 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)) / nd_fundamental[tL_ratio] < 3.0e-2
-    vectors = []
-    for i in 1:neigvs
-        scattersysvec!(dchi, v[:, i])
-        push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
-    end
-    vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
+    # vectors = []
+    # for i in 1:neigvs
+    #     scattersysvec!(dchi, v[:, i])
+    #     push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
+    # end
+    # vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
     
     true
 end
@@ -635,7 +645,7 @@ mcompshelldyn4.test(1/100, (1, 2, 3))
 mcompshelldyn4.test(1/100, (2, -1, 3))
 mcompshelldyn4.test(1/100, (-2, 1, 3))
 
-module mcompshell6
+module mcompshelldyn6
 # Similar definition of the plate as in:
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 # Free vibration problem, fundamental frequency with Abaqus 42.656 Hz
@@ -722,10 +732,10 @@ function test()
     true
 end
 end
-using .mcompshell6
-mcompshell6.test()
+using .mcompshelldyn6
+mcompshelldyn6.test()
 
-module mcompshell7
+module mcompshelldyn7
 # Similar definition of the plate as in mcompshell6
 # but the layup is [-45/45]
 # Free vibration problem, fundamental frequency with Abaqus 42.656 Hz
@@ -812,6 +822,6 @@ function test(axes = (1, 2, 3))
     true
 end
 end
-using .mcompshell7
-mcompshell7.test()
-mcompshell7.test((-2, 1, 3))
+using .mcompshelldyn7
+mcompshelldyn7.test()
+mcompshelldyn7.test((-2, 1, 3))

@@ -1066,7 +1066,7 @@ mcompshell9.test(-1)
 
 module mcompshell10
 # A mixed-enhanced finite-element for the analysis of laminated composite plates
-# FERDINANDO AURICCHIO 1 AND ELIO SACCO
+# FERDINANDO AURICCHIO, ELIO SACCO
 
 # Laminated [0/90] cross-ply square simply supported plate. Uniform Distributed
 # Loading. Results in Table IV.
