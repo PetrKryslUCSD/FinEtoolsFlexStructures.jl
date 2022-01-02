@@ -33,8 +33,15 @@
 
 ## Testing
 
-Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
-as a result of cloning the repository.
+The package `FinEtoolsFlexStructures.jl` is registered. Simply do
+```
+using Pkg; Pkg.add("FinEtoolsFlexStructures"); 
+Pkg.test("FinEtoolsFlexStructures"); 
+```
+
+The package can also be cloned.
+Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, 
+which is the result of cloning the repository.
 The present package can be tested with
 ```
 using Pkg; Pkg.activate("."); Pkg.instantiate(); 
@@ -43,7 +50,7 @@ using Pkg; Pkg.test();
 
 ## Examples
 
-The project was developed with Julia 1.6, and is operational with any version above that.
+The project was developed with Julia 1.6.4, and is operational with any version above that.
 
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
 as a result of cloning the repository.
