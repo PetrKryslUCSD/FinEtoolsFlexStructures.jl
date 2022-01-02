@@ -521,3 +521,297 @@ mcompshelldyn3.test(1/100, (1, 2, 3))
 mcompshelldyn3.test(1/100, (2, -1, 3))
 mcompshelldyn3.test(1/100, (-2, 1, 3))
 
+
+module mcompshelldyn4
+
+# Journal of Sound and Vibration (1985) 98(2), 157-170 STABILITY AND VIBRATION
+# OF ISOTROPIC, ORTHOTROPIC AND LAMINATED PLATES ACCORDING TO A HIGHER-ORDER
+# SHEAR DEFORMATION THEORY J. N. REDDY AND N. D. PHAN
+
+# TABLE 3  Non-dimensionalized fundamental frequencies of cross-ply square
+# plates
+
+using Arpack
+using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test(tL_ratio = 1/100, axes = (1, 2, 3))
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    
+    ax = ay = 100*phun("mm")
+    nx = ny = 8
+    # aragonite crystals
+    E1 = 143.52*phun("GPa")
+    E2 = E1/40
+    G12 = E2*0.6
+    G13 = E2*0.6
+    nu12 = 0.25;
+    G23 = E2*0.5
+    rho = 1500.0*phun("kg/m^3") # only a guess
+    thickness = ax*tL_ratio;
+    nd_fundamental = Dict(1/5 => 9.01, 1/10 => 10.449, 1/100 => 11.156)
+    tolerance = ax/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
+    nplies = 2
+    plies = [
+    CM.Ply("ply_1", mater, thickness/nplies, 0), 
+    CM.Ply("ply_2", mater, thickness/nplies, 90),  ]
+
+    mcsys = CM.cartesian_csys(axes)
+    layup = CM.CompositeLayup("Nayak 4.4", plies, mcsys)
+
+    fens, fes = T3block(ax,ay,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), CM.thickness(layup)), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Pin one of the corners
+    l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
+    for i in [1,2, 3,]
+        setebc!(dchi, l1, true, i)
+    end
+    # Roller at the other
+    l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
+    for i in [2,]
+        setebc!(dchi, l1, true, i)
+    end
+    # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1, 2, 3]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = formul.mass(femm, geom0, dchi);
+
+    # Solve
+    neigvs = 9
+    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    @test nconv == neigvs   
+    fs = real(sqrt.(complex(d))) / (2 * pi)
+    
+    @show nd_fundamental[tL_ratio]
+    @show 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)
+    # @test abs(nd_fundamental[tL_ratio] - 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)) / nd_fundamental[tL_ratio] < 3.0e-2
+    vectors = []
+    for i in 1:neigvs
+        scattersysvec!(dchi, v[:, i])
+        push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
+    end
+    vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
+    
+    true
+end
+end
+using .mcompshelldyn4
+mcompshelldyn4.test(1/5, (1, 2, 3))
+mcompshelldyn4.test(1/10, (1, 2, 3))
+mcompshelldyn4.test(1/100, (1, 2, 3))
+mcompshelldyn4.test(1/100, (2, -1, 3))
+mcompshelldyn4.test(1/100, (-2, 1, 3))
+
+module mcompshell6
+# Similar definition of the plate as in:
+# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
+# Free vibration problem, fundamental frequency with Abaqus 42.656 Hz
+using Arpack
+using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test()
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    
+    ax = ay = 1000*phun("mm") # note the changed dimension
+    nx = ny = 50
+    # ASFD/9310
+    rho = 1500*phun("kg/m^3")
+    E1 = 133860*phun("MPa")
+    E2 = 7706*phun("MPa")
+    G12 = 4306*phun("MPa")
+    G13 = G12
+    nu12 = 0.301;
+    nu23 = 0.396
+    G23 = 2760*phun("MPa")
+    
+    npairs = 1
+    thickness = 10*phun("mm");
+    # With these inputs, the Abaqus-verified solution is 42.656 Hz
+
+    tolerance = ax/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
+    plies = CM.Ply[]
+    for p in 1:npairs
+        push!(plies, CM.Ply("ply_0_$p", mater, thickness/npairs/2, 0))
+        push!(plies, CM.Ply("ply_90_$p", mater, thickness/npairs/2, 90))
+    end
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("example_3.1", plies, mcsys)
+
+    fens, fes = T3block(ax,ay,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1, 2, 3]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = formul.mass(femm, geom0, dchi);
+
+        # Solve
+    neigvs = 9
+    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    @test nconv == neigvs   
+    fs = real(sqrt.(complex(d))) / (2 * pi)
+    @test abs(fs[1] - 42.62) / 42.62 < 1.0e-2
+    # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+    # @test minimum(dchi.values[:, 3]) ./phun("mm") ≈ -1502.0324040447633
+    true
+end
+end
+using .mcompshell6
+mcompshell6.test()
+
+module mcompshell7
+# Similar definition of the plate as in mcompshell6
+# but the layup is [-45/45]
+# Free vibration problem, fundamental frequency with Abaqus 42.656 Hz
+using Arpack
+using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Test
+
+function test(axes = (1, 2, 3))
+    formul = FEMMShellT3FFCompModule
+    CM = CompositeLayupModule
+    
+    ax = ay = 1000*phun("mm") # note the changed dimension
+    nx = ny = 50
+    # ASFD/9310
+    rho = 1500*phun("kg/m^3")
+    E1 = 133860*phun("MPa")
+    E2 = 7706*phun("MPa")
+    G12 = 4306*phun("MPa")
+    G13 = G12
+    nu12 = 0.301;
+    nu23 = 0.396
+    G23 = 2760*phun("MPa")
+    
+    npairs = 1
+    thickness = 10*phun("mm");
+    # With these inputs, the Abaqus-verified solution is 47.03 Hz
+
+    tolerance = ax/nx/100
+    CM = CompositeLayupModule
+
+    mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
+    plies = CM.Ply[]
+    for p in 1:npairs
+        push!(plies, CM.Ply("ply_-45_$p", mater, thickness/npairs/2, -45))
+        push!(plies, CM.Ply("ply_+45_$p", mater, thickness/npairs/2, +45))
+    end
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("example_3.1", plies, mcsys)
+
+    fens, fes = T3block(ax,ay,nx,ny);
+    fens.xyz = xyz3(fens)
+    sfes = FESetShellT3()
+    accepttodelegate(fes, sfes)
+
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [1, 2, 3]
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    formul.associategeometry!(femm, geom0)
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = formul.mass(femm, geom0, dchi);
+
+        # Solve
+    neigvs = 9
+    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    @test nconv == neigvs   
+    fs = real(sqrt.(complex(d))) / (2 * pi)
+    @test abs(fs[1] - 47.86476186783638) / 47.86476186783638 < 1.0e-2
+    # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
+
+    # @test minimum(dchi.values[:, 3]) ./phun("mm") ≈ -1502.0324040447633
+    true
+end
+end
+using .mcompshell7
+mcompshell7.test()
+mcompshell7.test((-2, 1, 3))
