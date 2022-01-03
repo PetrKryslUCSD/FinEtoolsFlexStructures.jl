@@ -13,7 +13,6 @@ using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: QTEQTransformer, QEQTTransformer, Layup2ElementAngle
 using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
-using Infiltrator # REMOVE
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
