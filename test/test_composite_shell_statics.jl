@@ -1180,6 +1180,8 @@ mcompshell10.test()
 
 module mcompshell11
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.7
+# Here we actually solve original benchmark:
+# R0031(3): Three-layer sandwich shell under normal pressure loading
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtoolsDeforLinear
@@ -1195,7 +1197,7 @@ function test()
     CM = CompositeLayupModule
     
     a = 2*127*phun("mm") 
-    nx = ny = 8
+    nx = ny = 18
    
     E1 = 68947.57*phun("MPa")
     E2 = 27579.03*phun("MPa")
@@ -1241,9 +1243,9 @@ function test()
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # Clamped support
+    # Simple support
     l1 = connectednodes(meshboundary(fes))
-    for i in [1,2,3,4,5,6]
+    for i in [1,2,3,]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -1261,14 +1263,10 @@ function test()
     U = K\F
     scattersysvec!(dchi, U[:])
 
-    @test maximum(dchi.values[:, 3])./phun("mm") ≈ 1.8787971409907
-    # @show maximum(dchi.values[:, 1]) * (100*E2) / (q*thickness*(a/thickness)^4)
-    # @test maximum(dchi.values[:, 3]) * (100*E2) / (q*thickness*(a/thickness)^4) ≈ 1.9529295928169146
-    # @test maximum(dchi.values[:, 1]) * (100*E2) / (q*thickness*(a/thickness)^4) ≈ 0.12375916912652352
+    # R0031(3): Three-layer sandwich shell under normal pressure loading
+    # lists 0.123'' = 3.1242 mm
+    @test maximum(dchi.values[:, 3])./phun("mm") ≈ 3.2024601774900674
     
-    # vtkwrite("plate--uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
-
-    # @test minimum(dchi.values[:, 3]) ./phun("mm") ≈ -1176.8346659735575
     true
 end
 end
