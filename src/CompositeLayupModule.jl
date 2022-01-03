@@ -324,12 +324,22 @@ function  plane_stress_Tinv_matrix_eng!(Tinvm::Array{T, 2}, angle) where {T}
     return Tinvm
 end
 
+"""
+    transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
+
+Compute the transformation matrix for the transverse shear stiffness.
+"""
 function  transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
     m=cos(angle); 
     n=sin(angle); 
     return transverse_shear_T_matrix!(Tm, m, n)
 end
 
+"""
+    transverse_shear_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
+
+Compute the transformation matrix for the transverse shear stiffness.
+"""
 function  transverse_shear_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
     # Barbero, Introduction, a in equation 5.7
     Tm[1, 1] =  m;  Tm[1, 2] = n;   
