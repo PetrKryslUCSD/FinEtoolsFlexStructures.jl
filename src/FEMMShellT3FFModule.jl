@@ -10,8 +10,9 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer
+using ..TransformerModule: QTEQTransformer, Layup2ElementAngle
 
+using Infiltrator # REMOVE
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -806,6 +807,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = QTEQTransformer(elmat)
+    lla = Layup2ElementAngle()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
@@ -814,6 +816,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
+    o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
     outputcsys = self.mcsys; # default: report the stresses in the material coord system
     for apair in pairs(context)
@@ -857,8 +860,9 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         if dot(view(outputcsys.csmat, :, 3), view(E_G, :, 3)) < 0.95
             @warn "Coordinate systems mismatched?"
         end
-        o_e = E_G' * outputcsys.csmat
-        o2_e = o_e[1:2, 1:2]
+        ocsm, ocsn = lla(E_G, outputcsys.csmat)
+        o2_e[1, 1] = o2_e[2, 2]  = ocsm
+        o2_e[1, 2] = ocsn; o2_e[2, 1] = -ocsn
         # Compute the Requested Quantity
         if quant == BENDING_MOMENT
             _Bbmat!(Bb, gradN_e)
@@ -874,8 +878,8 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
             frc = (t)*Dps * strn
             f = [frc[1] frc[3]; frc[3] frc[2]]
             fo = o2_e' * f * o2_e
-            # @infiltrate
             out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
+            # @infiltrate
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)

@@ -10,9 +10,10 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer, QEQTTransformer
+using ..TransformerModule: QTEQTransformer, QEQTTransformer, Layup2ElementAngle
 using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
+using Infiltrator # REMOVE
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -488,6 +489,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = QTEQTransformer(elmat)
+    lla = Layup2ElementAngle()
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
@@ -519,8 +521,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
             # Transform the laminate stiffnesses
             updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
-            m = dot(view(E_G, :, 1), view(layup.csys.csmat, :, 1))
-            n = dot(view(E_G, :, 2), view(layup.csys.csmat, :, 1))
+            m, n = lla(E_G, layup.csys.csmat) 
             plane_stress_T_matrix!(Tps, m, -n)
             tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
             transverse_shear_T_matrix!(Tts, m, n)
@@ -707,10 +708,12 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     Tps, Tts = zeros(3, 3), zeros(2, 2)
     tps! = QEQTTransformer(Tps)
     tts! = QEQTTransformer(Tts)
+    lla = Layup2ElementAngle()
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
+    o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
     outputcsys = self.layup_groups[1][1].csys; # default: report the stresses in the material coord system
     for apair in pairs(context)
@@ -762,16 +765,16 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         # Established the stiffness matrices
         sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
         # Transform the laminate stiffnesses
-        updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
-        m = dot(view(E_G, :, 1), view(layup.csys.csmat, :, 1))
-        n = dot(view(E_G, :, 2), view(layup.csys.csmat, :, 1))
+        updatecsmat!(layup.csys, centroid, J0, fes.label[i]);
+        m, n = lla(E_G, layup.csys.csmat)
         plane_stress_T_matrix!(Tps, m, -n)
         tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
         transverse_shear_T_matrix!(Tts, m, n)
         tts!(sH, Tts)
         # The output coordinate system
-        o_e = E_G' * outputcsys.csmat
-        o2_e = o_e[1:2, 1:2]
+        ocsm, ocsn = lla(E_G, outputcsys.csmat)
+        o2_e[1, 1] = o2_e[2, 2]  = ocsm
+        o2_e[1, 2] = ocsn; o2_e[2, 1] = -ocsn
         # Compute the Requested Quantity
         _Bbmat!(Bb, gradN_e)
         _Bmmat!(Bm, gradN_e)
@@ -787,8 +790,8 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
             frc = sA * memstr + sB * kurv
             f = [frc[1] frc[3]; frc[3] frc[2]]
             fo = o2_e' * f * o2_e
-            # @infiltrate
             out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
+            # @infiltrate
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)

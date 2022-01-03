@@ -69,4 +69,28 @@ Perform the transformation on the matrix `E` with the transformation matrix
     return E
 end
 
+struct Layup2ElementAngle
+    M::FFltMat
+    M2D::FFltMat
+end
+
+function Layup2ElementAngle()
+    Layup2ElementAngle(fill(0.0, 3, 3), fill(0.0, 2, 2))
+end
+   
+function (o::Layup2ElementAngle)(E_G, lcsmat)
+    mul!(o.M, E_G', lcsmat)
+    o.M2D[1, 1] = o.M[1, 1]
+    o.M2D[1, 2] = o.M[1, 2]
+    o.M2D[2, 1] = o.M[2, 1]
+    o.M2D[2, 2] = o.M[2, 2]
+    o.M2D[:, 1] ./= norm(@view o.M2D[:, 1])
+    o.M2D[:, 2] ./= norm(@view o.M2D[:, 2])
+    m = (o.M2D[1, 1] + o.M2D[2, 2]) / 2
+    n = (o.M2D[1, 2] - o.M2D[2, 1]) / 2
+    sn = n >= 0.0 ? +1.0 : -1.0
+    n = sn * sqrt(1 - m^2)
+    return m, n
+end
+
 end # module
