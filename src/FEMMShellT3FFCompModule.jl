@@ -36,14 +36,18 @@ For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
 mutable struct FEMMShellT3FFComp{S<:AbstractFESet, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
+    # Definitions of layups
     layup_groups::Vector{Tuple{CompositeLayup, Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
+    # Configuration parameters
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
     mult_el_size::Float64
+    # Private data
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
+    _layup_group_lookup::FIntVec # look up the layup group for each element
     # The attributes below are buffers used in various operations.
     _loc::FFltMat
     _J0::FFltMat
@@ -80,6 +84,15 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup
     end
     # When there is only a single layup, all elements belong to a single group
     layup_groups = [(layup, collect(1:count(integdomain.fes)))]
+    _layup_group_lookup = fill(zero(FInt), count(integdomain.fes))
+    @show length(_layup_group_lookup)
+    for j in 1:length(layup_groups)
+        eset = layup_groups[j][2]
+        for i in eset # Loop over elements in the layup group
+            _layup_group_lookup[i] = j
+        end
+    end
+    # Allocate space for the normals
     _normals = fill(0.0, _nnmax, 3)
     _normal_valid = fill(true, _nnmax)
     # Alocate the buffers
@@ -104,8 +117,8 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup
 
     return FEMMShellT3FFComp(integdomain, layup_groups, 
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
-        false,
-        _normals, _normal_valid,
+        false, _normals, _normal_valid,
+        _layup_group_lookup,
         _loc, _J0,
         _ecoords, _edisp, _ecoords_e, _edisp_e,
         _dofnums, 
@@ -684,16 +697,22 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = QTEQTransformer(elmat)
+    _nodal_triads_e! = NodalTriadsE()
+    _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    Dps, Dt = _shell_material_stiffness(self.material)
-    scf = 5/6;  # shear correction factor
-    Dt .*= scf
+    A, B, C, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    H = zeros(2, 2)
+    sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    sH = zeros(2, 2)
+    Tps, Tts = zeros(3, 3), zeros(2, 2)
+    tps! = QEQTTransformer(Tps)
+    tts! = QEQTTransformer(Tts)
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
     # Sort out  the output requirements
-    outputcsys = self.mcsys; # default: report the stresses in the material coord system
+    outputcsys = self.layup_groups[1][1].csys; # default: report the stresses in the material coord system
     for apair in pairs(context)
         sy, val = apair
         if sy == :outputcsys
@@ -714,6 +733,11 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     # Loop over  all the elements and all the quadrature points within them
     for ilist = 1:length(felist) # Loop over elements
         i = felist[ilist];
+        # Look up the layup
+        layup = self.layup_groups[self._layup_group_lookup[i]][1]
+        t = thickness(layup)
+        laminate_stiffnesses!(layup, A, B, C)
+        laminate_transverse_stiffness!(layup, H)
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
         gathervalues_asvec!(u, edisp, fes.conn[i]);
         _centroid!(centroid, ecoords)
@@ -735,21 +759,32 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         if dot(view(outputcsys.csmat, :, 3), view(E_G, :, 3)) < 0.95
             @warn "Coordinate systems mismatched?"
         end
+        # Established the stiffness matrices
+        sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
+        # Transform the laminate stiffnesses
+        updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
+        m = dot(view(E_G, :, 1), view(layup.csys.csmat, :, 1))
+        n = dot(view(E_G, :, 2), view(layup.csys.csmat, :, 1))
+        plane_stress_T_matrix!(Tps, m, -n)
+        tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
+        transverse_shear_T_matrix!(Tts, m, n)
+        tts!(sH, Tts)
+        # The output coordinate system
         o_e = E_G' * outputcsys.csmat
         o2_e = o_e[1:2, 1:2]
         # Compute the Requested Quantity
+        _Bbmat!(Bb, gradN_e)
+        _Bmmat!(Bm, gradN_e)
+        kurv = Bb * edisp_e
+        memstr = Bm * edisp_e
         if quant == BENDING_MOMENT
-            _Bbmat!(Bb, gradN_e)
-            kurv = Bb * edisp_e
-            mom = ((t^3)/12)*Dps * kurv
+            mom = sB * memstr + sC * kurv
             m = [mom[1] mom[3]; mom[3] mom[2]]
             mo = o2_e' * m * o2_e
             out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
         end
         if quant == MEMBRANE_FORCE
-            _Bmmat!(Bm, gradN_e)
-            strn = Bm * edisp_e
-            frc = (t)*Dps * strn
+            frc = sA * memstr + sB * kurv
             f = [frc[1] frc[3]; frc[3] frc[2]]
             fo = o2_e' * f * o2_e
             # @infiltrate
@@ -758,8 +793,8 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)
             he = sqrt(2*Ae)
-            shr = Bs * edisp_e
-            frc = ((t^3/(t^2+mult_el_size*2*Ae)))*Dt * shr
+            shrstr = Bs * edisp_e
+            frc = (t^2/(t^2+mult_el_size*2*Ae))*sH * shrstr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end 
