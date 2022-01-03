@@ -84,8 +84,8 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup
     end
     # When there is only a single layup, all elements belong to a single group
     layup_groups = [(layup, collect(1:count(integdomain.fes)))]
+    # Establish the mapping from the elements to the layup group
     _layup_group_lookup = fill(zero(FInt), count(integdomain.fes))
-    @show length(_layup_group_lookup)
     for j in 1:length(layup_groups)
         eset = layup_groups[j][2]
         for i in eset # Loop over elements in the layup group
