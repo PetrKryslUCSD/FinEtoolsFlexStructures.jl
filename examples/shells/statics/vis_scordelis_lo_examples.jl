@@ -5,18 +5,18 @@ analysis of shells.
 The candidate element's usefulness in irregular geometries (and most practical
 cases involve a high degree of geometric irregularity) is tested. As would be
 expected,the irregular mesh results are not as good as those provided by a
-regular meshwith the same number of variables. 
+regular mesh with the same number of variables. 
 
 Problem description
 
 The physical basis of the problem is a deeply arched roof supported only
-bydiaphragms at its curved edges (an aircraft hanger), deforming under its own
+by diaphragms at its curved edges (an aircraft hanger), deforming under its own
 weight. It is interesting to observe that the geometry is such that the
 centerpoint of the roof moves upward under the self-weight(downwardly directed)
 load. Perhaps this is one reason why the problem is not straightforward
 numerically. 
 """
-module scordelis_lo_examples
+module vis_scordelis_lo_examples
 
 using LinearAlgebra
 using FinEtools
@@ -121,22 +121,22 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     if visualize
 
         # Generate a graphical display of resultants
-        # scalars = []
-        # for nc in 1:3
-        #     fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
-        #     push!(scalars, ("m$nc", fld.values))
-        #     fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
-        #     push!(scalars, ("em$nc", fld.values))
-        # end
-        # vtkwrite("scordelis_lo_examples-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
-        # scalars = []
-        # for nc in 1:3
-        #     fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
-        #     push!(scalars, ("n$nc", fld.values))
-        #     fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
-        #     push!(scalars, ("en$nc", fld.values))
-        # end
-        # vtkwrite("scordelis_lo_examples-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        scalars = []
+        for nc in 1:3
+            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+            push!(scalars, ("m$nc", fld.values))
+            fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+            push!(scalars, ("em$nc", fld.values))
+        end
+        vtkwrite("vis_scordelis_lo_examples-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        scalars = []
+        for nc in 1:3
+            fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            push!(scalars, ("n$nc", fld.values))
+            fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+            push!(scalars, ("en$nc", fld.values))
+        end
+        vtkwrite("vis_scordelis_lo_examples-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
@@ -144,9 +144,9 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
         end
-        vtkwrite("scordelis_lo_examples-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("vis_scordelis_lo_examples-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
-        # vtkwrite("scordelis_lo_examples-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        # vtkwrite("vis_scordelis_lo_examples-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
         update_rotation_field!(Rfield0, dchi)
