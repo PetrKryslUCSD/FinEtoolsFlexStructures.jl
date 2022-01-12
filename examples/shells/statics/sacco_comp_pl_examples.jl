@@ -1,4 +1,4 @@
-module mcompshell10
+module sacco_comp_pl_examples
 # A mixed-enhanced finite-element for the analysis of laminated composite plates
 # FERDINANDO AURICCHIO, ELIO SACCO
 
@@ -20,32 +20,32 @@ using Test
 function test(visualize = true)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    a = 250*phun("mm") # note the changed dimension
+
+    a = 250 * phun("mm") # note the changed dimension
     nx = ny = 28
     # high modulus orthotropic graphite=epoxy composite material
-    E1 = 100*phun("GPa")
-    E2 = E1/25
-    G12 = G13 = E2*0.5
-    nu12 = 0.25;
+    E1 = 100 * phun("GPa")
+    E2 = E1 / 25
+    G12 = G13 = E2 * 0.5
+    nu12 = 0.25
     nu23 = 0.25
-    G23 = E2*0.2
-    q = 10.0*phun("kilo*Pa")
-    thickness = a/10;
+    G23 = E2 * 0.2
+    q = 10.0 * phun("kilo*Pa")
+    thickness = a / 10
     # With these inputs, the Abaqus-verified solution is -1176.8346659735575
 
-    tolerance = a/nx/100
+    tolerance = a / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(E1, E2, nu12, G12, G13, G23)
     plies = CM.Ply[
-        CM.Ply("ply_0", mater, thickness/2, 0),
-        CM.Ply("ply_90", mater, thickness/2, 90)
-        ]
+        CM.Ply("ply_0", mater, thickness / 2, 0),
+        CM.Ply("ply_90", mater, thickness / 2, 90)
+    ]
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("sacco", plies, mcsys)
 
-    fens, fes = T3block(a,a,nx,ny);
+    fens, fes = T3block(a, a, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -55,9 +55,9 @@ function test(visualize = true)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Simple support
@@ -84,21 +84,21 @@ function test(visualize = true)
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 2);
-    
+    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0])
+    F = distribloads(lfemm, geom0, dchi, fi, 2)
+
     # Solve
-    U = K\F
+    U = K \ F
     scattersysvec!(dchi, U[:])
 
-    
+
     # Visualization
     if visualize
         scalars = []
