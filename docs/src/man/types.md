@@ -100,7 +100,7 @@ Order = [:type]
 ## VisUtilModule types
 
 ```@autodocs
-Modules = [Examples.VisUtilModule]
+Modules = [VisualStructures]
 Private = true
 Order = [:type]
 ```

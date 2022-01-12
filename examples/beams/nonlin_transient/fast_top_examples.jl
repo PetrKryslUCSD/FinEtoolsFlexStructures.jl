@@ -21,7 +21,7 @@ using Arpack
 using LinearAlgebra
 using SparseArrays
 using PlotlyJS
-using Examples.VisUtilModule: plot_points, plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio
+using VisualStructures: plot_points, plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio
 
 function fasttop1()
     # Parameters:

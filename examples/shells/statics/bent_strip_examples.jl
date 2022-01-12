@@ -7,14 +7,15 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
-using Examples.VisUtilModule: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
     # Generate a graphical display of resultants
 function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
     csmatout[:, 2] .= (0.0, 1.0, 0.0)
-    csmatout[:, 3] .= (0.0, 0.0, 1.0)
+    csmatout[:, 3] .= (0.0, 0.0, 1.0)using .Main.tippling_examples; Main.tippling_examples.allrun()                 
+f
     return csmatout
 end
 

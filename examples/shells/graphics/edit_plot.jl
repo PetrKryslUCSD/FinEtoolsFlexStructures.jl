@@ -2,7 +2,7 @@ using FinEtools
 using FinEtools.MeshQuadrilateralModule
 using FinEtoolsFlexStructures.FESetShellQ4SRIModule: FESetShellQ4SRI
 using FinEtoolsFlexStructures.FESetShellDSG3Module: FESetShellDSG3
-using Examples.VisUtilModule: plot_nodes, plot_midsurface, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d, plot_from_json
+using VisualStructures: plot_nodes, plot_midsurface, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d, plot_from_json
 using PlotlyJS
 using JSON
 

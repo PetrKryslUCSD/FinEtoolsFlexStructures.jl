@@ -16,7 +16,7 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using Examples.VisUtilModule: plot_points, plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d
+using VisualStructures: plot_points, plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, default_layout_3d
 using PlotlyJS
 using JSON
 

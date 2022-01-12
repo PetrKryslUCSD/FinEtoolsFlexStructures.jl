@@ -91,8 +91,8 @@ the document string of the module: refer to the file defining the examples.
 
 ## Visualization
 
-This is possible using [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`Examples`](https://github.com/PetrKryslUCSD/Examples.VisUtilModule.jl) (module `VisUtilModule`).
-Animation of deformation during a static or dynamic simulation can be done with `PlotlyJS`.
+This is possible with [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`VisualStructures`](https://github.com/PetrKryslUCSD/VisualStructures.jl).
+Static plots or animation of deformation during a static or dynamic simulation can be done.
 
 Export to  [Paraview](https://www.paraview.org/)  is also available. Only static pictures are supported this way.
 

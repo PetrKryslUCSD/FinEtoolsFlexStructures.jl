@@ -17,7 +17,7 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using Examples.VisUtilModule: plot_space_box, plot_midline, plot_solid, render, react!, default_layout_3d, save_to_json
+using VisualStructures: plot_space_box, plot_midline, plot_solid, render, react!, default_layout_3d, save_to_json
 using PlotlyJS
 using JSON
 

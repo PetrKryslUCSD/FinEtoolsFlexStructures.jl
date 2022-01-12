@@ -100,7 +100,7 @@ Order = [:function]
 ## VisUtilModule functions
 
 ```@autodocs
-Modules = [Examples.VisUtilModule]
+Modules = [VisualStructures]
 Private = true
 Order = [:function]
 ```
