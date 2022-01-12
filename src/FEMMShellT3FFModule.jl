@@ -24,7 +24,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
 """
-    FEMMShellT3FF{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMShellT3FF{S<:FESetT3, F<:Function} <: AbstractFEMM
 
 Class for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -85,7 +85,7 @@ These attributes of the FEMM can be set after it's been created.
 - `mult_el_size`: multiplier of the square of the element size, used to control
   transverse shear stiffness.
 """
-mutable struct FEMMShellT3FF{S<:AbstractFESet, F<:Function, M} <: AbstractFEMM
+mutable struct FEMMShellT3FF{S<:FESetT3, F<:Function, M} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     mcsys::CSys # updater of the material orientation matrix
     material::M # material object.
@@ -119,11 +119,11 @@ end
 
 
 """
-    FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:AbstractFESet, F<:Function, M}
+    FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:FESetT3, F<:Function, M}
 
 Constructor of the T3FF shell FEMM.
 """
-function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellT3FF(integdomain::IntegDomain{S,F}, mcsys::CSys, material::M) where {S<:FESetT3,F<:Function,M}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -136,36 +136,38 @@ function FEMMShellT3FF(integdomain::IntegDomain{S, F}, mcsys::CSys, material::M)
     _loc = fill(0.0, 1, 3)
     _J0 = fill(0.0, 3, 2)
     _ecoords = fill(0.0, __nn, 3)
-    _edisp = fill(0.0, __nn*__ndof); 
-    _ecoords_e = fill(0.0, __nn, 2) 
-    _edisp_e = fill(0.0, __nn*__ndof); 
-    _dofnums = zeros(FInt, 1, __nn*__ndof); 
-    _E_G = fill(0.0, 3, 3); 
-    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]; 
+    _edisp = fill(0.0, __nn * __ndof)
+    _ecoords_e = fill(0.0, __nn, 2)
+    _edisp_e = fill(0.0, __nn * __ndof)
+    _dofnums = zeros(FInt, 1, __nn * __ndof)
+    _E_G = fill(0.0, 3, 3)
+    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]
     _nvalid = fill(false, 3)
-    _T = fill(0.0, __nn*__ndof, __nn*__ndof)
-    _elmat = fill(0.0, __nn*__ndof, __nn*__ndof);   
+    _T = fill(0.0, __nn * __ndof, __nn * __ndof)
+    _elmat = fill(0.0, __nn * __ndof, __nn * __ndof)
     _gradN_e = fill(0.0, __nn, 2)
-    _Bm = fill(0.0, 3, __nn*__ndof)
-    _Bb = fill(0.0, 3, __nn*__ndof)
-    _Bs = fill(0.0, 2, __nn*__ndof)
+    _Bm = fill(0.0, 3, __nn * __ndof)
+    _Bb = fill(0.0, 3, __nn * __ndof)
+    _Bs = fill(0.0, 2, __nn * __ndof)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
-    return FEMMShellT3FF(integdomain, mcsys, 
-        material, 
+    @assert delegateof(integdomain.fes) === FESetShellT3()
+
+    return FEMMShellT3FF(integdomain, mcsys,
+        material,
         # transv_shear_formulation::FInt
         # drilling_stiffness_scale::Float64
         # threshold_angle::Float64
         # mult_el_size::Float64
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5 / 12 / 1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,
         _ecoords, _edisp, _ecoords_e, _edisp_e,
-        _dofnums, 
+        _dofnums,
         _E_G, _A_Es, _nvalid, _T,
-        _elmat, 
+        _elmat,
         _gradN_e,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
@@ -181,7 +183,7 @@ function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
 end
 
 
-function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:AbstractFESet, F<:Function, M}
+function FEMMShellT3FF(integdomain::IntegDomain{S, F}, material::M) where {S<:FESetT3, F<:Function, M}
     return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
 end
 

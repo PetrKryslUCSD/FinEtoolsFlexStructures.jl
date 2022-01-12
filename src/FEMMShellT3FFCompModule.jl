@@ -26,7 +26,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
 """
-    FEMMShellT3FFComp{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
 
 Class for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -34,7 +34,7 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     # Definitions of layups
     layup_groups::Vector{Tuple{CompositeLayup, Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
@@ -71,11 +71,11 @@ end
 
 
 """
-    FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:AbstractFESet, F<:Function}
+    FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:FESetT3, F<:Function}
 
 Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 """
-function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:AbstractFESet, F<:Function}
+function FEMMShellT3FFComp(integdomain::IntegDomain{S,F}, layup::CompositeLayup) where {S<:FESetT3,F<:Function}
     _nnmax = 0
     for j in 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -99,31 +99,33 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup
     _loc = fill(0.0, 1, 3)
     _J0 = fill(0.0, 3, 2)
     _ecoords = fill(0.0, __nn, 3)
-    _edisp = fill(0.0, __nn*__ndof); 
-    _ecoords_e = fill(0.0, __nn, 2) 
-    _edisp_e = fill(0.0, __nn*__ndof); 
-    _dofnums = zeros(FInt, 1, __nn*__ndof); 
-    _E_G = fill(0.0, 3, 3); 
-    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]; 
+    _edisp = fill(0.0, __nn * __ndof)
+    _ecoords_e = fill(0.0, __nn, 2)
+    _edisp_e = fill(0.0, __nn * __ndof)
+    _dofnums = zeros(FInt, 1, __nn * __ndof)
+    _E_G = fill(0.0, 3, 3)
+    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]
     _nvalid = fill(false, 3)
-    _T = fill(0.0, __nn*__ndof, __nn*__ndof)
-    _elmat = fill(0.0, __nn*__ndof, __nn*__ndof);   
+    _T = fill(0.0, __nn * __ndof, __nn * __ndof)
+    _elmat = fill(0.0, __nn * __ndof, __nn * __ndof)
     _gradN_e = fill(0.0, __nn, 2)
-    _Bm = fill(0.0, 3, __nn*__ndof)
-    _Bb = fill(0.0, 3, __nn*__ndof)
-    _Bs = fill(0.0, 2, __nn*__ndof)
+    _Bm = fill(0.0, 3, __nn * __ndof)
+    _Bb = fill(0.0, 3, __nn * __ndof)
+    _Bs = fill(0.0, 2, __nn * __ndof)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
-    return FEMMShellT3FFComp(integdomain, layup_groups, 
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5/12/1.5,
+    @assert delegateof(integdomain.fes) === FESetShellT3()
+
+    return FEMMShellT3FFComp(integdomain, layup_groups,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5 / 12 / 1.5,
         false, _normals, _normal_valid,
         _layup_group_lookup,
         _loc, _J0,
         _ecoords, _edisp, _ecoords_e, _edisp_e,
-        _dofnums, 
+        _dofnums,
         _E_G, _A_Es, _nvalid, _T,
-        _elmat, 
+        _elmat,
         _gradN_e,
         _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
 end
