@@ -162,7 +162,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S,F}, mcsys::CSys, material::M) 
         # drilling_mass_scale::Float64
         # threshold_angle::Float64
         # mult_el_size::Float64
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 0.1, 30.0, 5 / 12 / 1.5,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 0.8, 30.0, 5 / 12 / 1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,
