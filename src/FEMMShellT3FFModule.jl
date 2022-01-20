@@ -91,6 +91,7 @@ mutable struct FEMMShellT3FF{S<:FESetT3, F<:Function, M} <: AbstractFEMM
     material::M # material object.
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
+    drilling_mass_scale::Float64
     threshold_angle::Float64
     mult_el_size::Float64
     _associatedgeometry::Bool
@@ -158,9 +159,10 @@ function FEMMShellT3FF(integdomain::IntegDomain{S,F}, mcsys::CSys, material::M) 
         material,
         # transv_shear_formulation::FInt
         # drilling_stiffness_scale::Float64
+        # drilling_mass_scale::Float64
         # threshold_angle::Float64
         # mult_el_size::Float64
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5 / 12 / 1.5,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 0.1, 30.0, 5 / 12 / 1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -714,9 +716,11 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     rho::FFlt = massdensity(self.material); # mass density
+    Dps, Dts = _shell_material_stiffness(self.material)
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
     drilling_stiffness_scale = self.drilling_stiffness_scale
+    drilling_mass_scale = self.drilling_mass_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -727,8 +731,9 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
         # Compute the translational and rotational masses corresponding to nodes
         t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
-        tfactor = rho*(t*Ae)/3;
-        rfactor = rho*(t^3/12*Ae)/3;
+        tmass = rho*(t*Ae)/3;
+        rmass = rho*(t^3/12*Ae)/3;
+        dmass = rmass * drilling_stiffness_scale  * drilling_mass_scale
         # end # Loop over quadrature points
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
@@ -739,18 +744,18 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
             # Translation degrees of freedom
             for d in 1:3
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += tfactor
+                elmat[c, c] += tmass
             end
             # Bending degrees of freedom
             for d in 4:5
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += rfactor
+                elmat[c, c] += rmass
             end
             # Drilling rotations
             if nvalid[k]
                 d = 6
                 c = (k - 1) * __ndof + d
-                elmat[c, c] += rfactor * drilling_stiffness_scale / 1e3
+                elmat[c, c] += dmass
             end
         end
         # Transform into global coordinates
