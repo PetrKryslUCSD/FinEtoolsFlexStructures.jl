@@ -81,6 +81,8 @@ These attributes of the FEMM can be set after it's been created.
     + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_B` - averaged strains (default)
     + `FEMMShellT3FFModule.__TRANSV_SHEAR_FORMULATION_AVERAGE_K` - averaged stiffness
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
+- `drilling_mass_scale`: multiplier of the drilling rotation mass; make sure 
+    this is 1.0 for explicit dynamics
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
   then this threshold, the nodal normal at that note is marked as invalid.
 - `mult_el_size`: multiplier of the square of the element size, used to control
@@ -163,7 +165,7 @@ function FEMMShellT3FF(integdomain::IntegDomain{S,F}, mcsys::CSys, material::M) 
         # drilling_mass_scale::Float64
         # threshold_angle::Float64
         # mult_el_size::Float64
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 0.8, 30.0, 5 / 12 / 1.5,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 1.0, 30.0, 5 / 12 / 1.5,
         false,
         _normals, _normal_valid,
         _loc, _J0,
@@ -720,7 +722,6 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     Dps, Dts = _shell_material_stiffness(self.material)
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
-    drilling_stiffness_scale = self.drilling_stiffness_scale
     drilling_mass_scale = self.drilling_mass_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
@@ -734,7 +735,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
         t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         tmass = rho*(t*Ae)/3;
         rmass = rho*(t^3/12*Ae)/3;
-        dmass = rmass * drilling_stiffness_scale  * drilling_mass_scale
+        dmass = rmass * drilling_mass_scale
         # end # Loop over quadrature points
         # Now treat the transformation from the element to the nodal triad
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
@@ -753,11 +754,9 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
                 elmat[c, c] += rmass
             end
             # Drilling rotations
-            if nvalid[k]
-                d = 6
-                c = (k - 1) * __ndof + d
-                elmat[c, c] += dmass
-            end
+            d = 6
+            c = (k - 1) * __ndof + d
+            elmat[c, c] += dmass
         end
         # Transform into global coordinates
         _transfmat_g_to_a!(T, A_Es, E_G)
