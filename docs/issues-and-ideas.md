@@ -1,5 +1,7 @@
-
 Issues and ideas:
+####################
+
+-- Mass scaling for drilling degrees of freedom in the composite shell element.
 
 -- Documenter:
 using FinEtoolsFlexStructures
