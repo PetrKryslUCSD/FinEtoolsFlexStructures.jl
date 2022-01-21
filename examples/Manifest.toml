@@ -77,9 +77,9 @@ version = "0.1.6"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "926870acb6cbcf029396f2f2de030282b6bc1941"
+git-tree-sha1 = "54fc4400de6e5c3e27be6047da2ef6ba355511f8"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.11.4"
+version = "1.11.6"
 
 [[ChangesOfVariables]]
 deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
@@ -171,15 +171,15 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[Dierckx]]
 deps = ["Dierckx_jll"]
-git-tree-sha1 = "5fefbe52e9a6e55b8f87cb89352d469bd3a3a090"
+git-tree-sha1 = "633c119fcfddf61fb4c75d77ce3ebab552a44723"
 uuid = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
-version = "0.5.1"
+version = "0.5.2"
 
 [[Dierckx_jll]]
-deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
-git-tree-sha1 = "a580560f526f6fc6973e8bad2b036514a4e3b013"
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "6596b96fe1caff3db36415eeb6e9d3b50bfe40ee"
 uuid = "cd4c43a9-7502-52ba-aa6d-59fb2a88580b"
-version = "0.0.1+0"
+version = "0.1.0+0"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -229,10 +229,10 @@ uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
 version = "1.2.1"
 
 [[FinEtoolsFlexStructures]]
-deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "Statistics", "SymRCM", "Test"]
+deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "Infiltrator", "LinearAlgebra", "Revise", "SparseArrays", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "1.3.2"
+version = "1.3.3"
 
 [[FixedPointNumbers]]
 deps = ["Statistics"]
@@ -242,15 +242,21 @@ version = "0.8.4"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "LogExpFunctions", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "2b72a5624e289ee18256111657663721d59c143e"
+git-tree-sha1 = "1bd6fc0c344fc0cbee1f42f8d2e7ec8253dda2d2"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.24"
+version = "0.10.25"
 
 [[FunctionalCollections]]
 deps = ["Test"]
 git-tree-sha1 = "04cb9cfaa6ba5311973994fe3496ddec19b6292a"
 uuid = "de31a74c-ac4f-5751-b3fd-e18cd04993ca"
 version = "0.5.0"
+
+[[Gnuplot]]
+deps = ["ColorSchemes", "ColorTypes", "Colors", "DataStructures", "REPL", "ReplMaker", "StatsBase", "StructC14N", "Test"]
+git-tree-sha1 = "637ee67f78c4adb222ee11c590bd1d0a1a50ba88"
+uuid = "dc211083-a33a-5b79-959f-2ff34033469d"
+version = "1.4.0"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
@@ -299,6 +305,12 @@ git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
 
+[[Infiltrator]]
+deps = ["REPL"]
+git-tree-sha1 = "310a9b99c994c4bd7ea99119a4f420c107654f75"
+uuid = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+version = "1.1.2"
+
 [[IniFile]]
 deps = ["Test"]
 git-tree-sha1 = "098e4d2c533924c921f9f9847274f2ad89e018b8"
@@ -327,9 +339,9 @@ version = "1.0.0"
 
 [[JLLWrappers]]
 deps = ["Preferences"]
-git-tree-sha1 = "642a199af8b68253517b80bd3bfd17eb4e84df6e"
+git-tree-sha1 = "22df5b96feef82434b07327e2d3c770a9b21e023"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
-version = "1.3.0"
+version = "1.4.0"
 
 [[JSExpr]]
 deps = ["JSON", "MacroTools", "Observables", "WebIO"]
@@ -345,9 +357,9 @@ version = "0.21.2"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "a2366b16704ffe78be1831341e6799ab2f4f07d2"
+git-tree-sha1 = "3cbe45f4871e60fc142154252322bcf9638c2c1d"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.0"
+version = "0.9.1"
 
 [[Kaleido_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -535,9 +547,9 @@ version = "0.12.3"
 
 [[Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "d7fa6237da8004be601e19bd6666083056649918"
+git-tree-sha1 = "92f91ba9e5941fc781fecf5494ac1da87bdac775"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.1.3"
+version = "2.2.0"
 
 [[Pidfile]]
 deps = ["FileWatching", "Test"]
@@ -589,6 +601,12 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.2.2"
+
+[[ReplMaker]]
+deps = ["REPL", "Unicode"]
+git-tree-sha1 = "76098218397ec93b925b70ce355144d539b1a8b4"
+uuid = "b873ce64-0db9-51f5-a568-4457d8e49576"
+version = "0.2.5"
 
 [[Requires]]
 deps = ["UUIDs"]
@@ -675,6 +693,12 @@ git-tree-sha1 = "51383f2d367eb3b444c961d485c565e4c0cf4ba0"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.33.14"
 
+[[StructC14N]]
+deps = ["Test"]
+git-tree-sha1 = "932b930747486efdc5f78297480c311d58374d04"
+uuid = "d2514e9c-36c4-5b8e-97e2-51e7675c221c"
+version = "0.3.0"
+
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
 git-tree-sha1 = "67005af9b9b7d5bb4d13b1e84a9841d05cdd671c"
@@ -748,7 +772,7 @@ version = "0.21.23"
 
 [[VisualStructures]]
 deps = ["FinEtools", "FinEtoolsFlexStructures", "JSON", "LinearAlgebra", "PlotlyJS", "Revise"]
-git-tree-sha1 = "9a1cd1d281b9c30b3d6347b27107942d32aa2a54"
+git-tree-sha1 = "3b9581854826d1db0b3aba1ec5e6676cd3c4b327"
 repo-rev = "main"
 repo-url = "https://github.com/PetrKryslUCSD/VisualStructures.jl.git"
 uuid = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
@@ -774,9 +798,9 @@ version = "0.6.4"
 
 [[WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams"]
-git-tree-sha1 = "4642a7b953ed9f7f043bfba58b17d6c9722d09b2"
+git-tree-sha1 = "b5e2f5b93fecfd74f239fb6879634ce8334f1cf0"
 uuid = "64499a7a-5c06-52f2-abe2-ccb03c286192"
-version = "1.12.2"
+version = "1.13.0"
 
 [[XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "Zlib_jll"]
