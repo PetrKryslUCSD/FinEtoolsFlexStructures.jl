@@ -1,8 +1,23 @@
 """
 Clamped cylinder, free vibration.
 
+The reference gives the frequencies and mode shape indicators in the table
+![](Table-freq-1.gif). Unfortunately, no indication of the accuracy of these
+numbers is provided: we don't know how many elements were used, or what type
+of elements.
+
+The mode shapes are described with M = number of circumferential waves, N =
+number of longitudinal half waves, using the tuple (M, N).
+
+For instance, for the thickness = 0.01, the fundamental frequency should be
+approximately 1701 Hz (2, 1), mode 13 frequency should be approximately 3926
+Hz (torsion). The torsional mode does not occur for thinner shells.
+
+
+
 Reference
 http://www.adina.com/newsgH53.shtml
+
 """
 module clamped_cylinder_vibration_examples
 
@@ -99,7 +114,7 @@ end
 
 function test_convergence()
     @info "Clamped cylinder vibration"
-    for n in [64] # 3:64 #
+    for n in [64] 
         _execute(n, 0.01, !false)
     end
     return true
