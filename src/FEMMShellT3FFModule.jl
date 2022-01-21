@@ -22,7 +22,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
 # stiffness matrix.
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
-using Infiltrator
+# using Infiltrator
 
 """
     FEMMShellT3FF{S<:FESetT3, F<:Function} <: AbstractFEMM
