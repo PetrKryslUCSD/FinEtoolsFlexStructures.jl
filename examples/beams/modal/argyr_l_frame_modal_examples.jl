@@ -95,8 +95,7 @@ function argyr_l_frame_modal_anim()
     b=3.0; h=30.0; L=240.0; # cross-sectional dimensions and length of each leg in millimeters
     # Choose the mass formulation:
     mass_type=2;
-    scale = 40.4
-
+    
     # Reference frequencies
     reffs = [11.2732, 30.5269]
     neigvs = 2;
@@ -150,6 +149,7 @@ function argyr_l_frame_modal_anim()
     layout[:scene][:camera][:center] = Dict(:x=>0.058, :y=>0.065, :z=>-0.122)
     pl = render(plots; layout = layout, title = "Mode $(mode)")
     Rfield1 = deepcopy(Rfield0)
+    scale = L/3  /  maximum(v[:, mode])
     for xscale in scale.*sin.(collect(0:1:72).*(2*pi/21))
         scattersysvec!(dchi, xscale.*v[:, mode])
         Rfield1 = deepcopy(Rfield0)
