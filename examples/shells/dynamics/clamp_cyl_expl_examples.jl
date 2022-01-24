@@ -3,7 +3,7 @@ Clamped cylinder, transient vibration.
 
 The cylinder is banged at the initial time (i.e. it is given an initial velocity).
 """
-module clamped_cylinder_forced_expl_examples
+module clamp_cyl_expl_examples
 
 using LinearAlgebra
 using SparseArrays
@@ -18,7 +18,7 @@ using PlotlyJS
 using Gnuplot
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-function loop!(M, K, U0, V0, tend, dt, force!, peek)
+function loop!(M, K, U0, V0, tend, dt, peek)
     U1 = deepcopy(U0)
     V1 = deepcopy(U0)
     A0 = deepcopy(U0)
@@ -31,17 +31,16 @@ function loop!(M, K, U0, V0, tend, dt, force!, peek)
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
+    A0 .= M\F;
     t = 0.0
-    A0 .= M\force!(F, t);
     peek(0, U0, t)
     @time for step in 1:nsteps
         # External loading
-        F = force!(F, t);
+        F .= 0.0
         # Displacement update
         @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
-        #
-        F .-=  mul!(E, K, U1)
         # Compute the new acceleration.
+        F .-=  mul!(E, K, U1)
         A1 .= invM .* F
         # # Update the velocity
         @. V1 = V0 + (dt/2)* (A0+A1);
@@ -58,8 +57,6 @@ nu = 0.3;
 rho = 7800.0
 R = 0.1
 L = 0.8
-omegaf = 2*pi*10^4
-tend = 15 * 2*pi/omegaf
 
 cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
     r = vec(XYZ); r[2] = 0.0;
@@ -69,7 +66,8 @@ cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
     return csmatout
 end
 
-function _execute(n = 8, thickness = 0.001, visualize = true)
+function _execute(n = 8, thickness = 0.01, visualize = true)
+    tend = 0.0015
 
     @info "Mesh: $n elements per side"
     # Mesh
@@ -157,28 +155,20 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
-        dx = XYZ[1] - fens.xyz[qpoint, 1]
-        dy = XYZ[2] - fens.xyz[qpoint, 2]
-        dz = XYZ[3] - fens.xyz[qpoint, 3]
-        mag = 10^5*exp(-20/R*sqrt(dx^2+dy^2+dz^2))
-        r = vec(XYZ); r[2] = 0.0
-        r .= vec(r)/norm(vec(r))
-        theta = atan(r[3], r[1])
-        forceout[1:3] .= r*mag
-        forceout[4:6] .= 0.0
-        return forceout
+    initialvelocity(xyz) = begin
+        rx = xyz[1] - fens.xyz[qpoint, 1]
+        ry = xyz[2] - fens.xyz[qpoint, 2]
+        - 2 * exp(-20/L*sqrt(rx^2+ry^2))
+    end
+    for i in 1:count(fens)
+        for j in 3
+            d = dchi.dofnums[i, j]
+            if d > 0
+                V0[d] = initialvelocity(fens.xyz[i, :])
+            end
+        end
     end
 
-    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
-
-    function force!(F, t)
-        F .= sin(omegaf*t) .* Fmag
-        # @show norm(F)
-        return F
-    end
     
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
@@ -192,7 +182,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         end
         nothing
     end
-    loop!(M, K, U0, V0, nsteps*dt, dt, force!, peek)
+    loop!(M, K, U0, V0, nsteps*dt, dt, peek)
     
     # @gp  "set terminal windows 0 "  :-
 
@@ -223,7 +213,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     pl = render(plots; layout=layout, title = "Step ")
     sleep(2.5)
     
-    scale = 10^6;
+    scale = 1900;
     for i in 1:length(displacements)
         scattersysvec!(dchi, scale .* displacements[i])
         Rfield1 = deepcopy(Rfield0)

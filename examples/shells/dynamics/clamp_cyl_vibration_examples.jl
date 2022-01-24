@@ -19,7 +19,7 @@ Reference
 http://www.adina.com/newsgH53.shtml
 
 """
-module clamped_cylinder_vibration_examples
+module clamp_cyl_vibration_examples
 
 using Arpack
 using LinearAlgebra

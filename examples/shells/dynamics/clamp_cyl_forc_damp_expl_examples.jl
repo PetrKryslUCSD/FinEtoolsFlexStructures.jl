@@ -3,7 +3,7 @@ Clamped cylinder, transient vibration.
 
 The cylinder is banged at the initial time (i.e. it is given an initial velocity).
 """
-module clamped_cylinder_vibration_examples
+module clamp_cyl_forc_damp_expl_examples
 
 using LinearAlgebra
 using SparseArrays
@@ -18,30 +18,47 @@ using PlotlyJS
 using Gnuplot
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-function loop!(M, K, U0, V0, tend, dt, peek)
+E = 200e9;
+nu = 0.3;
+rho = 7800.0
+R = 0.1
+L = 0.8
+ksi = 0.0
+omegad = 2*pi*1000
+color = "blue"
+omegaf = 2*pi*10^4
+tend = 15 * (2*pi/omegaf)
+
+function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     U1 = deepcopy(U0)
     V1 = deepcopy(U0)
     A0 = deepcopy(U0)
     A1 = deepcopy(U0)
     F = deepcopy(U0)
     E = deepcopy(U0)
-    invM = deepcopy(U0)
-    invM .= 1.0 ./ vec(diag(M))
+    Vp = deepcopy(U0)
+    invMC = deepcopy(U0)
+    C = (ksi*2*omegad) .* vec(diag(M))
+    invMC = 1.0 ./ (vec(diag(M)) .+ (dt/2).*C)
     nsteps = Int64(round(tend/dt))
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
-    A0 .= M\F;
     t = 0.0
+    A0 .= invMC .* force!(F, t);
     peek(0, U0, t)
     @time for step in 1:nsteps
-        # External loading
-        F .= 0.0
         # Displacement update
         @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
-        # Compute the new acceleration.
+        # External loading
+        F = force!(F, t);
+        # Add elastic restoring forces
         F .-=  mul!(E, K, U1)
-        A1 .= invM .* F
+        # Add damping forces
+        @. Vp = V0 + (dt/2) * A0
+        @. F -= C * Vp
+        # Compute the new acceleration.
+        A1 .= invMC .* F
         # # Update the velocity
         @. V1 = V0 + (dt/2)* (A0+A1);
         t = t + dt
@@ -52,12 +69,6 @@ function loop!(M, K, U0, V0, tend, dt, peek)
     end
 end
 
-E = 200e9;
-nu = 0.3;
-rho = 7800.0
-R = 0.1
-L = 0.8
-
 cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
@@ -66,8 +77,7 @@ cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
     return csmatout
 end
 
-function _execute(n = 8, thickness = 0.01, visualize = true)
-    tend = 0.0015
+function _execute(n = 8, thickness = 0.001, visualize = true)
 
     @info "Mesh: $n elements per side"
     # Mesh
@@ -142,7 +152,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     # @show sqrt(evals)
     # @show omega_max = sqrt(evals[1])
 
-    @show dt = Float64(0.9* 2/omega_max)
+    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
@@ -155,20 +165,32 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    initialvelocity(xyz) = begin
-        rx = xyz[1] - fens.xyz[qpoint, 1]
-        ry = xyz[2] - fens.xyz[qpoint, 2]
-        - 2 * exp(-20/L*sqrt(rx^2+ry^2))
-    end
-    for i in 1:count(fens)
-        for j in 3
-            d = dchi.dofnums[i, j]
-            if d > 0
-                V0[d] = initialvelocity(fens.xyz[i, :])
-            end
-        end
+    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+        dx = XYZ[1] - fens.xyz[qpoint, 1]
+        dy = XYZ[2] - fens.xyz[qpoint, 2]
+        dz = XYZ[3] - fens.xyz[qpoint, 3]
+        mag = 10^5*exp(-20/R*sqrt(dx^2+dy^2+dz^2))
+        r = vec(XYZ); r[2] = 0.0
+        r .= vec(r)/norm(vec(r))
+        theta = atan(r[3], r[1])
+        forceout[1:3] .= r*mag
+        forceout[4:6] .= 0.0
+        return forceout
     end
 
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    fi = ForceIntensity(FFlt, 6, computetrac!);
+    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+
+    function force!(F, t)
+        if t < 2 * (2*pi/omegaf)
+            F .= sin(omegaf*t) .* Fmag
+        else
+            F .= 0.0
+        end
+        # @show norm(F)
+        return F
+    end
     
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
@@ -182,11 +204,11 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         end
         nothing
     end
-    loop!(M, K, U0, V0, nsteps*dt, dt, peek)
+    loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
     
     # @gp  "set terminal windows 0 "  :-
 
-    color = "red"
+    # color = "blue"  
     @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
     @gp  :- "set xlabel 'Time'" :-
@@ -213,7 +235,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     pl = render(plots; layout=layout, title = "Step ")
     sleep(2.5)
     
-    scale = 1900;
+    scale = 10^6;
     for i in 1:length(displacements)
         scattersysvec!(dchi, scale .* displacements[i])
         Rfield1 = deepcopy(Rfield0)

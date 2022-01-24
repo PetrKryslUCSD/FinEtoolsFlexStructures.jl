@@ -3,7 +3,7 @@ Clamped cylinder, transient vibration.
 
 The cylinder is banged at the initial time (i.e. it is given an initial velocity).
 """
-module clamped_cylinder_forced_damped_expl_examples
+module clamp_cyl_forc_expl_examples
 
 using LinearAlgebra
 using SparseArrays
@@ -18,47 +18,31 @@ using PlotlyJS
 using Gnuplot
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-E = 200e9;
-nu = 0.3;
-rho = 7800.0
-R = 0.1
-L = 0.8
-ksi = 0.0
-omegad = 2*pi*1000
-color = "blue"
-omegaf = 2*pi*10^4
-tend = 15 * (2*pi/omegaf)
-
-function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
+function loop!(M, K, U0, V0, tend, dt, force!, peek)
     U1 = deepcopy(U0)
     V1 = deepcopy(U0)
     A0 = deepcopy(U0)
     A1 = deepcopy(U0)
     F = deepcopy(U0)
     E = deepcopy(U0)
-    Vp = deepcopy(U0)
-    invMC = deepcopy(U0)
-    C = (ksi*2*omegad) .* vec(diag(M))
-    invMC = 1.0 ./ (vec(diag(M)) .+ (dt/2).*C)
+    invM = deepcopy(U0)
+    invM .= 1.0 ./ vec(diag(M))
     nsteps = Int64(round(tend/dt))
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
     t = 0.0
-    A0 .= invMC .* force!(F, t);
+    A0 .= M\force!(F, t);
     peek(0, U0, t)
     @time for step in 1:nsteps
-        # Displacement update
-        @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
         # External loading
         F = force!(F, t);
-        # Add elastic restoring forces
+        # Displacement update
+        @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
+        #
         F .-=  mul!(E, K, U1)
-        # Add damping forces
-        @. Vp = V0 + (dt/2) * A0
-        @. F -= C * Vp
         # Compute the new acceleration.
-        A1 .= invMC .* F
+        A1 .= invM .* F
         # # Update the velocity
         @. V1 = V0 + (dt/2)* (A0+A1);
         t = t + dt
@@ -68,6 +52,14 @@ function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
         peek(step, U0, t)
     end
 end
+
+E = 200e9;
+nu = 0.3;
+rho = 7800.0
+R = 0.1
+L = 0.8
+omegaf = 2*pi*10^4
+tend = 15 * 2*pi/omegaf
 
 cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
     r = vec(XYZ); r[2] = 0.0;
@@ -152,7 +144,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     # @show sqrt(evals)
     # @show omega_max = sqrt(evals[1])
 
-    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    @show dt = Float64(0.9* 2/omega_max)
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
@@ -183,11 +175,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
     function force!(F, t)
-        if t < 2 * (2*pi/omegaf)
-            F .= sin(omegaf*t) .* Fmag
-        else
-            F .= 0.0
-        end
+        F .= sin(omegaf*t) .* Fmag
         # @show norm(F)
         return F
     end
@@ -204,11 +192,11 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         end
         nothing
     end
-    loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
+    loop!(M, K, U0, V0, nsteps*dt, dt, force!, peek)
     
     # @gp  "set terminal windows 0 "  :-
 
-    # color = "blue"  
+    color = "red"
     @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
     @gp  :- "set xlabel 'Time'" :-
