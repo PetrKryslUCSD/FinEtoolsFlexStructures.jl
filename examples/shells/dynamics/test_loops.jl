@@ -17,7 +17,6 @@ using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plo
 using PlotlyJS
 using Gnuplot
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
-using FLoops
 
 using BenchmarkTools
 
