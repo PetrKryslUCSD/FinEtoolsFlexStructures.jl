@@ -154,7 +154,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
 # Solve
     function pwr(K, M)
         invM = fill(0.0, size(M, 1))
-        invM = 1.0 ./ (vec(diag(M)))
+        invM .= 1.0 ./ (vec(diag(M)))
         v = rand(size(M, 1))
         w = fill(0.0, size(M, 1))
         for i in 1:30
