@@ -35,9 +35,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BitTwiddlingConvenienceFunctions]]
 deps = ["Static"]
-git-tree-sha1 = "bc1317f71de8dce26ea67fcdf7eccc0d0693b75b"
+git-tree-sha1 = "5e98d6a6aa92e5758c4d58501b7bf23732699fa3"
 uuid = "62783981-4cbd-42fc-bca8-16325de8dc4b"
-version = "0.1.1"
+version = "0.1.2"
 
 [[Blosc]]
 deps = ["Blosc_jll"]
@@ -53,9 +53,9 @@ version = "1.21.1+0"
 
 [[CPUSummary]]
 deps = ["Hwloc", "IfElse", "Static"]
-git-tree-sha1 = "87b0c9c6ee0124d6c1f4ce8cb035dcaf9f90b803"
+git-tree-sha1 = "ba19d1c8ff6b9c680015033c66802dd817a9cf39"
 uuid = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
-version = "0.1.6"
+version = "0.1.7"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -177,9 +177,9 @@ version = "0.12.7"
 
 [[FinEtools]]
 deps = ["Arpack", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "1c15d13df473b5cd0fd76f1eb573be825a11b01c"
+git-tree-sha1 = "332a19cba021ef2712cf13f315583500afc3838d"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.3.2"
+version = "5.3.4"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
@@ -207,9 +207,9 @@ version = "1.12.1+0"
 
 [[HostCPUFeatures]]
 deps = ["BitTwiddlingConvenienceFunctions", "IfElse", "Libdl", "Static"]
-git-tree-sha1 = "8f0dc80088981ab55702b04bba38097a44a1a3a9"
+git-tree-sha1 = "3965a3216446a6b020f0d48f1ba94ef9ec01720d"
 uuid = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
-version = "0.1.5"
+version = "0.1.6"
 
 [[Hwloc]]
 deps = ["Hwloc_jll"]

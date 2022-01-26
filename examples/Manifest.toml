@@ -218,9 +218,9 @@ version = "0.12.7"
 
 [[FinEtools]]
 deps = ["Arpack", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
-path = "../../FinEtools.jl"
+git-tree-sha1 = "332a19cba021ef2712cf13f315583500afc3838d"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.3.3"
+version = "5.3.4"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
@@ -232,7 +232,7 @@ version = "1.2.1"
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "1.4.0"
+version = "1.4.1"
 
 [[FixedPointNumbers]]
 deps = ["Statistics"]

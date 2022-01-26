@@ -19,7 +19,6 @@ VisualStructures = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 [compat]
 Arpack = "^0.5"
 DataDrop = "^0.1"
-FinEtools = "^5"
 FinEtoolsDeforLinear = "^1"
 FinEtoolsFlexStructures = "^1"
 Gnuplot = "^1"
