@@ -218,9 +218,9 @@ version = "0.12.7"
 
 [[FinEtools]]
 deps = ["Arpack", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "1c15d13df473b5cd0fd76f1eb573be825a11b01c"
+path = "../../FinEtools.jl"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "5.3.2"
+version = "5.3.3"
 
 [[FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "StatsBase", "SymRCM", "Test"]
@@ -766,11 +766,11 @@ version = "0.21.23"
 
 [[VisualStructures]]
 deps = ["FinEtools", "FinEtoolsFlexStructures", "JSON", "LinearAlgebra", "PlotlyJS", "Revise"]
-git-tree-sha1 = "3b9581854826d1db0b3aba1ec5e6676cd3c4b327"
+git-tree-sha1 = "c4ac75cddc17ff73d43feca292f02e24f210b68f"
 repo-rev = "main"
 repo-url = "https://github.com/PetrKryslUCSD/VisualStructures.jl.git"
 uuid = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
-version = "0.1.0"
+version = "0.1.1"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
