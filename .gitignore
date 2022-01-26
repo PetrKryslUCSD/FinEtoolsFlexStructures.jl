@@ -3,6 +3,7 @@
 *.jl.mem
 *.vtk
 *.vtu
+*.pvd
 *.jls
 *.jld
 *.png
