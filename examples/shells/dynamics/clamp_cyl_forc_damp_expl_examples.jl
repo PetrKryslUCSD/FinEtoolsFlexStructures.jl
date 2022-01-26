@@ -16,18 +16,21 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
 using Gnuplot
-using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
+
+using BenchmarkTools
 
 E = 200e9;
 nu = 0.3;
 rho = 7800.0
 R = 0.1
 L = 0.8
-ksi = 0.0
+ksi = 0.01
 omegad = 2*pi*1000
 color = "blue"
-omegaf = 2*pi*10^4
+omegaf = 2*pi*10^5
 tend = 15 * (2*pi/omegaf)
+
 
 function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     U1 = deepcopy(U0)
@@ -37,21 +40,36 @@ function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     F = deepcopy(U0)
     E = deepcopy(U0)
     Vp = deepcopy(U0)
+    C = deepcopy(U0)
+    C .= (ksi*2*omegad) .* vec(diag(M))
     invMC = deepcopy(U0)
-    C = (ksi*2*omegad) .* vec(diag(M))
-    invMC = 1.0 ./ (vec(diag(M)) .+ (dt/2).*C)
+    invMC .= 1.0 ./ (vec(diag(M)) .+ (dt/2) .* C)
     nsteps = Int64(round(tend/dt))
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
     t = 0.0
+    
+    # @btime @. $U1 = $U0 + $dt*$V0 + (($dt^2)/2)*$A0; #1
+    # @btime $force!($F, $t); #2
+    # @btime $F .-=  mul!($E, $K, $U1) #3
+    # @btime @. $Vp = $V0 + ($dt/2) * $A0 #4
+    # @btime @. $F -= $C * $Vp #5
+    # @btime $A1 .= $invMC .* $F #6
+    # @btime @. $A1 = $invMC * $F #6
+    # @btime @inbounds for i in eachindex($A1)
+    #     $A1[i] = $invMC[i] * $F[i] #6
+    # end
+    # @btime @. $V1 = $V0 + ($dt/2)* ($A0+$A1); #7
+    # @btime $peek(1, $U0, $t) #8
+
     A0 .= invMC .* force!(F, t);
     peek(0, U0, t)
     @time for step in 1:nsteps
         # Displacement update
         @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
         # External loading
-        F = force!(F, t);
+        force!(F, t);
         # Add elastic restoring forces
         F .-=  mul!(E, K, U1)
         # Add damping forces
@@ -79,7 +97,7 @@ end
 
 function _execute(n = 8, thickness = 0.001, visualize = true)
 
-    @info "Mesh: $n elements per side"
+    # @info "Mesh: $n elements per side"
     # Mesh
     tolerance = min(R, L) / n  / 100
     
@@ -92,6 +110,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     end
     fens, fes = mergenodes(fens, fes, tolerance)
     bfes = meshboundary(fes)
+    @info "Mesh $(count(fens)) nodes, $(count(fes)) elements"
     
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     ocsys = CSys(3, 3, cylindrical!)
@@ -133,17 +152,20 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     M = sparse(I, J, V, dchi.nfreedofs, dchi.nfreedofs)
     
 # Solve
-    function pwr(A, B)
-        fa = cholesky(B)
-        v = rand(size(B, 1))
-        w = fill(0.0, size(B, 1))
+    function pwr(K, M)
+        invM = fill(0.0, size(M, 1))
+        invM = 1.0 ./ (vec(diag(M)))
+        v = rand(size(M, 1))
+        w = fill(0.0, size(M, 1))
         for i in 1:30
-            w = (A * v)
-            w = w / norm(w)
-            v .= fa \ w
-            v = v / norm(v)
+            mul!(w, K, v)
+            wn = norm(w)
+            w .*= (1.0/wn)
+            v .= invM .* w
+            vn = norm(v)
+            v .*= (1.0/vn)
         end
-        sqrt((v' * A * v) / (v' * B * v))
+        sqrt((v' * K * v) / (v' * M * v))
     end
     @time omega_max = pwr(K, M)
     @show omega_max
@@ -197,6 +219,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     displacements = []
     nbtw = Int(round(nsteps/100))
 
+
     peek(step, U, t) = begin
         cdeflections[step+1] = U[cpointdof]
         if rem(step+1, nbtw) == 0
@@ -204,6 +227,8 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         end
         nothing
     end
+
+    @info "$nsteps steps"
     loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
     
     # @gp  "set terminal windows 0 "  :-
@@ -218,40 +243,50 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
 
 # Visualization
     @show length(displacements)
-    box = boundingbox(fens.xyz)
-    box[1] -= 0.05*L
-    box[2] += 0.05*L
-    box[3] -= 0.05*L
-    box[4] += 0.05*L
-    box[5] -= 0.5*L
-    box[6] += 0.5*L
+    # box = boundingbox(fens.xyz)
+    # box[1] -= 0.05*L
+    # box[2] += 0.05*L
+    # box[3] -= 0.05*L
+    # box[4] += 0.05*L
+    # box[5] -= 0.5*L
+    # box[6] += 0.5*L
     
-    tbox = plot_space_box(reshape(box, 2, 3))
-    tenv0 = plot_midsurface(fens, fes; x=geom0.values, u=0.0 .* dchi.values[:, 1:3], R=Rfield0.values, facecolor="rgb(155, 155, 155)", opacity=0.3);
+    # tbox = plot_space_box(reshape(box, 2, 3))
+    # tenv0 = plot_midsurface(fens, fes; x=geom0.values, u=0.0 .* dchi.values[:, 1:3], R=Rfield0.values, facecolor="rgb(155, 155, 155)", opacity=0.3);
 
-    plots = cat(tbox, tenv0; dims=1)
-    layout = default_layout_3d(;width=600, height=600)
-    layout[:scene][:aspectmode] = "data"
-    pl = render(plots; layout=layout, title = "Step ")
-    sleep(2.5)
+    # plots = cat(tbox, tenv0; dims=1)
+    # layout = default_layout_3d(;width=600, height=600)
+    # layout[:scene][:aspectmode] = "data"
+    # pl = render(plots; layout=layout, title = "Step ")
+    # sleep(2.5)
     
-    scale = 10^6;
+    # scale = 10^6;
+    # for i in 1:length(displacements)
+    #     scattersysvec!(dchi, scale .* displacements[i])
+    #     Rfield1 = deepcopy(Rfield0)
+    #     update_rotation_field!(Rfield1, dchi)
+    #     tenv1 = plot_midsurface(fens, fes; x=geom0.values, u=dchi.values[:, 1:3], R=Rfield1.values, facecolor="rgb(50, 125, 125)",  lighting = attr(diffuse=0.3, fresnel=4, specular=0.5), lightposition = attr(x = 400, y = -100, z = -5));
+    #     plots = cat(tbox, tenv0, tenv1; dims=1)
+    #     pl.plot.layout[:title] = "Step $(i)"
+    #     react!(pl, plots, pl.plot.layout)
+    #     sleep(0.115)
+    # end
+
+    times = Float64[]
+    vectors = []
     for i in 1:length(displacements)
-        scattersysvec!(dchi, scale .* displacements[i])
-        Rfield1 = deepcopy(Rfield0)
-        update_rotation_field!(Rfield1, dchi)
-        tenv1 = plot_midsurface(fens, fes; x=geom0.values, u=dchi.values[:, 1:3], R=Rfield1.values, facecolor="rgb(50, 125, 125)",  lighting = attr(diffuse=0.3, fresnel=4, specular=0.5), lightposition = attr(x = 400, y = -100, z = -5));
-        plots = cat(tbox, tenv0, tenv1; dims=1)
-        pl.plot.layout[:title] = "Step $(i)"
-        react!(pl, plots, pl.plot.layout)
-        sleep(0.115)
+        scattersysvec!(dchi, displacements[i])
+        push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
+        push!(times, i*dt*nbtw)
     end
-
+    
+    
+   vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
 end
 
 function test_convergence()
     @info "Clamped cylinder vibration"
-    for n in [64] 
+    for n in [64*2] 
         _execute(n, 0.01, !false)
     end
     return true
