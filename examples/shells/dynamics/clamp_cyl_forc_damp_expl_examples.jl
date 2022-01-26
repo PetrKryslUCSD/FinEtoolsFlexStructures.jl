@@ -25,7 +25,7 @@ nu = 0.3;
 rho = 7800.0
 R = 0.1
 L = 0.8
-ksi = 0.01
+ksi = 0.0
 omegad = 2*pi*1000
 color = "blue"
 omegaf = 2*pi*10^5
@@ -95,7 +95,7 @@ cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
     return csmatout
 end
 
-function _execute(n = 8, thickness = 0.001, visualize = true)
+function _execute(n = 8, thickness = 0.01, visualize = true)
 
     # @info "Mesh: $n elements per side"
     # Mesh
@@ -108,7 +108,9 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
         fens.xyz[i, :] .= (R*sin(a/180*pi), y-L/2, R*cos(a/180*pi))
     end
-    fens, fes = mergenodes(fens, fes, tolerance)
+    bfes = meshboundary(fes)
+    candidates = connectednodes(bfes)
+    fens, fes = mergenodes(fens, fes, tolerance, candidates)
     bfes = meshboundary(fes)
     @info "Mesh $(count(fens)) nodes, $(count(fes)) elements"
     
@@ -180,7 +182,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     V0 = deepcopy(U0)
     
     qpoint = selectnode(fens; nearestto=[0 -L/4 R])[1]
-    cpoint = selectnode(fens; nearestto=[0 0 -R])[1]
+    cpoint = selectnode(fens; nearestto=[0 0 R])[1]
     applyebc!(dchi)
     numberdofs!(dchi);
     qpointdof = dchi.dofnums[qpoint, 3]
@@ -200,17 +202,26 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         return forceout
     end
 
-    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    # Sinusoidal loading on the surface of the shell
+    # lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    # fi = ForceIntensity(FFlt, 6, computetrac!);
+    # Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
+    # function force!(F, t)
+    #     if t < 2 * (2*pi/omegaf)
+    #         F .= sin(omegaf*t) .* Fmag
+    #     else
+    #         F .= 0.0
+    #     end
+    #     # @show norm(F)
+    #     return F
+    # end
+
+    # Suddenly applied constant force at a node
+    Fmag = fill(0.0, dchi.nfreedofs)
+    Fmag[qpointdof] = -1.0
     function force!(F, t)
-        if t < 2 * (2*pi/omegaf)
-            F .= sin(omegaf*t) .* Fmag
-        else
-            F .= 0.0
-        end
-        # @show norm(F)
+        F .= Fmag
         return F
     end
     
@@ -234,6 +245,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     # @gp  "set terminal windows 0 "  :-
 
     # color = "blue"  
+    @gp "clear"
     @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
     @gp  :- "set xlabel 'Time'" :-
