@@ -27,7 +27,7 @@ R = 0.1
 L = 0.8
 ksi = 0.0
 omegad = 2*pi*1000
-color = "blue"
+color = "red"
 omegaf = 2*pi*10^5
 tend = 15 * (2*pi/omegaf)
 
@@ -81,6 +81,87 @@ function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
         @. V1 = V0 + (dt/2)* (A0+A1);
         t = t + dt
         U0, U1 = U1, U0
+        V0, V1 = V1, V0
+        A0, A1 = A1, A0
+        peek(step, U0, t)
+    end
+end
+
+struct ThreadBuffer
+    kcolumns::SparseMatrixCSC{Float64, Int64}
+    uv::SubArray{Float64, 1, Vector{Float64}, Tuple{UnitRange{Int64}}, true} 
+    result::Vector{Float64}
+end
+
+function parmul!(R, tbs)
+    tasks = [];
+    for th in 1:length(tbs)
+        tb = tbs[th]
+        push!(tasks, Threads.@spawn begin 
+            mul!(tb.result, tb.kcolumns, tb.uv)
+        end);
+    end
+    Threads.wait(tasks[1]);
+    R .= tbs[1].result
+    for th in 2:length(tbs)
+        Threads.wait(tasks[th]);
+        R .+= tbs[th].result
+    end
+    R
+end
+
+function parloop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
+    U1 = deepcopy(U0)
+    V1 = deepcopy(U0)
+    A0 = deepcopy(U0)
+    A1 = deepcopy(U0)
+    F = deepcopy(U0)
+    E = deepcopy(U0)
+    Vp = deepcopy(U0)
+    C = deepcopy(U0)
+    C .= (ksi*2*omegad) .* vec(diag(M))
+    invMC = deepcopy(U0)
+    invMC .= 1.0 ./ (vec(diag(M)) .+ (dt/2) .* C)
+    nsteps = Int64(round(tend/dt))
+    if nsteps*dt < tend
+        dt = tend / (nsteps+1)
+    end
+    t = 0.0
+    
+    @show nth = Base.Threads.nthreads()
+    chunk = Int(floor(length(U1) / nth))
+    threadbuffs = ThreadBuffer[];
+    for th in 1:nth
+        colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:length(U1))
+        push!(threadbuffs, ThreadBuffer(K[:, colrange], view(U1, colrange), deepcopy(U1)));
+    end
+
+    A0 .= invMC .* force!(F, t);
+    peek(0, U0, t)
+    @time for step in 1:nsteps
+        # Displacement update
+        @inbounds @simd for i in eachindex(U0)
+            U1[i] = U0[i] + dt*V0[i] + ((dt^2)/2)*A0[i];
+        end
+        # External loading
+        force!(F, t);
+        # Add elastic restoring forces
+        # F .-=  mul!(E, K, U1)
+        F .-=  parmul!(E, threadbuffs)
+        # Add damping forces
+        @inbounds @simd for i in eachindex(U0)
+            Vp[i] = V0[i] + (dt/2) * A0[i]
+            F[i] -= C[i] * Vp[i]
+            # Compute the new acceleration.
+            A1[i] = invMC[i] * F[i]
+            # Update the velocity
+            V1[i] = V0[i] + (dt/2)* (A0[i] + A1[i]);
+        end
+        t = t + dt
+        # The swapping of the vectors cannot be now done: the thread buffers
+        # always refer to U1, so we must preserve U1, and copy the content
+        U0 .= U1;
+        # U0, U1 = U1, U0
         V0, V1 = V1, V0
         A0, A1 = A1, A0
         peek(step, U0, t)
@@ -231,7 +312,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     end
 
     @info "$nsteps steps"
-    loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
+    parloop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
     
     # @gp  "set terminal windows 0 "  :-
 
@@ -244,37 +325,8 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     @gp  :- "set title 'Free-floating plate'"
 
 
-# Visualization
-    @show length(displacements)
-    # box = boundingbox(fens.xyz)
-    # box[1] -= 0.05*L
-    # box[2] += 0.05*L
-    # box[3] -= 0.05*L
-    # box[4] += 0.05*L
-    # box[5] -= 0.5*L
-    # box[6] += 0.5*L
-    
-    # tbox = plot_space_box(reshape(box, 2, 3))
-    # tenv0 = plot_midsurface(fens, fes; x=geom0.values, u=0.0 .* dchi.values[:, 1:3], R=Rfield0.values, facecolor="rgb(155, 155, 155)", opacity=0.3);
-
-    # plots = cat(tbox, tenv0; dims=1)
-    # layout = default_layout_3d(;width=600, height=600)
-    # layout[:scene][:aspectmode] = "data"
-    # pl = render(plots; layout=layout, title = "Step ")
-    # sleep(2.5)
-    
-    # scale = 10^6;
-    # for i in 1:length(displacements)
-    #     scattersysvec!(dchi, scale .* displacements[i])
-    #     Rfield1 = deepcopy(Rfield0)
-    #     update_rotation_field!(Rfield1, dchi)
-    #     tenv1 = plot_midsurface(fens, fes; x=geom0.values, u=dchi.values[:, 1:3], R=Rfield1.values, facecolor="rgb(50, 125, 125)",  lighting = attr(diffuse=0.3, fresnel=4, specular=0.5), lightposition = attr(x = 400, y = -100, z = -5));
-    #     plots = cat(tbox, tenv0, tenv1; dims=1)
-    #     pl.plot.layout[:title] = "Step $(i)"
-    #     react!(pl, plots, pl.plot.layout)
-    #     sleep(0.115)
-    # end
-
+    # Visualization
+    @info "Dumping visualization"
     times = Float64[]
     vectors = []
     for i in 1:length(displacements)
@@ -282,14 +334,12 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
         push!(times, i*dt*nbtw)
     end
-    
-    
-   vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
+    vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
 end
 
-function test_convergence()
+function test_convergence(ns = [4*64])
     @info "Clamped cylinder vibration"
-    for n in [64*2] 
+    for n in ns
         _execute(n, 0.01, !false)
     end
     return true
