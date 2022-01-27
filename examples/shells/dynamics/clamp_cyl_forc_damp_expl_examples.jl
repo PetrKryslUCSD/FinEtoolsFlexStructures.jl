@@ -142,16 +142,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
 # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, geom0, dchi);
-    # Check that the mass matrix is diagonal
-    # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
-    I, J, V = findnz(M)
-    for i in 1:length(I)
-        if I[i] != J[i]
-            V[i] = 0.0
-        end
-    end
-    M = sparse(I, J, V, dchi.nfreedofs, dchi.nfreedofs)
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
 # Solve
     function pwr(K, M)
