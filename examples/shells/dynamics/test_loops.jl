@@ -19,6 +19,7 @@ using Gnuplot
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 
 using BenchmarkTools
+using ProfileView
 
 E = 200e9;
 nu = 0.3;
@@ -148,8 +149,11 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
 # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     @time K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
+    @time K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
+    @time M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    @time M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     @time M = FEMMShellT3FFModule.mass(femm, geom0, dchi);
-    # Check that the mass matrix is diagonal
+    
     # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
     I, J, V = findnz(M)
     for i in 1:length(I)
@@ -190,15 +194,15 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         R
     end
 
-    @time parmul!(R0, threadbuffs, U0)
-    @btime $parmul!($R0, $threadbuffs, $U0)
+    # @time parmul!(R0, threadbuffs, U0)
+    # @btime $parmul!($R0, $threadbuffs, $U0)
 
     nothing
 end
 
 function test_convergence()
     @info "Clamped cylinder vibration"
-    for n in [64*9] 
+    for n in [64*4] 
         _execute(n, 0.01, !false)
     end
     return true
