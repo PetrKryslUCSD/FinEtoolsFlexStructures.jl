@@ -22,7 +22,6 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
 # stiffness matrix.
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
-# using Infiltrator
 
 """
     FEMMShellT3FF{S<:FESetT3, F<:Function} <: AbstractFEMM
@@ -331,43 +330,6 @@ end
     return A_Es, nvalid
 end
 
-function _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, c)
-    # Components of nodal cartesian ordinate systems such that the third
-    # direction is the direction of the nodal normal, and the angle to rotate
-    # the element normal into the nodal normal is as short as possible; these
-    # components are given on the local element coordinate system basis
-    # vectors (basis E). If the angle of rotation is excessively small, the
-    # nodal matrix is the identity. 
-    # 
-    # The array `A_Es` holds the triads that are the nodal-to-element
-    # transformation matrices. The array `nvalid` indicates for the three nodes
-    # which of the normals is valid (`true`).
-
-    # TO DO Get rid of the temporaries
-    r = fill(0.0, 3)
-    nk_e = fill(0.0, 3)
-    nk = fill(0.0, 3)
-    f3_e = [0.0, 0.0, 1.0]
-    for k in 1:length(A_Es)
-        nk .= vec(view(normals, c[k], :))
-        nvalid[k] = normal_valid[c[k]]
-        if nvalid[k] 
-            # If the nodal normal is valid, pull it back into the element frame.
-            nk_e .= E_G'*nk
-        else
-            # Otherwise the element normal replaces the nodal normal.
-            nk_e .= 0.0; nk_e[3] = 1.0
-        end
-        cross3!(r, f3_e, nk_e)
-        if norm(r) > 1.0e-12
-            rotmat3!(A_Es[k], r) 
-        else
-            A_Es[k] .= I(3)
-        end
-    end
-    return A_Es, nvalid
-end
-
 struct TransfmatGToA
     Tblock::FFltMat
 end
@@ -398,30 +360,6 @@ end
     end
     return T
 end
-
-function _transfmat_g_to_a!(T, A_Es, E_G)
-    # Global-to-nodal transformation matrix. 
-
-    # The 3x3 blocks consist of the nodal triad expressed on the global basis.
-    # The nodal basis vectors in the array `A_Es[i]` are expressed on the
-    # element basis, and are then rotated with `E_G` into the global coordinate
-    # system.
-
-    # Output
-    # - `T` = transformation matrix, input in the global basis, output in the
-    #   nodal basis
-    T .= 0.0
-    for i in 1:__nn
-        Tblock = transpose(A_Es[i]) * transpose(E_G) # TO DO remove temporary
-        offset = (i-1)*__ndof
-        r = offset+1:offset+3
-        @. T[r, r] = Tblock
-        r = offset+4:offset+6
-        @. T[r, r] = Tblock
-    end
-    return T
-end
-
 
 function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # Nodal-to-element transformation matrix. 
@@ -640,6 +578,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
     Dt .*= scf
+    ipc = [1.0/3 1.0/3]
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
@@ -651,7 +590,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
         _e_g!(E_G, J0)
         _ecoords_e!(ecoords_e, J0, E_G)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
         # Construct the Stiffness Matrix
         fill!(elmat,  0.0); # Initialize element matrix
         _Bmmat!(Bm, gradN_e)
@@ -722,6 +661,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
     Dps, Dts = _shell_material_stiffness(self.material)
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
+    ipc = [1.0/3 1.0/3]
     drilling_mass_scale = self.drilling_mass_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for i = 1:count(fes) # Loop over elements
@@ -732,7 +672,7 @@ function mass(self::FEMMShellT3FF,  assembler::A,  geom0::NodalField{FFlt}, dchi
         _ecoords_e!(ecoords_e, J0, E_G)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
         # Compute the translational and rotational masses corresponding to nodes
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
         tmass = rho*(t*Ae)/3;
         rmass = rho*(t^3/12*Ae)/3;
         dmass = rmass * drilling_mass_scale
@@ -811,12 +751,15 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
+    _nodal_triads_e! = NodalTriadsE()
+    _transfmat_g_to_a! = TransfmatGToA()
     transformwith = QTEQTransformer(elmat)
     lla = Layup2ElementAngle()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5/6;  # shear correction factor
     Dt .*= scf
+    ipc = [1.0/3 1.0/3]
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
@@ -851,7 +794,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
         _e_g!(E_G, J0)
         _ecoords_e!(ecoords_e, J0, E_G)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
+        t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
         # Establish nodal triads
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates

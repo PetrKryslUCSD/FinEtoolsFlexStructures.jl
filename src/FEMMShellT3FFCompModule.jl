@@ -749,7 +749,6 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         _e_g!(E_G, J0)
         _ecoords_e!(ecoords_e, J0, E_G)
         gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], [1.0/3 1.0/3])
         # Establish nodal triads
         _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
         # Transform from global into nodal coordinates
