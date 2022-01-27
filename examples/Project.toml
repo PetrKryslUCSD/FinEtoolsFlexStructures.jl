@@ -14,6 +14,7 @@ Gnuplot = "dc211083-a33a-5b79-959f-2ff34033469d"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
+ProfileView = "c46f51b8-102a-5cf2-8d2c-8597cb0e0da7"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 VisualStructures = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 
