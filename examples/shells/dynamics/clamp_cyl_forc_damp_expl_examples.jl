@@ -29,8 +29,8 @@ ksi = 0.0
 omegad = 2*pi*1000
 color = "red"
 omegaf = 2*pi*10^5
-tend = 15 * (2*pi/omegaf)
-
+tend = 25 * (2*pi/omegaf)
+const visualize = !true
 
 function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     U1 = deepcopy(U0)
@@ -177,7 +177,7 @@ cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
     return csmatout
 end
 
-const visualize = true
+
 
 function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     tolerance = min(R, L) / n  / 100
@@ -275,27 +275,27 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     end
 
     # Sinusoidal loading on the surface of the shell
-    # lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    # fi = ForceIntensity(FFlt, 6, computetrac!);
-    # Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    fi = ForceIntensity(FFlt, 6, computetrac!);
+    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
-    # function force!(F, t)
-    #     if t < 2 * (2*pi/omegaf)
-    #         F .= sin(omegaf*t) .* Fmag
-    #     else
-    #         F .= 0.0
-    #     end
-    #     # @show norm(F)
-    #     return F
-    # end
-
-    # Suddenly applied constant force at a node
-    Fmag = fill(0.0, dchi.nfreedofs)
-    Fmag[qpointdof] = -1.0
     function force!(F, t)
-        F .= Fmag
+        if t < 2 * (2*pi/omegaf)
+            F .= sin(omegaf*t) .* Fmag
+        else
+            F .= 0.0
+        end
+        # @show norm(F)
         return F
     end
+
+    # Suddenly applied constant force at a node
+    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag[qpointdof] = -1.0
+    # function force!(F, t)
+    #     F .= Fmag
+    #     return F
+    # end
     
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
@@ -314,27 +314,29 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     @info "$nsteps steps"
     parloop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
     
+    if visualize
     # @gp  "set terminal windows 0 "  :-
 
     # color = "blue"  
-    @gp "clear"
-    @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
+        @gp "clear"
+        @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
-    @gp  :- "set xlabel 'Time'" :-
-    @gp  :- "set ylabel 'Deflection'" :-
-    @gp  :- "set title 'Free-floating plate'"
+        @gp  :- "set xlabel 'Time'" :-
+        @gp  :- "set ylabel 'Deflection'" :-
+        @gp  :- "set title 'Free-floating plate'"
 
 
     # Visualization
-    @info "Dumping visualization"
-    times = Float64[]
-    vectors = []
-    for i in 1:length(displacements)
-        scattersysvec!(dchi, displacements[i])
-        push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
-        push!(times, i*dt*nbtw)
+        @info "Dumping visualization"
+        times = Float64[]
+        vectors = []
+        for i in 1:length(displacements)
+            scattersysvec!(dchi, displacements[i])
+            push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
+            push!(times, i*dt*nbtw)
+        end
+        vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
     end
-    vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
 end
 
 function _execute_serial(n = 64, thickness = 0.01)
@@ -433,27 +435,27 @@ function _execute_serial(n = 64, thickness = 0.01)
     end
 
     # Sinusoidal loading on the surface of the shell
-    # lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    # fi = ForceIntensity(FFlt, 6, computetrac!);
-    # Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    fi = ForceIntensity(FFlt, 6, computetrac!);
+    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
-    # function force!(F, t)
-    #     if t < 2 * (2*pi/omegaf)
-    #         F .= sin(omegaf*t) .* Fmag
-    #     else
-    #         F .= 0.0
-    #     end
-    #     # @show norm(F)
-    #     return F
-    # end
-
-    # Suddenly applied constant force at a node
-    Fmag = fill(0.0, dchi.nfreedofs)
-    Fmag[qpointdof] = -1.0
     function force!(F, t)
-        F .= Fmag
+        if t < 2 * (2*pi/omegaf)
+            F .= sin(omegaf*t) .* Fmag
+        else
+            F .= 0.0
+        end
+        # @show norm(F)
         return F
     end
+
+    # Suddenly applied constant force at a node
+    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag[qpointdof] = -1.0
+    # function force!(F, t)
+    #     F .= Fmag
+    #     return F
+    # end
     
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
@@ -472,27 +474,29 @@ function _execute_serial(n = 64, thickness = 0.01)
     @info "$nsteps steps"
     loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
     
+    if visualize
     # @gp  "set terminal windows 0 "  :-
 
     # color = "blue"  
-    @gp "clear"
-    @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
+        @gp "clear"
+        @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
-    @gp  :- "set xlabel 'Time'" :-
-    @gp  :- "set ylabel 'Deflection'" :-
-    @gp  :- "set title 'Free-floating plate'"
+        @gp  :- "set xlabel 'Time'" :-
+        @gp  :- "set ylabel 'Deflection'" :-
+        @gp  :- "set title 'Free-floating plate'"
 
 
     # Visualization
-    @info "Dumping visualization"
-    times = Float64[]
-    vectors = []
-    for i in 1:length(displacements)
-        scattersysvec!(dchi, displacements[i])
-        push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
-        push!(times, i*dt*nbtw)
+        @info "Dumping visualization"
+        times = Float64[]
+        vectors = []
+        for i in 1:length(displacements)
+            scattersysvec!(dchi, displacements[i])
+            push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
+            push!(times, i*dt*nbtw)
+        end
+        vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
     end
-    vtkwritecollection("clamp_cyl_forc_damp_expl_$n", fens, fes, times; vectors = vectors)
 end
 
 function test_serial(ns = [4*64])
