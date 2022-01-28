@@ -291,7 +291,7 @@ version = "1.2.1"
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "1.4.1"
+version = "1.4.2"
 
 [[FixedPointNumbers]]
 deps = ["Statistics"]

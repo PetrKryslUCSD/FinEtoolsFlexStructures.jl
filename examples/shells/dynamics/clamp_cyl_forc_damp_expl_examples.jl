@@ -13,6 +13,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
 using Gnuplot
@@ -189,11 +190,17 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
         fens.xyz[i, :] .= (R*sin(a/180*pi), y-L/2, R*cos(a/180*pi))
     end
+
     bfes = meshboundary(fes)
     candidates = connectednodes(bfes)
     fens, fes = mergenodes(fens, fes, tolerance, candidates)
     bfes = meshboundary(fes)
     @info "Mesh $(count(fens)) nodes, $(count(fes)) elements"
+
+    # Renumber the nodes
+    femm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    C = connectionmatrix(femm, count(fens))
+    perm = symrcm(C)
     
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     ocsys = CSys(3, 3, cylindrical!)
@@ -218,7 +225,8 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi, perm);
+    # numberdofs!(dchi);
 
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
@@ -255,8 +263,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     
     qpoint = selectnode(fens; nearestto=[0 -L/4 R])[1]
     cpoint = selectnode(fens; nearestto=[0 0 R])[1]
-    applyebc!(dchi)
-    numberdofs!(dchi);
+    
     qpointdof = dchi.dofnums[qpoint, 3]
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
@@ -349,11 +356,17 @@ function _execute_serial(n = 64, thickness = 0.01)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
         fens.xyz[i, :] .= (R*sin(a/180*pi), y-L/2, R*cos(a/180*pi))
     end
+    
     bfes = meshboundary(fes)
     candidates = connectednodes(bfes)
     fens, fes = mergenodes(fens, fes, tolerance, candidates)
     bfes = meshboundary(fes)
     @info "Mesh $(count(fens)) nodes, $(count(fes)) elements"
+
+    # Renumber the nodes
+    femm = FEMMBase(IntegDomain(fes, TriRule(1)))
+    C = connectionmatrix(femm, count(fens))
+    perm = symrcm(C)
     
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     ocsys = CSys(3, 3, cylindrical!)
@@ -378,7 +391,8 @@ function _execute_serial(n = 64, thickness = 0.01)
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi, perm);
+    # numberdofs!(dchi);
 
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
@@ -415,8 +429,7 @@ function _execute_serial(n = 64, thickness = 0.01)
     
     qpoint = selectnode(fens; nearestto=[0 -L/4 R])[1]
     cpoint = selectnode(fens; nearestto=[0 0 R])[1]
-    applyebc!(dchi)
-    numberdofs!(dchi);
+    
     qpointdof = dchi.dofnums[qpoint, 3]
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
