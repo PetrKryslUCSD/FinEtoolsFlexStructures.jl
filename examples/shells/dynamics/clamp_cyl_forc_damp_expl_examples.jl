@@ -16,31 +16,31 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot
+using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
+using FLoops
 
 using BenchmarkTools
 
-E = 200e9;
-nu = 0.3;
-rho = 7800.0
-R = 0.1
-L = 0.8
-ksi = 0.0
-omegad = 2*pi*1000
-color = "red"
-omegaf = 2*pi*10^5
-tend = 25 * (2*pi/omegaf)
-const visualize = !true
+const E = 200e9;
+const nu = 0.3;
+const rho = 7800.0
+const R = 0.1
+const L = 0.8
+const ksi = 0.0
+const omegad = 2*pi*1000
+const color = "red"
+const omegaf = 2*pi*10^5
+const tend = 25 * (2*pi/omegaf)
+const visualize = true
+
 
 function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
-    U1 = deepcopy(U0)
-    V1 = deepcopy(U0)
-    A0 = deepcopy(U0)
-    A1 = deepcopy(U0)
+    U = deepcopy(U0)
+    V = deepcopy(U0)
+    A = deepcopy(U0)
     F = deepcopy(U0)
     E = deepcopy(U0)
-    Vp = deepcopy(U0)
     C = deepcopy(U0)
     C .= (ksi*2*omegad) .* vec(diag(M))
     invMC = deepcopy(U0)
@@ -49,76 +49,77 @@ function loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
-    t = 0.0
-    
-    # @btime @. $U1 = $U0 + $dt*$V0 + (($dt^2)/2)*$A0; #1
-    # @btime $force!($F, $t); #2
-    # @btime $F .-=  mul!($E, $K, $U1) #3
-    # @btime @. $Vp = $V0 + ($dt/2) * $A0 #4
-    # @btime @. $F -= $C * $Vp #5
-    # @btime $A1 .= $invMC .* $F #6
-    # @btime @. $A1 = $invMC * $F #6
-    # @btime @inbounds for i in eachindex($A1)
-    #     $A1[i] = $invMC[i] * $F[i] #6
-    # end
-    # @btime @. $V1 = $V0 + ($dt/2)* ($A0+$A1); #7
-    # @btime $peek(1, $U0, $t) #8
 
-    A0 .= invMC .* force!(F, t);
-    peek(0, U0, t)
+    t = 0.0
+    # Initial Conditions
+    @. U = U0; @. V = V0
+    A .= invMC .* force!(F, t);
+    peek(0, U, t)
     @time for step in 1:nsteps
         # Displacement update
-        @. U1 = U0 + dt*V0 + ((dt^2)/2)*A0; 
+        @. U += dt*V + ((dt^2)/2)*A; 
         # External loading
         force!(F, t);
         # Add elastic restoring forces
-        F .-=  mul!(E, K, U1)
-        # Add damping forces
-        @. Vp = V0 + (dt/2) * A0
-        @. F -= C * Vp
-        # Compute the new acceleration.
-        A1 .= invMC .* F
-        # # Update the velocity
-        @. V1 = V0 + (dt/2)* (A0+A1);
+        F .-=  mul!(E, K, U)
+        @inbounds @simd for i in eachindex(U)
+            _Fi = F[i]; _Ai = A[i]; _Vi = V[i]
+            # Add damping forces
+            _Fi -= C[i] * (_Vi + (dt/2) * _Ai)
+            # Compute the new acceleration.
+            _A1i = invMC[i] * _Fi
+            A[i] = _A1i
+            # Update the velocity
+            V[i] += (dt/2)* (_Ai + _A1i);
+        end
         t = t + dt
-        U0, U1 = U1, U0
-        V0, V1 = V1, V0
-        A0, A1 = A1, A0
-        peek(step, U0, t)
+        peek(step, U, t)
     end
 end
 
-struct ThreadBuffer
-    kcolumns::SparseMatrixCSC{Float64, Int64}
+struct ThreadBuffer{KVT}
+    kcolumns::KVT
     uv::SubArray{Float64, 1, Vector{Float64}, Tuple{UnitRange{Int64}}, true} 
     result::Vector{Float64}
 end
 
+# function parmul!(R, tbs)
+#     tasks = [];
+#     for th in 1:length(tbs)
+#         tb = tbs[th]
+#         push!(tasks, Threads.@spawn begin 
+#             mul!(tb.result, tb.kcolumns, tb.uv)
+#         end);
+#     end
+#     Threads.wait(tasks[1]);
+#     R .= tbs[1].result
+#     for th in 2:length(tbs)
+#         Threads.wait(tasks[th]);
+#         R .+= tbs[th].result
+#     end
+#     R
+# end
+
 function parmul!(R, tbs)
-    tasks = [];
-    for th in 1:length(tbs)
-        tb = tbs[th]
-        push!(tasks, Threads.@spawn begin 
-            mul!(tb.result, tb.kcolumns, tb.uv)
-        end);
+    Threads.@threads for i in 1:length(tbs)
+        if i == 1
+            mul!(R, tbs[i].kcolumns, tbs[i].uv)
+        else
+            mul!(tbs[i].result, tbs[i].kcolumns, tbs[i].uv)
+        end
     end
-    Threads.wait(tasks[1]);
-    R .= tbs[1].result
-    for th in 2:length(tbs)
-        Threads.wait(tasks[th]);
-        R .+= tbs[th].result
+    for i in 2:length(tbs)
+        R .+= tbs[i].result
     end
     R
 end
 
 function parloop!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
-    U1 = deepcopy(U0)
-    V1 = deepcopy(U0)
-    A0 = deepcopy(U0)
-    A1 = deepcopy(U0)
+    U = deepcopy(U0)
+    V = deepcopy(U0)
+    A = deepcopy(U0)
     F = deepcopy(U0)
     E = deepcopy(U0)
-    Vp = deepcopy(U0)
     C = deepcopy(U0)
     C .= (ksi*2*omegad) .* vec(diag(M))
     invMC = deepcopy(U0)
@@ -127,46 +128,41 @@ function parloop!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
-    t = 0.0
-    
+
     nth = (nthr == 0 ? Base.Threads.nthreads() : nthr)
     @info "$nth threads used"
-    chunk = Int(floor(length(U1) / nth))
+    chunk = Int(floor(length(U) / nth))
     threadbuffs = ThreadBuffer[];
     for th in 1:nth
-        colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:length(U1))
-        push!(threadbuffs, ThreadBuffer(K[:, colrange], view(U1, colrange), deepcopy(U1)));
+        colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:length(U))
+        # push!(threadbuffs, ThreadBuffer(view(K, :, colrange), view(U, colrange), deepcopy(U)));
+        push!(threadbuffs, ThreadBuffer(K[:, colrange], view(U, colrange), deepcopy(U)));
     end
 
-    A0 .= invMC .* force!(F, t);
-    peek(0, U0, t)
+    t = 0.0
+    # Initial Conditions
+    @. U = U0; @. V = V0
+    A .= invMC .* force!(F, t);
+    peek(0, U, t)
     @time for step in 1:nsteps
         # Displacement update
-        @inbounds @simd for i in eachindex(U0)
-            U1[i] = U0[i] + dt*V0[i] + ((dt^2)/2)*A0[i];
-        end
+        @. U += dt*V + ((dt^2)/2)*A; 
         # External loading
         force!(F, t);
         # Add elastic restoring forces
-        # F .-=  mul!(E, K, U1)
         F .-=  parmul!(E, threadbuffs)
-        # Add damping forces
-        @inbounds @simd for i in eachindex(U0)
-            Vp[i] = V0[i] + (dt/2) * A0[i]
-            F[i] -= C[i] * Vp[i]
+        @inbounds @simd for i in eachindex(U)
+            _Fi = F[i]; _Ai = A[i]; _Vi = V[i]
+            # Add damping forces
+            _Fi -= C[i] * (_Vi + (dt/2) * _Ai)
             # Compute the new acceleration.
-            A1[i] = invMC[i] * F[i]
+            _A1i = invMC[i] * _Fi
+            A[i] = _A1i
             # Update the velocity
-            V1[i] = V0[i] + (dt/2)* (A0[i] + A1[i]);
+            V[i] += (dt/2)* (_Ai + _A1i);
         end
         t = t + dt
-        # The swapping of the vectors cannot be now done: the thread buffers
-        # always refer to U1, so we must preserve U1, and copy the content
-        U0 .= U1;
-        # U0, U1 = U1, U0
-        V0, V1 = V1, V0
-        A0, A1 = A1, A0
-        peek(step, U0, t)
+        peek(step, U, t)
     end
 end
 
@@ -181,6 +177,7 @@ end
 
 
 function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
+    color = "red"
     tolerance = min(R, L) / n  / 100
     
     tolerance = R/n/1000
@@ -325,7 +322,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     # @gp  "set terminal windows 0 "  :-
 
     # color = "blue"  
-        @gp "clear"
+        # @gp "clear"
         @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
         @gp  :- "set xlabel 'Time'" :-
@@ -347,6 +344,8 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
 end
 
 function _execute_serial(n = 64, thickness = 0.01)
+    color = "blue"  
+
     tolerance = min(R, L) / n  / 100
     
     tolerance = R/n/1000
@@ -491,7 +490,7 @@ function _execute_serial(n = 64, thickness = 0.01)
     # @gp  "set terminal windows 0 "  :-
 
     # color = "blue"  
-        @gp "clear"
+        # @gp "clear"
         @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
         @gp  :- "set xlabel 'Time'" :-
@@ -528,13 +527,13 @@ function test_parallel(ns = [4*64], nthr = 0)
     return true
 end
 
-function allrun()
+function allrun(ns = [4*64])
     println("#####################################################")
     println("# test_serial ")
-    test_serial()
+    test_serial(ns)
     println("#####################################################")
     println("# test_parallel ")
-    test_parallel()
+    test_parallel(ns)
     return true
 end # function allrun
 
