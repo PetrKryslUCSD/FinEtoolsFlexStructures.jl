@@ -97,9 +97,15 @@ cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
 end
 
 struct ThreadBuffer
-    colrange
-    kcolumns
-    result 
+    # colrange::UnitRange{Int64}
+    kcolumns::SparseMatrixCSC{Float64, Int64}
+    uv::SubArray{Float64, 1, Vector{Float64}, Tuple{UnitRange{Int64}}, true} 
+    result::Vector{Float64}
+end
+
+struct ThreadBuff
+    colrange::UnitRange{Int64}
+    result::Vector{Float64}
 end
 
 function _execute(n = 8, thickness = 0.01, visualize = true)
@@ -148,61 +154,177 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
 
 # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
-    @time K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
-    @time K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
-    @time M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
-    @time M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
-    @time M = FEMMShellT3FFModule.mass(femm, geom0, dchi);
-    
-    # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
-    I, J, V = findnz(M)
-    for i in 1:length(I)
-        if I[i] != J[i]
-            V[i] = 0.0
-        end
-    end
-    M = sparse(I, J, V, dchi.nfreedofs, dchi.nfreedofs)
+    K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
     U0 = gathersysvec(dchi)
     R0 = deepcopy(U0)
 
-    @btime mul!($R0, $K, $U0)
     
-    @show nth = 2 #Base.Threads.nthreads()
+    
+    @show nth = Base.Threads.nthreads()
     chunk = Int(floor(dchi.nfreedofs / nth))
-    threadbuffs = ThreadBuffer[];
+
+    threadbuffers = ThreadBuffer[];
     for th in 1:nth
         # This thread will work on a subset of the columns.
         colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:dchi.nfreedofs)
-        push!(threadbuffs, ThreadBuffer(colrange, K[:, colrange], deepcopy(R0)));
+        push!(threadbuffers, ThreadBuffer(K[:, colrange], view(U0, colrange), deepcopy(R0)));
     end
 
-    function parmul!(R, tbs, U)
-        R .= 0.0
+    function parmul!(R, tbs)
         tasks = [];
         for th in 1:length(tbs)
             tb = tbs[th]
             push!(tasks, Threads.@spawn begin 
-                mul!(tb.result, tb.kcolumns, U[tb.colrange])
+                mul!(tb.result, tb.kcolumns, tb.uv)
             end);
         end
-        for th in 1:length(tbs)
-            tb = tbs[th]
+        Threads.wait(tasks[1]);
+        R .= tbs[1].result
+        for th in 2:length(tbs)
             Threads.wait(tasks[th]);
-            R .+= tb.result
+            R .+= tbs[th].result
         end
         R
     end
 
-    # @time parmul!(R0, threadbuffs, U0)
-    # @btime $parmul!($R0, $threadbuffs, $U0)
+    threadbuffs = ThreadBuff[];
+    for th in 1:nth
+        colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:dchi.nfreedofs)
+        push!(threadbuffs, ThreadBuff(colrange, deepcopy(R0)));
+    end
+
+    function parcoomul!(R, IB, JB, VB, tbs, U)
+        function innercoomul!(A, IB, JB, VB, C)
+            nz = length(IB)
+            @assert length(JB) == nz
+            @assert length(VB) == nz
+            @inbounds @simd for i in 1:nz
+                ir = IB[i]
+                jc = JB[i]
+                A[ir] += VB[i] * C[jc]
+            end
+            nothing
+        end
+        tasks = [];
+        for th in 1:length(tbs)
+            tb = tbs[th]
+            push!(tasks, Threads.@spawn begin 
+                tb.result .= zero(eltype(tb.result))
+                innercoomul!(tb.result, view(IB, tb.colrange), view(JB, tb.colrange), view(VB, tb.colrange), U)
+            end);
+        end
+        Threads.wait(tasks[1]);
+        R .= tbs[1].result
+        for th in 2:length(tbs)
+            Threads.wait(tasks[th]);
+            R .+= tbs[th].result
+        end
+        R
+    end
+
+    function coomul!(A, IB, JB, VB, C)
+        nz = length(IB)
+        @assert length(JB) == nz
+        @assert length(VB) == nz
+        A .= zero(eltype(A))
+        @inbounds @simd for i in 1:nz
+            ir = IB[i]
+            jc = JB[i]
+            A[ir] += VB[i] * C[jc]
+        end
+    end
+
+    IK, JK, VK = findnz(K)
+
+    oU0 = deepcopy(U0)
+    oU0 .= rand()
+
+    U0 .= oU0
+    mul!(R0, K, U0)
+    R01 = deepcopy(R0)
+
+    U0 .= oU0
+    parmul!(R0, threadbuffers)
+    @show norm(R0 - R01)/norm(R01)
+
+    U0 .= oU0
+    parcoomul!(R0, IK, JK, VK, threadbuffs, U0)
+    @show norm(R0 - R01)/norm(R01)
+
+    U0 .= oU0
+    coomul!(R0, IK, JK, VK, U0)
+    @show norm(R0 - R01)/norm(R01)
+
+    @btime mul!($R0, $K, $U0)
+    @btime $coomul!($R0, $IK, $JK, $VK, $U0)
+    @btime $parmul!($R0, $threadbuffers)
+    @btime $parcoomul!($R0, $IK, $JK, $VK, $threadbuffs, $U0)
+
+    # oR0 = deepcopy(R0)
+    # oR0 .= rand()
+    # oU0 = deepcopy(U0)
+    # oU0 .= rand()
+
+    # R0 .= oR0; U0 .= oU0
+    # @. R0 = U0 + 0.1*R0 
+    # R01 = deepcopy(R0)
+
+    # R0 .= oR0; U0 .= oU0
+    # @inbounds @simd for i in eachindex(U0)
+    #     R0[i] = U0[i] + 0.1*R0[i]
+    # end
+    # @show norm(R0 - R01)
+
+    # R0 .= oR0; U0 .= oU0
+    # Threads.@threads for i in eachindex(U0)
+    #     @inbounds R0[i] = U0[i] + 0.1*R0[i]
+    # end
+    # @show norm(R0 - R01)
+
+    # ranges = []
+    # for th in 1:nth
+    #     # This thread will work on a subset of the columns.
+    #     colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:dchi.nfreedofs)
+    #     push!(ranges, colrange)
+    # end
+    # R0 .= oR0; U0 .= oU0
+    # Threads.@threads for r in ranges
+    #     @inbounds for j in r
+    #         R0[j] = U0[j] + 0.1*R0[j]
+    #     end
+    # end
+    # @show norm(R0 - R01)
+
+    # @btime @. $R0 = $U0 + 0.1*$R0 
+    # @btime for i in eachindex($U0)
+    #     $R0[i] = $U0[i] + 0.1*$R0[i]
+    # end
+    # @btime @inbounds @simd for i in eachindex($U0)
+    #     $R0[i] = $U0[i] + 0.1*$R0[i]
+    # end
+    # @btime Threads.@threads for i in eachindex($U0)
+    #     @inbounds $R0[i] = $U0[i] + 0.1*$R0[i]
+    # end
+    # ranges = []
+    # for th in 1:2
+    #     # This thread will work on a subset of the columns.
+    #     colrange = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:dchi.nfreedofs)
+    #     push!(ranges, colrange)
+    # end
+    # @btime Threads.@threads for r in $ranges
+    #     @inbounds for j in r
+    #         $R0[j] = $U0[j] + 0.1*$R0[j]
+    #     end
+    # end
 
     nothing
 end
 
-function test_convergence()
+function test(ns = [64])
     @info "Clamped cylinder vibration"
-    for n in [64*4] 
+    for n in ns
         _execute(n, 0.01, !false)
     end
     return true
@@ -211,7 +333,7 @@ end
 function allrun()
     println("#####################################################")
     println("# test_convergence ")
-    test_convergence()
+    test()
     return true
 end # function allrun
 
@@ -221,7 +343,7 @@ println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
 end # module
 nothing
 
- using .Main.test_loops; Main.test_loops.allrun()                                                    
+ using .Main.test_loops; Main.test_loops.test(64*[2, 3, 4, 5])                                                    
 
 
 
