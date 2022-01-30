@@ -6,6 +6,7 @@ using FinEtools
 
 include("RotUtilModule.jl")
 include("TransformerModule.jl")
+include("AssemblyModule.jl")
 
 include("CrossSectionModule.jl")
 include("CompositeLayupModule.jl")

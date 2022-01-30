@@ -338,7 +338,7 @@ uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
 version = "1.2.1"
 
 [[FinEtoolsFlexStructures]]
-deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "Statistics", "SymRCM", "Test"]
+deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
 version = "1.4.2"
@@ -887,6 +887,12 @@ git-tree-sha1 = "53d6325e14d3bdb85fd387a085075f36082f35a3"
 uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
 version = "0.18.8"
 
+[[Polyester]]
+deps = ["ArrayInterface", "BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "ManualMemory", "PolyesterWeave", "Requires", "Static", "StrideArraysCore", "ThreadingUtilities"]
+git-tree-sha1 = "a804f11a4da30c0561c824e09fc627531270d9a1"
+uuid = "f517fe37-dbe3-4b94-8317-1923a5111588"
+version = "0.5.5"
+
 [[PolyesterWeave]]
 deps = ["BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "Static", "ThreadingUtilities"]
 git-tree-sha1 = "0bc9e1a21ba066335a5207ac031ee41f72615181"
@@ -1000,6 +1006,12 @@ version = "1.0.1"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[[SparseMatricesCSR]]
+deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
+git-tree-sha1 = "4870b3e7db7063927b163fb981bd579410b68b2d"
+uuid = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
+version = "0.6.6"
+
 [[SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
 git-tree-sha1 = "e6bf188613555c78062842777b116905a9f9dd49"
@@ -1039,11 +1051,21 @@ git-tree-sha1 = "51383f2d367eb3b444c961d485c565e4c0cf4ba0"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.33.14"
 
+[[StrideArraysCore]]
+deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "ManualMemory", "Requires", "SIMDTypes", "Static", "ThreadingUtilities"]
+git-tree-sha1 = "12cf3253ebd8e2a3214ae171fbfe51e7e8d8ad28"
+uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
+version = "0.2.9"
+
 [[StructC14N]]
 deps = ["Test"]
 git-tree-sha1 = "932b930747486efdc5f78297480c311d58374d04"
 uuid = "d2514e9c-36c4-5b8e-97e2-51e7675c221c"
 version = "0.3.0"
+
+[[SuiteSparse]]
+deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
+uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[SymRCM]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
@@ -1074,6 +1096,12 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 [[Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[ThreadedSparseCSR]]
+deps = ["LinearAlgebra", "Polyester", "SparseArrays", "SparseMatricesCSR"]
+git-tree-sha1 = "85540c9038b0ee80f711544764571c469ec561ac"
+uuid = "39591389-4884-462a-89e7-9edfce40b6eb"
+version = "0.1.1"
 
 [[ThreadingUtilities]]
 deps = ["ManualMemory"]

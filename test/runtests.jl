@@ -1,4 +1,7 @@
 using Test
+@time @testset "Utilities" begin
+    include("test_utilities.jl")
+end
 @time @testset "Shell resultants" begin
     include("test_resultants.jl")
 end

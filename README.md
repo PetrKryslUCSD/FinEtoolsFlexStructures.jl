@@ -19,6 +19,7 @@
 
 ## News
 
+- 01/29/2022: Explicit dynamics with CSR sparse matrix parallel multiplication.
 - 12/31/2021: Implemented model for layered (laminated, composite) plates and shells. 
 - 12/20/2021: Reorganized examples into a project.
 - 12/14/2021: The shell element T3FF fully tested, and described in a paper (submitted).
