@@ -220,8 +220,39 @@ function _execute_parallel_csr(n = 64, nthr = 0)
     parloop_csr!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
     
     if visualize
+        reference = [   0.5310   -0.0008
+         10.6195    0.0069
+         16.9912    0.0167
+         23.8938    0.0302
+         30.2655    0.0445
+         32.3894    0.0503
+         35.5752    0.0513
+         41.9469    0.0471
+         46.7257    0.0434
+         51.5044    0.0471
+         55.2212    0.0548
+         60.0000    0.0667
+         63.1858    0.0754
+         67.4336    0.0855
+         71.1504    0.0902
+         78.5841    0.0855
+         82.8319    0.0780
+         85.4867    0.0630
+         89.2035    0.0460
+         94.5133    0.0241
+        101.4159   -0.0066
+        107.2566   -0.0293
+        109.9115   -0.0439
+        112.5664   -0.0497
+        112.5664   -0.0500
+        115.2212   -0.0515
+        120.0000   -0.0470]
+        reference[:, 1] .*= tend/120
+        reference[:, 2] .*= -1
+        # reference[:, 2] .*= phun("in")
         # @gp  "set terminal windows 0 "  :-
         # @gp "clear"
+        @gp  :- reference[:, 1] reference[:, 2] " lw 2 lc rgb 'black' with points title 'Reference' "  :-
         @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections/phun("in") " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
         @gp  :- "set xlabel 'Time'" :-
@@ -250,7 +281,7 @@ function test_parallel_csr(ns = [4*64], nthr = 0)
     return true
 end
 
-function allrun(ns = [80])
+function allrun(ns = [8])
     println("#####################################################")
     println("# test_parallel_csr ")
     test_parallel_csr(ns)
