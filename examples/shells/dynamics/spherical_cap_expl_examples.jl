@@ -20,7 +20,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot; #@gp "clear"
+using Gnuplot; @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots
@@ -220,7 +220,7 @@ function _execute_parallel_csr(n = 64, nthr = 0)
     parloop_csr!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
     
     if visualize
-        reference = [   0.5310   -0.0008
+        reference_Bathe = [   0.5310   -0.0008
          10.6195    0.0069
          16.9912    0.0167
          23.8938    0.0302
@@ -247,19 +247,75 @@ function _execute_parallel_csr(n = 64, nthr = 0)
         112.5664   -0.0500
         115.2212   -0.0515
         120.0000   -0.0470]
-        reference[:, 1] .*= tend/120
-        reference[:, 2] .*= -1
+        reference_Bathe[:, 1] .*= tend/120/phun("Milli*s")
+        reference_Bathe[:, 2] .*= -1
+        reference_Belytschko = [
+        0   0.001290322580645
+        0.000036507936508  -0.003225806451613
+        0.000065079365079  -0.010967741935484
+        0.000095238095238  -0.022580645161290
+        0.000123809523810  -0.038387096774194
+        0.000155555555556  -0.045806451612903
+        0.000193650793651  -0.039354838709677
+        0.000217460317460  -0.034838709677419
+        0.000255555555556  -0.041935483870968
+        0.000287301587302  -0.054193548387097
+        0.000315873015873  -0.070000000000000
+        0.000355555555556  -0.089677419354839
+        0.000401587301587  -0.092903225806452
+        0.000439682539683  -0.082258064516129
+        0.000466666666667  -0.058064516129032
+        0.000482539682540  -0.037096774193548
+        0.000498412698413  -0.012903225806452
+        0.000526984126984   0.017096774193548
+        0.000549206349206   0.034193548387097
+        0.000582539682540   0.041612903225806
+        0.000598412698413   0.038387096774194]  
+        reference_Belytschko[:, 1] .*= 1/phun("Milli*s") 
+        reference_Tabiei = [
+        0.000003183023873   0.000649350649351
+        0.000049336870027  -0.005844155844156
+        0.000084350132626  -0.017207792207792
+        0.000084350132626  -0.017532467532468
+        0.000114588859416  -0.033766233766234
+        0.000144827586207  -0.046103896103896
+        0.000186206896552  -0.043181818181818
+        0.000206896551724  -0.041883116883117
+        0.000233952254642  -0.047077922077922
+        0.000267374005305  -0.062987012987013
+        0.000297612732095  -0.079220779220779
+        0.000332625994695  -0.089610389610390
+        0.000367639257294  -0.078246753246753
+        0.000401061007958  -0.055844155844156
+        0.000434482758621  -0.028896103896104
+        0.000458355437666  -0.005194805194805
+        0.000479045092838   0.017207792207792
+        0.000507692307692   0.037012987012987
+        0.000539522546419   0.047402597402597
+        0.000572944297082   0.035389610389610
+        0.000585676392573   0.025649350649351
+        0.000600000000000   0.015909090909091
+        ]
+        reference_Tabiei[:, 1] .*= 1/phun("Milli*s") 
         # reference[:, 2] .*= phun("in")
-        # @gp  "set terminal windows 0 "  :-
+        # @gp  "reset" :-
+
+        # @gp  :- "set terminal cairolatex standalone pdf size 16cm,10.5cm " :-
+        # @gp  :- "set output 'fire_severity1.tex' "  :-
         # @gp "clear"
-        @gp  :- reference[:, 1] reference[:, 2] " lw 2 lc rgb 'black' with points title 'Reference' "  :-
-        @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections/phun("in") " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
+        @gp "set key top left box  font \"Times-Roman\"" :-
+        @gp  :- reference_Bathe[:, 1] reference_Bathe[:, 2] " lw 2 lc rgb 'black' with points title 'Bathe' "  :-
+        @gp  :- reference_Belytschko[:, 1] reference_Belytschko[:, 2] " lw 2 lc rgb 'black' with points title 'Belytschko' "  :-
+        @gp  :- reference_Tabiei[:, 1] reference_Tabiei[:, 2] " lw 2 lc rgb 'black' with points title 'Tabiei' "  :-
+        @gp  :- collect(0.0:dt:(nsteps*dt))/phun("Milli*s")  cdeflections/phun("in") " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
-        @gp  :- "set xlabel 'Time'" :-
-        @gp  :- "set ylabel 'Deflection'" :-
-        @gp  :- "set title 'Free-floating plate'"
-
-
+        @gp  :- "set tics font \"Times-Roman\"" :-
+        @gp  :- "set xlabel 'Time [ms]' font \"Times-Roman\"" :-
+        @gp  :- "set ylabel 'Deflection [in]' font \"Times-Roman\"" :-
+        @gp  :- "set title 'Spherical cap' font \"Times-Roman\""
+        # @gp  :- "set output "  
+        save(term="cairolatex pdf input color dashed size 5in,3.3in", output="test.tex")
+        
         # Visualization
         @info "Dumping visualization"
         times = Float64[]
