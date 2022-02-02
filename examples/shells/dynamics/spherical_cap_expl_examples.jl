@@ -1,7 +1,9 @@
 """
 Spherical cap, transient vibration.
 
-The cylinder is banged at the initial time (i.e. it is given an initial velocity).
+The structure is loaded with a suddenly applied pressure.
+The downward deflection at the centre is monitored.
+One quarter of the entire shell is modeled.
 """
 module spherical_cap_expl_examples
 
