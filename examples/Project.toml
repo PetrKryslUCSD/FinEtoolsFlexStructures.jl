@@ -20,6 +20,7 @@ Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SparseMatricesCSR = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
 SymRCM = "286e6d88-80af-4590-acc9-0001b223b9bd"
 ThreadedSparseCSR = "39591389-4884-462a-89e7-9edfce40b6eb"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 VisualStructures = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 
 [compat]
