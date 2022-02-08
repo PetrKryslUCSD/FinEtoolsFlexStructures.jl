@@ -41,7 +41,7 @@ const modulation_frequency = carrier_frequency/4
 const forcepatchradius = 20*phun("mm")
 const forcemagnitude = 1*phun("N")
 const color = "red"
-const tend = 0.3*phun("milli*s")
+const tend = 0.9*phun("milli*s")
 const visualize = true
 
 
@@ -122,10 +122,10 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     @show count(fens), count(fes)
 
     offset = max(d5 / 4 / nref / 10, 2*tolerance)
-    l1 = selectnode(fens; box = [0 d5-offset d4 d4], inflate = tolerance)
-    l2 = selectnode(fens; box = [d5+d2+offset d1 d4 d4], inflate = tolerance)
+    l1 = selectnode(fens; box = [0 d5+offset d4 d4], inflate = tolerance)
+    l2 = selectnode(fens; box = [d5+d2-offset d1 d4 d4], inflate = tolerance)
 
-
+    fens.xyz = xyz3(fens)
     
     candidates = vcat(l1, l2)
     fens, fes = mergenodes(fens, fes, tolerance, candidates)
@@ -191,8 +191,8 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
     
-    mpoint = selectnode(fens; nearestto=[barlength/2 barside 0.0])[1]
-    cpoint = selectnode(fens; nearestto=[barlength/2 0 0])[1]
+    mpoint = selectnode(fens; nearestto=[d1/2 0 0.0])[1]
+    cpoint = selectnode(fens; nearestto=[d1/2 d3 0])[1]
     
     mpointdof = dchi.dofnums[mpoint, 3]
     cpointdof = dchi.dofnums[cpoint, 3]
@@ -225,12 +225,14 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
+    mdeflections = fill(0.0, nsteps+1)
     displacements = []
     nbtw = Int(round(nsteps/100))
 
 
     peek(step, U, t) = begin
         cdeflections[step+1] = U[cpointdof]
+        mdeflections[step+1] = U[mpointdof]
         if rem(step+1, nbtw) == 0
             push!(displacements, deepcopy(U))
         end
@@ -244,7 +246,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
         # @gp  "set terminal windows 0 "  :-
         # @gp "clear"
         @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
-
+        @gp  :- collect(0.0:dt:(nsteps*dt)) mdeflections " lw 4 lc rgb '$color' with lines title 'Deflection at the source' "  :-
         @gp  :- "set xlabel 'Time'" :-
         @gp  :- "set ylabel 'Deflection'" :-
         @gp  :- "set title 'Free-floating plate'"
@@ -271,7 +273,7 @@ function test_parallel_csr(nrefs = [4], nthr = 0, color = "red")
     return true
 end
 
-function allrun(nrefs = [2], nthr = 0)
+function allrun(nrefs = [4], nthr = 0)
     println("#####################################################")
     println("# test_parallel_csr ")
     test_parallel_csr(nrefs, nthr, "blue")
