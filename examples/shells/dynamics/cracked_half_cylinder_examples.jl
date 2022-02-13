@@ -1,9 +1,16 @@
 """
+Half pipe of aluminum, with an open through crack.
 
+The pipe corner is banged at the initial time (i.e. pressure is applied on a
+small patch).
 
-The cylinder is banged at the initial time (i.e. it is given an initial velocity).
+The crack configuration is not exactly the same one as in the book.
+It is not described unambiguously in the book.
+
+Reference:
+Ostachowicz W, Kudela P, Krawczuk M, Zak A. Guided Waves in Structures for SHM: The Time - domain Spectral Element Method. A John Wiley & Sons, Ltd., 2011.
 """
-module cracked_half_cylinder_examples
+module cracked_half_pipe_examples
 
 using LinearAlgebra
 using SparseArrays
@@ -26,12 +33,13 @@ using InteractiveUtils
 using BenchmarkTools
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 
+
 const E = 72.7*phun("GPa");
 const nu = 0.33;
 const rho = 2700.0*phun("kg/m^3")
 const d1 = pi*phun("rad")
-const d2 = 10.0/180*pi*phun("rad")
-const d5 = (180-17.5)/180*pi*phun("rad") -d2/2
+const d2 = 6.0/180*pi*phun("rad")
+const d5 = (180-40.0)/180*pi*phun("rad") - d2/2
 const d6 = d1 - d5 - d2
 const nd5 = 19
 const nd2 = 2
@@ -47,11 +55,16 @@ const ksi = 0.0
 const omegad = 1000*phun("Hz")
 const carrier_frequency = 75*phun("kilo*Hz")
 const modulation_frequency = carrier_frequency/4
-const forcepatchradius = 50*phun("mm")
-const forcemagnitude = 100*phun("N")
+const totalforce = 1*phun("N")
+const forcepatchradius = 3*phun("mm")
+const forcedensity = totalforce/(pi*forcepatchradius^2)
 const color = "red"
 const tend = 0.5*phun("milli*s")
 const visualize = true
+const visualizeclear = true
+const visualizevtk = !true
+const color = "black"
+const distributedforce = !true
 
 
 function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
@@ -99,7 +112,7 @@ function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
     end
 end
 
-function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
+function _execute(nref = 2, nthr = 0, color = "red")
     tolerance = min(d2/nd2, d3/nd3, d4/nd4, d5/nd5)/nref/10
 
     xs = sort(unique(vcat(
@@ -131,10 +144,9 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     l1 = selectnode(fens; box = [0 d5+offset d4 d4], inflate = tolerance)
     l2 = selectnode(fens; box = [d5+d2-offset d1 d4 d4], inflate = tolerance)
     la = selectnode(fens; box = [-Inf Inf d4 d4], inflate = tolerance)
-@show length(la), length(l1)+length(l2)
+
     
     candidates = vcat(l1, l2)
-@show tolerance
     fens, fes = mergenodes(fens, fes, tolerance, candidates)
     bfes = meshboundary(fes)
     @info "Mesh $(count(fens)) nodes, $(count(fes)) elements"
@@ -147,8 +159,8 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     end
 
     @show count(fens)
-    vtkwrite("cracked_half_cylinder.vtu", fens, fes)
-    vtkwrite("cracked_half_cylinder-boundary.vtu", fens, bfes)
+    vtkwrite("cracked_half_pipe.vtu", fens, fes)
+    vtkwrite("cracked_half_pipe-boundary.vtu", fens, bfes)
 
     # Renumber the nodes
     femm = FEMMBase(IntegDomain(fes, TriRule(1)))
@@ -208,7 +220,8 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     mpoint = selectnode(fens; nearestto=[radius 0 0.0])[1]
     cpoint = selectnode(fens; nearestto=[radius d3 0])[1]
     
-    mpointdof = dchi.dofnums[mpoint, 3]
+    mpointdof1 = dchi.dofnums[mpoint, 1]
+    mpointdof3 = dchi.dofnums[mpoint, 3]
     cpointdof = dchi.dofnums[cpoint, 3]
     
     # Four cycles of the carrier frequency
@@ -220,26 +233,30 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
         d = (dx^2+dy^2+dz^2)/forcepatchradius
         forceout[1:3] .= 0.0
         if d < 1.0
-            forceout[1] = forcemagnitude*exp(-20*d^2/forcepatchradius^2)
+            forceout[1] = forcedensity*exp(-20*d^2/forcepatchradius^2)
         end
         forceout[4:6] .= 0.0
         return forceout
     end
 
-    # Sinusoidal loading on the surface of the shell
-    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    if distributedforce
+        lfemm = FEMMBase(IntegDomain(fes, TriRule(6)))
+        fi = ForceIntensity(FFlt, 6, computetrac!);
+        Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    else
+        Fmag = fill(0.0, dchi.nfreedofs)
+        Fmag[mpointdof1] = -totalforce/4 # only a quarter of the plate is modeled
+    end
 
     function force!(F, t)
         mul = 0.0
-        if t <= 4/carrier_frequency
+        if t <= 1/modulation_frequency
             mul = 0.5 * (1 - cos(2*pi*modulation_frequency*t)) * sin(2*pi*carrier_frequency*t)
         end
         F .= mul .* Fmag
         return F
     end
-    
+
     nsteps = Int(round(tend/dt))
     cdeflections = fill(0.0, nsteps+1)
     mdeflections = fill(0.0, nsteps+1)
@@ -249,7 +266,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
 
     peek(step, U, t) = begin
         cdeflections[step+1] = U[cpointdof]
-        mdeflections[step+1] = U[mpointdof]
+        mdeflections[step+1] = U[mpointdof1]
         if rem(step+1, nbtw) == 0
             push!(displacements, deepcopy(U))
         end
@@ -278,22 +295,22 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)
         end
-        vtkwritecollection("cracked_half_cylinder_$nref", fens, fes, times; vectors = vectors)
+        vtkwritecollection("cracked_half_pipe_$nref", fens, fes, times; vectors = vectors)
     end
 end
 
-function test_parallel_csr(nrefs = [4], nthr = 0, color = "red")
+function test(nrefs = [4], nthr = 0, color = "red")
     @info "Cracked half pipe, nrefs = $nrefs: parallel CSR"
     for nref in nrefs
-        _execute_parallel_csr(nref, nthr, color)
+        _execute(nref, nthr, color)
     end
     return true
 end
 
-function allrun(nrefs = [3], nthr = 0)
+function allrun(nrefs = [4], nthr = 0, color = "blue")
     println("#####################################################")
-    println("# test_parallel_csr ")
-    test_parallel_csr(nrefs, nthr, "blue")
+    println("# test ")
+    test(nrefs, nthr, color)
     return true
 end # function allrun
 

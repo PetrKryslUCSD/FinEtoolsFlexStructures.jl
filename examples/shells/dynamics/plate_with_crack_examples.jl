@@ -18,7 +18,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot; # @gp "clear"
+using Gnuplot; @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots
@@ -39,7 +39,7 @@ const omegad = 1000*phun("Hz")
 const carrier_frequency = 75*phun("kilo*Hz")
 const modulation_frequency = carrier_frequency/4
 const forcepatchradius = 20*phun("mm")
-const forcemagnitude = 1*phun("N")
+const forcedensity = 1*phun("N")
 const color = "red"
 const tend = 0.9*phun("milli*s")
 const visualize = true
@@ -204,7 +204,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
         dy = XYZ[2] - fens.xyz[mpoint, 2]
         dz = XYZ[3] - fens.xyz[mpoint, 3]
         forceout[1:2] .= 0.0
-        forceout[3] = forcemagnitude*exp(-20*sqrt(dx^2+dy^2+dz^2)/forcepatchradius)
+        forceout[3] = forcedensity*exp(-20*sqrt(dx^2+dy^2+dz^2)/forcepatchradius)
         forceout[4:6] .= 0.0
         return forceout
     end

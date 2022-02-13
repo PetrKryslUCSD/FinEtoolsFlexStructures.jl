@@ -3,6 +3,8 @@ Aluminum plate with force at the center. One quarter is modeled.
 
 The plate is excited with the transducer at the initial time (i.e. distributed
 loading mimicking a concentrated force is applied).
+
+Reference:  Ostachowicz W, Kudela P, Krawczuk M, Zak A. ch. 5: i-xii; John Wiley & Sons, Ltd . 2012
 """
 module plate_expl_examples
 
@@ -45,7 +47,7 @@ const carrier_frequency = 35*phun("kilo*Hz")
 const modulation_frequency = 7*phun("kilo*Hz")
 const totalforce = 1*phun("N")
 const forcepatchradius = 3*phun("mm")
-const forcemagnitude = totalforce/(pi*forcepatchradius^2)
+const forcedensity = totalforce/(pi*forcepatchradius^2)
 const tend = 1.0*phun("milli*s")
 const visualize = true
 const visualizeclear = true
@@ -206,7 +208,7 @@ function _execute(nref = 2, nthr = 0)
         d = sqrt(dx^2+dy^2+dz^2)
         forceout .= 0.0
         if d < forcepatchradius
-            forceout[3] = -forcemagnitude
+            forceout[3] = -forcedensity
         end
         return forceout
     end
@@ -365,49 +367,50 @@ end # module
 nothing
 
 using .Main.plate_expl_examples; 
-results = Main.plate_expl_examples.allrun([5, 6, 7])                                        
-using PGFPlotsX
-using CSV
+results = Main.plate_expl_examples.allrun(6)                                        
+# results = Main.plate_expl_examples.allrun([5, 6, 7])                                        
+# using PGFPlotsX
+# using CSV
 
-objects = []
 
-styles = ["dotted", "dashed", "solid"]
+# styles = ["dotted", "dashed", "solid"]
 
-for (j, nref) in enumerate([5, 6, 7])
-    f = CSV.File("plate_expl_$nref.csv")  
+# objects = []
+# for (j, nref) in enumerate([5, 6, 7])
+#     f = CSV.File("plate_expl_$nref.csv")  
 
-    @pgf p = PGFPlotsX.Plot(
-    {
-    color = "black",
-    style = "$(styles[])"
-    line_width  = 1.0
-    },
-    Coordinates([v for v in  zip(f["t"], f["v"])])
-    )
-    push!(objects, p)
-    push!(objects, LegendEntry("Point C, nref = $nref"))
-end
+#     @pgf p = PGFPlotsX.Plot(
+#     {
+#     color = "black",
+#     style = "$(styles[j])",
+#     line_width  = 1.0
+#     },
+#     Coordinates([v for v in  zip(f["t"], f["v"])])
+#     )
+#     push!(objects, p)
+#     push!(objects, LegendEntry("nref = $nref"))
+# end
 
-@pgf ax = Axis(
-{
-xlabel = "Time [ms]",
-ylabel = "Velocity [mm/s]",
-ymin = -1.1e-5,
-ymax = 1.1e-5,
-xmin = 0.0,
-xmax = 1.0,
-xmode = "linear", 
-ymode = "linear",
-yminorgrids = "true",
-grid = "both",
-legend_style = {
-at = Coordinate(0.5, 1.05),
-anchor = "south",
-legend_columns = -1
-},
-},
-objects...
-)
+# @pgf ax = Axis(
+# {
+# xlabel = "Time [ms]",
+# ylabel = "Velocity [mm/s]",
+# ymin = -1.1e-5,
+# ymax = 1.1e-5,
+# xmin = 0.0,
+# xmax = 1.0,
+# xmode = "linear", 
+# ymode = "linear",
+# yminorgrids = "true",
+# grid = "both",
+# legend_style = {
+# at = Coordinate(0.5, 1.15),
+# anchor = "south",
+# legend_columns = -1
+# },
+# },
+# objects...
+# )
 
-display(ax)
-pgfsave("plate_expl_comparison.pdf", ax)
+# display(ax)
+# pgfsave("plate_expl_comparison.pdf", ax)

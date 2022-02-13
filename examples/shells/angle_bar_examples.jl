@@ -1,7 +1,10 @@
 """
 Angle bar, transient vibration.
 
-The cylinder is banged at the initial time (i.e. it is given an initial velocity).
+Forcing at one of the free edges in is applied in the form of a Hann-windowed
+concentrated force.
+
+Reference:  Ostachowicz W, Kudela P, Krawczuk M, Zak A. ch. 5: i-xii; John Wiley & Sons, Ltd . 2012
 """
 module angle_bar_examples
 
@@ -224,7 +227,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     
     if visualize
         # @gp  "set terminal windows 0 "  :-
-        # @gp "clear"
+        @gp "clear"
         @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
         @gp  :- "set xlabel 'Time'" :-
@@ -253,7 +256,7 @@ function test_parallel_csr(nrefs = [4], nthr = 0, color = "red")
     return true
 end
 
-function allrun(nrefs = [8], nthr = 0)
+function allrun(nrefs = [6], nthr = 0)
     println("#####################################################")
     println("# test_parallel_csr ")
     test_parallel_csr(nrefs, nthr, "blue")
