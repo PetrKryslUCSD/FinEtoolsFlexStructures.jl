@@ -1,8 +1,8 @@
 """
 Half pipe of aluminum, with an open through crack.
 
-The pipe corner is banged at the initial time (i.e. pressure is applied on a
-small patch).
+The pipe corner is excited by a concentrated force in the form of a
+Hann-windowed sinusoidal pulse.
 
 The crack configuration is not exactly the same one as in the book.
 It is not described unambiguously in the book.
