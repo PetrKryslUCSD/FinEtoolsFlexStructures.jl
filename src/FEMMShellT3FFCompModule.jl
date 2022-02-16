@@ -41,7 +41,6 @@ mutable struct FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
     # Configuration parameters
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
-    drilling_mass_scale::Float64
     threshold_angle::Float64
     mult_el_size::Float64
     # Private data
@@ -119,7 +118,7 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S,F}, layup::CompositeLayup)
     @assert delegateof(integdomain.fes) === FESetShellT3()
 
     return FEMMShellT3FFComp(integdomain, layup_groups,
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 1.0, 30.0, 5 / 12 / 1.5,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5 / 12 / 1.5,
         false, _normals, _normal_valid,
         _layup_group_lookup,
         _loc, _J0,
@@ -595,12 +594,8 @@ function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, 
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = QTEQTransformer(elmat)
-    _nodal_triads_e! = NodalTriadsE()
-    _transfmat_g_to_a! = TransfmatGToA()
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
-    drilling_mass_scale = self.drilling_mass_scale
     startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
     for lg in self.layup_groups
             layup = lg[1]
@@ -617,13 +612,8 @@ function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, 
                 # to nodes
                 tmass = mass_density*(Ae/3);
                 rmass = moment_of_inertia_density*(Ae/3);
-                dmass = rmass * drilling_mass_scale
-                # Now treat the transformation from the element to the nodal
-                # triad
-                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-                # Fill the elementwise matrix in the nodal basis: the matrix is
-                # lumped, hence diagonal, and no transformation from element to
-                # nodal is needed.
+                # Fill the elementwise matrix in the global basis: the matrix is
+                # lumped, hence diagonal, and no transformation is needed.
                 fill!(elmat,  0.0); # Initialize element matrix
                 for k in 1:npe
                     # Translation degrees of freedom
@@ -632,18 +622,11 @@ function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, 
                         elmat[c, c] += tmass
                     end
                     # Bending degrees of freedom
-                    for d in 4:5
+                    for d in 4:6
                         c = (k - 1) * __ndof + d
                         elmat[c, c] += rmass
                     end
-                    # Drilling rotations
-                    d = 6
-                    c = (k - 1) * __ndof + d
-                    elmat[c, c] += dmass
                 end
-                # Transform into global coordinates
-                _transfmat_g_to_a!(T, A_Es, E_G)
-                transformwith(elmat, T)
                 # Assemble
                 gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
                 assemble!(assembler,  elmat,  dofnums,  dofnums);# assemble symmetric matrix

@@ -341,7 +341,6 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     # Set up
-    femm.drilling_mass_scale = 1.0
     femm.drilling_stiffness_scale = 1.0
 
     # Construct the requisite fields, geometry and displacement
@@ -506,7 +505,6 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     # Set up
-    femm.drilling_mass_scale = 1.0
     femm.drilling_stiffness_scale = 1.0
 
     # Construct the requisite fields, geometry and displacement
@@ -673,7 +671,6 @@ function _execute_serial(n = 64, thickness = 0.01)
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     # Set up
-    femm.drilling_mass_scale = 1.0
     femm.drilling_stiffness_scale = 1.0
 
     # Construct the requisite fields, geometry and displacement
@@ -838,7 +835,6 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     # Set up
-    femm.drilling_mass_scale = 1.0
     femm.drilling_stiffness_scale = 1.0
 
     # Construct the requisite fields, geometry and displacement
@@ -1050,7 +1046,6 @@ function _explore_csr(n = 64, thickness = 0.01, nthr = 0)
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
     # Set up
-    femm.drilling_mass_scale = 1.0
     femm.drilling_stiffness_scale = 1.0
 
     # Construct the requisite fields, geometry and displacement
