@@ -59,7 +59,7 @@ as a result of cloning the repository.
 
 The project needed for running examples can be activated and initialized by
 ```
-using Pkg; Pkg.activate("./Examples"); Pkg.instantiate(); using Revise
+using Pkg; Pkg.activate("./examples"); Pkg.instantiate(); using Revise
 ```
 
 There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl). As an example:
@@ -89,12 +89,13 @@ fs = [20.301524870325565, 25.533290848730623, 28.914284995255777, 30.62082230287
 true      
 ```
 There is usually some indication of what the correct answer should be in 
-the document string of the module: refer to the file defining the examples.
+the document string of the module: refer to the Julia file defining the examples.
 
 ## Visualization
 
 This is possible with [PlotlyJS.jl](https://github.com/JuliaPlots/PlotlyJS.jl) with the package [`VisualStructures`](https://github.com/PetrKryslUCSD/VisualStructures.jl).
 Static plots or animation of deformation during a static or dynamic simulation can be done.
 
-Export to  [Paraview](https://www.paraview.org/)  is also available. Only static pictures are supported this way.
+Export to  [Paraview](https://www.paraview.org/)  is also available. Static
+pictures and time collections (useful for animations) are supported this way.
 
