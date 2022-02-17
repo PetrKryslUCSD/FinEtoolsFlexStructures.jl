@@ -57,6 +57,44 @@ function pwr(K, M, maxit = 30)
     sqrt((v' * (K * v)) / (v' * M * v))
 end
 
+# function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
+#     U = deepcopy(U0)
+#     V = deepcopy(U0)
+#     A = deepcopy(U0)
+#     F = deepcopy(U0)
+#     E = deepcopy(U0)
+#     C = deepcopy(U0)
+#     C .= (ksi*2*omegad) .* vec(diag(M))
+#     invMC = deepcopy(U0)
+#     invMC .= 1.0 ./ (vec(diag(M)) .+ (dt/2) .* C)
+#     nsteps = Int64(round(tend/dt))
+#     if nsteps*dt < tend
+#         dt = tend / (nsteps+1)
+#     end
+
+#     nth = (nthr == 0 ? Base.Threads.nthreads() : nthr)
+#     @info "$nth threads used"
+    
+#     t = 0.0
+#     @. U = U0; @. V = V0; # Initial Conditions
+#     A .= invMC .* force!(F, t); # Compute initial acceleration
+#     peek(0, U, t)
+#     @time for step in 1:nsteps
+#         t = t + dt
+#         @. U += dt*V + ((dt^2)/2)*A;   # Displacement update
+#         force!(F, t);  # External forces are computed
+#         ThreadedSparseCSR.bmul!(E, K, U)  # Evaluate elastic restoring forces
+#         # F .-= E .+ C .* V .+ (dt/2) .* C .* A  # Calculate total force
+#         F .-= E .+ C .* (V .+ (dt/2) .* A)  # Calculate total force
+#         @inbounds @simd for i in eachindex(U)
+#             _Ai = A[i]; # This is the previous acceleration
+#             A[i] = invMC[i] * F[i] # Compute the new acceleration. 
+#             V[i] += (dt/2) * (_Ai + A[i]); # Update the velocity
+#         end
+#         peek(step, U, t)
+#     end
+# end
+
 function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
     U = deepcopy(U0)
     V = deepcopy(U0)
@@ -71,33 +109,27 @@ function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
+    dt2_2 = ((dt^2)/2)
+    dt_2 = (dt/2)
 
     nth = (nthr == 0 ? Base.Threads.nthreads() : nthr)
     @info "$nth threads used"
     
     t = 0.0
-    # Initial Conditions
-    @. U = U0; @. V = V0
-    A .= invMC .* force!(F, t);
+    @. U = U0; @. V = V0; # Initial Conditions
+    A .= invMC .* force!(F, t); # Compute initial acceleration
     peek(0, U, t)
     @time for step in 1:nsteps
-        # Displacement update
-        @. U += dt*V + ((dt^2)/2)*A; 
-        # External loading
-        force!(F, t);
-        # Add elastic restoring forces
-        F .-= ThreadedSparseCSR.bmul!(E, K, U)
-        @inbounds @simd for i in eachindex(U)
-            _Fi = F[i]; _Ai = A[i]; _Vi = V[i]
-            # Add damping forces
-            _Fi -= C[i] * (_Vi + (dt/2) * _Ai)
-            # Compute the new acceleration.
-            _A1i = invMC[i] * _Fi
-            A[i] = _A1i
-            # Update the velocity
-            V[i] += (dt/2)* (_Ai + _A1i);
-        end
         t = t + dt
+        @. U += dt*V + dt2_2*A;   # Displacement update
+        force!(F, t);  # External forces are computed
+        ThreadedSparseCSR.bmul!(E, K, U)  # Evaluate elastic restoring forces
+        F .-= E .+ C .* (V .+ dt_2 .* A)  # Calculate total force
+        @inbounds @simd for i in eachindex(U)
+            _Ai = A[i]; # This is the previous acceleration
+            A[i] = invMC[i] * F[i] # Compute the new acceleration. 
+            V[i] += dt_2 * (_Ai + A[i]); # Update the velocity
+        end
         peek(step, U, t)
     end
 end
