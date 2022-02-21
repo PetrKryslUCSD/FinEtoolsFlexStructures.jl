@@ -154,7 +154,7 @@ function _execute(nref = 2, nthr = 0)
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
     # Solve
-    function _pwr(K, M, maxit = 30, tol = 1/100000)
+    function _pwr(K, M, maxit = 30, rtol = 1/100000)
         invM = fill(0.0, size(M, 1))
         invM .= 1.0 ./ (vec(diag(M)))
         v = rand(size(M, 1))
@@ -171,7 +171,7 @@ function _execute(nref = 2, nthr = 0)
             if i % everyn  == 0
                 lambda = sqrt((v' * (K * v)) / (v' * M * v))
                 @show i, abs(lambda - lambdap) / lambda
-                if abs(lambda - lambdap) / lambda  < tol
+                if abs(lambda - lambdap) / lambda  < rtol
                     break
                 end
                 lambdap = lambda

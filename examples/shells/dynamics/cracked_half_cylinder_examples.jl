@@ -25,7 +25,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot;  @gp "clear"
+using Gnuplot;  # @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots
@@ -58,57 +58,47 @@ const modulation_frequency = carrier_frequency/4
 const totalforce = 1*phun("N")
 const forcepatchradius = 3*phun("mm")
 const forcedensity = totalforce/(pi*forcepatchradius^2)
-const color = "red"
+const distributedforce = !true
 const tend = 0.5*phun("milli*s")
+
 const visualize = true
 const visualizeclear = true
 const visualizevtk = !true
 const color = "black"
-const distributedforce = !true
 
 
-function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
-    U = deepcopy(U0)
-    V = deepcopy(U0)
-    A = deepcopy(U0)
-    F = deepcopy(U0)
-    E = deepcopy(U0)
-    C = deepcopy(U0)
+function _cd_loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
+    # Central difference integration loop, for mass-proportional Rayleigh damping.
+    U = similar(U0)
+    V = similar(U0)
+    A = similar(U0)
+    F = similar(U0)
+    E = similar(U0)
+    C = similar(U0)
     C .= (ksi*2*omegad) .* vec(diag(M))
-    invMC = deepcopy(U0)
+    invMC = similar(U0)
     invMC .= 1.0 ./ (vec(diag(M)) .+ (dt/2) .* C)
     nsteps = Int64(round(tend/dt))
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
+    dt2_2 = ((dt^2)/2)
+    dt_2 = (dt/2)
 
-    nth = (nthr == 0 ? Base.Threads.nthreads() : nthr)
-    @info "$nth threads used"
-    
     t = 0.0
-    # Initial Conditions
-    @. U = U0; @. V = V0
-    A .= invMC .* force!(F, t);
-    peek(0, U, t)
-    @time for step in 1:nsteps
-        # Displacement update
-        @. U += dt*V + ((dt^2)/2)*A; 
-        # External loading
-        force!(F, t);
-        # Add elastic restoring forces
-        F .-= ThreadedSparseCSR.bmul!(E, K, U)
-        @inbounds @simd for i in eachindex(U)
-            _Fi = F[i]; _Ai = A[i]; _Vi = V[i]
-            # Add damping forces
-            _Fi -= C[i] * (_Vi + (dt/2) * _Ai)
-            # Compute the new acceleration.
-            _A1i = invMC[i] * _Fi
-            A[i] = _A1i
-            # Update the velocity
-            V[i] += (dt/2)* (_Ai + _A1i);
-        end
+    @. U = U0; @. V = V0; # Initial Conditions
+    A .= invMC .* force!(F, t); # Compute initial acceleration
+    peek(0, U, V, t)
+    for step in 1:nsteps
         t = t + dt
-        peek(step, U, t)
+        @. U += dt*V + dt2_2*A;   # Displacement update
+        force!(F, t);  # External forces are computed
+        ThreadedSparseCSR.bmul!(E, K, U)  # Evaluate elastic restoring forces
+        @. F -= E + C * (V + dt_2 * A)  # Calculate total force
+        @. V += dt_2 * A; # Update the velocity, part one: add old acceleration
+        @. A = invMC * F # Compute the acceleration
+        @. V += dt_2 * A; # Update the velocity, part two: add new acceleration
+        peek(step, U, V, t)
     end
 end
 
@@ -126,20 +116,17 @@ function _execute(nref = 2, nthr = 0, color = "red")
     for r in 1:nref
         fens1, fes1 = T3refine(fens1, fes1)
     end
-    @show count(fens1), count(fes1)
-
+    
     ys = collect(linearspace(d4, d3, nd3))
     
     fens2, fes2 = T3blockx(xs, ys); # Mesh
     for r in 1:nref
         fens2, fes2 = T3refine(fens2, fes2)
     end
-    @show count(fens2), count(fes2)
-
+    
     fens, fes1, fes2 = mergemeshes(fens1, fes1,  fens2, fes2, 0.0)
     fes = cat(fes1, fes2)
-    @show count(fens), count(fes)
-
+    
     offset = min(d2 / nd2 / nref / 10, 4*tolerance)
     l1 = selectnode(fens; box = [0 d5+offset d4 d4], inflate = tolerance)
     l2 = selectnode(fens; box = [d5+d2-offset d1 d4 d4], inflate = tolerance)
@@ -158,7 +145,6 @@ function _execute(nref = 2, nthr = 0, color = "red")
         fens.xyz[i, :] .= cos(pi-a)*radius, y, sin(pi-a)*radius
     end
 
-    @show count(fens)
     vtkwrite("cracked_half_pipe.vtu", fens, fes)
     vtkwrite("cracked_half_pipe-boundary.vtu", fens, bfes)
 
@@ -194,24 +180,35 @@ function _execute(nref = 2, nthr = 0, color = "red")
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
     # Solve
-    function pwr(K, M)
+    function _pwr(K, M, maxit = 30, rtol = 1/10000)
         invM = fill(0.0, size(M, 1))
         invM .= 1.0 ./ (vec(diag(M)))
         v = rand(size(M, 1))
         w = fill(0.0, size(M, 1))
-        for i in 1:30
+        everyn = Int(round(maxit / 50)) + 1
+        lambda = lambdap = 0.0
+        for i in 1:maxit
             ThreadedSparseCSR.bmul!(w, K, v)
             wn = norm(w)
             w .*= (1.0/wn)
             v .= invM .* w
             vn = norm(v)
             v .*= (1.0/vn)
+            if i % everyn  == 0
+                lambda = sqrt((v' * (K * v)) / (v' * M * v))
+                @show i, abs(lambda - lambdap) / lambda
+                if abs(lambda - lambdap) / lambda  < rtol
+                    break
+                end
+                lambdap = lambda
+            end
         end
-        sqrt((v' * (K * v)) / (v' * M * v))
+        return lambda
     end
-    @time omega_max = pwr(K, M)
+    @time omega_max = _pwr(K, M, Int(round(count(fens) / 1000)))
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
-    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    # @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    @show dt = Float64(0.99 * 2/omega_max)
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
@@ -263,7 +260,7 @@ function _execute(nref = 2, nthr = 0, color = "red")
     nbtw = Int(round(nsteps/100))
 
 
-    peek(step, U, t) = begin
+    peek(step, U, V, t) = begin
         cdeflections[step+1] = U[cpointdof]
         mdeflections[step+1] = U[mpointdof1]
         if rem(step+1, nbtw) == 0
@@ -273,8 +270,8 @@ function _execute(nref = 2, nthr = 0, color = "red")
     end
 
     @info "$nsteps steps"
-    parloop_csr!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
-    
+    @time _cd_loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
+        
     if visualize
         # @gp  "set terminal windows 0 "  :-
         # @gp "clear"
@@ -306,7 +303,7 @@ function test(nrefs = [4], nthr = 0, color = "red")
     return true
 end
 
-function allrun(nrefs = [4], nthr = 0, color = "blue")
+function allrun(nrefs = [4], nthr = 0, color = "red")
     println("#####################################################")
     println("# test ")
     test(nrefs, nthr, color)
