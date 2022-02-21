@@ -21,7 +21,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot;  
+using Gnuplot; # @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots
@@ -45,57 +45,49 @@ const omegad = 2*pi*1000*phun("Hz")
 const ksi = 100.0/2/omegad
 const carrier_frequency = 35*phun("kilo*Hz")
 const modulation_frequency = 7*phun("kilo*Hz")
+const distributedforce = true
 const totalforce = 1*phun("N")
-const forcepatchradius = 3*phun("mm")
+const forcepatchradius = 6*phun("mm")
 const forcedensity = totalforce/(pi*forcepatchradius^2)
 const tend = 1.0*phun("milli*s")
+
 const visualize = true
-const visualizeclear = true
+const visualizeclear = !true
 const visualizevtk = !true
 const color = "black"
-const distributedforce = !true
+const colors = ["black", "orange", "magenta", "brown", "red", "green", "blue", "cyan"]
 
-function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
-    U = deepcopy(U0)
-    V = deepcopy(U0)
-    A = deepcopy(U0)
-    F = deepcopy(U0)
-    E = deepcopy(U0)
-    C = deepcopy(U0)
+function _cd_loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
+    # Central difference integration loop, for mass-proportional Rayleigh damping.
+    U = similar(U0)
+    V = similar(U0)
+    A = similar(U0)
+    F = similar(U0)
+    E = similar(U0)
+    C = similar(U0)
     C .= (ksi*2*omegad) .* vec(diag(M))
-    invMC = deepcopy(U0)
+    invMC = similar(U0)
     invMC .= 1.0 ./ (vec(diag(M)) .+ (dt/2) .* C)
     nsteps = Int64(round(tend/dt))
     if nsteps*dt < tend
         dt = tend / (nsteps+1)
     end
+    dt2_2 = ((dt^2)/2)
+    dt_2 = (dt/2)
 
-    nth = (nthr == 0 ? Base.Threads.nthreads() : nthr)
-    @info "$nth threads used"
-    
     t = 0.0
-    # Initial Conditions
-    @. U = U0; @. V = V0
-    A .= invMC .* force!(F, t);
+    @. U = U0; @. V = V0; # Initial Conditions
+    A .= invMC .* force!(F, t); # Compute initial acceleration
     peek(0, U, V, t)
-    @time for step in 1:nsteps
-        # Displacement update
-        @. U += dt*V + ((dt^2)/2)*A; 
-        # External loading
-        force!(F, t);
-        # Add elastic restoring forces
-        F .-= ThreadedSparseCSR.bmul!(E, K, U)
-        @inbounds @simd for i in eachindex(U)
-            _Fi = F[i]; _Ai = A[i]; _Vi = V[i]
-            # Add damping forces
-            _Fi -= C[i] * (_Vi + (dt/2) * _Ai)
-            # Compute the new acceleration.
-            _A1i = invMC[i] * _Fi
-            A[i] = _A1i
-            # Update the velocity
-            V[i] += (dt/2)* (_Ai + _A1i);
-        end
+    for step in 1:nsteps
         t = t + dt
+        @. U += dt*V + dt2_2*A;   # Displacement update
+        force!(F, t);  # External forces are computed
+        ThreadedSparseCSR.bmul!(E, K, U)  # Evaluate elastic restoring forces
+        @. F -= E + C * (V + dt_2 * A)  # Calculate total force
+        @. V += dt_2 * A; # Update the velocity, part one: add old acceleration
+        @. A = invMC * F # Compute the acceleration
+        @. V += dt_2 * A; # Update the velocity, part two: add new acceleration
         peek(step, U, V, t)
     end
 end
@@ -162,24 +154,34 @@ function _execute(nref = 2, nthr = 0)
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
     # Solve
-    function pwr(K, M)
+    function _pwr(K, M, maxit = 30, tol = 1/100000)
         invM = fill(0.0, size(M, 1))
         invM .= 1.0 ./ (vec(diag(M)))
         v = rand(size(M, 1))
         w = fill(0.0, size(M, 1))
-        for i in 1:30
+        everyn = Int(round(maxit / 50)) + 1
+        lambda = lambdap = 0.0
+        for i in 1:maxit
             ThreadedSparseCSR.bmul!(w, K, v)
             wn = norm(w)
             w .*= (1.0/wn)
             v .= invM .* w
             vn = norm(v)
             v .*= (1.0/vn)
+            if i % everyn  == 0
+                lambda = sqrt((v' * (K * v)) / (v' * M * v))
+                @show i, abs(lambda - lambdap) / lambda
+                if abs(lambda - lambdap) / lambda  < tol
+                    break
+                end
+                lambdap = lambda
+            end
         end
-        sqrt((v' * (K * v)) / (v' * M * v))
+        return lambda
     end
-    @time omega_max = pwr(K, M)
+    @time omega_max = _pwr(K, M, Int(round(count(fens) / 1000)))
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
-    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    @show dt = Float64(0.95 * 2/omega_max) 
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
@@ -198,8 +200,6 @@ function _execute(nref = 2, nthr = 0)
         pointdofs[k] = dchi.dofnums[points[k], 3]
     end
     
-    # Four cycles of the carrier frequency
-
     function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
         dx = XYZ[1] - fens.xyz[points["A"], 1]
         dy = XYZ[2] - fens.xyz[points["A"], 2]
@@ -253,7 +253,7 @@ function _execute(nref = 2, nthr = 0)
     end
 
     @info "$nsteps steps"
-    parloop_csr!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
+    @time _cd_loop!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek)
         
 
     savecsv("plate_expl_$nref", t = collect(0.0:dt:(nsteps*dt))./phun("milli*s"),
@@ -261,28 +261,26 @@ function _execute(nref = 2, nthr = 0)
 
     if visualize
         # @gp  "set terminal windows 0 "  :-
-        # if visualizeclear
-        #     @gp "clear"
+        if visualizeclear
+            @gp "clear"
+        end
+        
+        # for k in sort(string.(keys(points)))
+        #     @gp  :- collect(0.0:dt:(nsteps*dt)) pointvelocities[k] " lw 2 lc rgb '$color' with lines title 'Deflection at $(string(k))' "  :-
         # end
         
-        # # for k in sort(string.(keys(points)))
-        # #     @gp  :- collect(0.0:dt:(nsteps*dt)) pointvelocities[k] " lw 2 lc rgb '$color' with lines title 'Deflection at $(string(k))' "  :-
-        # # end
-        
-        # @gp  :- "set xrange [0:1.0] " :- # in milliseconds
-        # @gp  :- "set yrange [-1.1e-5:1.1e-5] " :-
-        # for (i, k) in enumerate(["C"])
-        #     @gp  :-  collect(0.0:dt:(nsteps*dt))./phun("milli*s") pointvelocities[k]./phun("mm/s") " lw 2 lc rgb '$color' with lines title 'Velocity at $(string(k))' "  :-
-        #     # @gp  :- collect(0.0:dt:(nsteps*dt))./phun("milli*s") pointvelocities[k] " lw 2 lc rgb '$color' pt $i with lp title 'Velocity at $(string(k))' "  :-
-        # end
+        @gp  :- "set xrange [0:1.0] " :- # in milliseconds
+        @gp  :- "set yrange [-1.1e-5:1.1e-5] " :-
+        for (i, k) in enumerate(["C"])
+            @gp  :-  collect(0.0:dt:(nsteps*dt))./phun("milli*s") pointvelocities[k]./phun("mm/s") " lw 2 lc rgb '$(colors[nref])' with lines title 'Velocity at $(string(k))' "  :-
+            # @gp  :- collect(0.0:dt:(nsteps*dt))./phun("milli*s") pointvelocities[k] " lw 2 lc rgb '$color' pt $i with lp title 'Velocity at $(string(k))' "  :-
+        end
         
 
-        # @gp  :- "set tics font \"Times-Roman\"" :-
-        # @gp  :- "set xlabel 'Time [ms]' font \"Times-Roman\"" :-
-        # @gp  :- "set ylabel 'Velocity [mm/s]' font \"Times-Roman\"" :-
-        # @gp  :- "set title 'Free-floating center-loaded plate' font \"Times-Roman\""
-        # # @gp  :- "set output "  
-        # save(term="cairolatex pdf input color size 5in,3.3in", output="plate_expl_$nref.tex")
+        @gp  :- "set tics font \"Times-Roman\"" :-
+        @gp  :- "set xlabel 'Time [ms]' font \"Times-Roman\"" :-
+        @gp  :- "set ylabel 'Velocity [mm/s]' font \"Times-Roman\"" :-
+        @gp  :- "set title 'Free-floating center-loaded plate' font \"Times-Roman\""
 
 
         objects = []
@@ -366,7 +364,8 @@ end # module
 nothing
 
 using .Main.plate_expl_examples; 
-results = Main.plate_expl_examples.allrun(6)                                        
+# results = Main.plate_expl_examples.allrun(7)                                        
+results = Main.plate_expl_examples.allrun([4, 5, 6, 7])                                        
 # results = Main.plate_expl_examples.allrun([5, 6, 7])                                        
 # using PGFPlotsX
 # using CSV
