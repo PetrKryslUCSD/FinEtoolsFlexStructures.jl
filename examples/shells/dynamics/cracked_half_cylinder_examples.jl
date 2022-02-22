@@ -66,6 +66,31 @@ const visualizeclear = true
 const visualizevtk = !true
 const color = "black"
 
+function _pwr(K, M, maxit = 30, rtol = 1/10000)
+    invM = fill(0.0, size(M, 1))
+    invM .= 1.0 ./ (vec(diag(M)))
+    v = rand(size(M, 1))
+    w = fill(0.0, size(M, 1))
+    everyn = Int(round(maxit / 50)) + 1
+    lambda = lambdap = 0.0
+    for i in 1:maxit
+        ThreadedSparseCSR.bmul!(w, K, v)
+        wn = norm(w)
+        w .*= (1.0/wn)
+        v .= invM .* w
+        vn = norm(v)
+        v .*= (1.0/vn)
+        if i % everyn  == 0
+            lambda = sqrt((v' * (K * v)) / (v' * M * v))
+            # @show i, abs(lambda - lambdap) / lambda
+            if abs(lambda - lambdap) / lambda  < rtol
+                break
+            end
+            lambdap = lambda
+        end
+    end
+    return lambda
+end
 
 function _cd_loop!(M, K, ksi, U0, V0, tend, dt, force!, peek)
     # Central difference integration loop, for mass-proportional Rayleigh damping.
@@ -179,35 +204,8 @@ function _execute(nref = 2, nthr = 0, color = "red")
     K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
-    # Solve
-    function _pwr(K, M, maxit = 30, rtol = 1/10000)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        everyn = Int(round(maxit / 50)) + 1
-        lambda = lambdap = 0.0
-        for i in 1:maxit
-            ThreadedSparseCSR.bmul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-            if i % everyn  == 0
-                lambda = sqrt((v' * (K * v)) / (v' * M * v))
-                @show i, abs(lambda - lambdap) / lambda
-                if abs(lambda - lambdap) / lambda  < rtol
-                    break
-                end
-                lambdap = lambda
-            end
-        end
-        return lambda
-    end
-    @time omega_max = _pwr(K, M, Int(round(count(fens) / 1000)))
-    @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
-    # @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    omega_max = _pwr(K, M, Int(round(count(fens) / 1000)))
+    omega_max = max(omega_max, 20*2*pi*carrier_frequency)
     @show dt = Float64(0.99 * 2/omega_max)
 
     U0 = gathersysvec(dchi)
