@@ -19,7 +19,7 @@
 
 ## News
 
-- 02/13/2022: [Paper](docs/shells-submitted.pdf) describing the robust triangular flat-facet shell element has been accepted for publication in the International Journal for Numerical Methods in Engineering.
+- 02/13/2022: [Paper](https://doi.org/10.1002/nme.6944) describing the robust triangular flat-facet shell element has been accepted for publication in the International Journal for Numerical Methods in Engineering. [Draft is available in PDF.](docs/shells-submitted.pdf)
 - 01/29/2022: Explicit dynamics with CSR sparse matrix parallel multiplication.
 - 12/31/2021: Implemented model for layered (laminated, composite) plates and shells. 
 - 12/20/2021: Reorganized examples into a project.
