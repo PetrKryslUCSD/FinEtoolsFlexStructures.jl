@@ -19,6 +19,7 @@
 
 ## News
 
+- 05/07/2022: Upgraded to Julia 1.7.2.
 - 02/13/2022: [Paper](docs/shells-submitted.pdf) describing the robust triangular flat-facet shell element has been accepted for publication in the International Journal for Numerical Methods in Engineering.
 - 01/29/2022: Explicit dynamics with CSR sparse matrix parallel multiplication.
 - 12/31/2021: Implemented model for layered (laminated, composite) plates and shells. 
