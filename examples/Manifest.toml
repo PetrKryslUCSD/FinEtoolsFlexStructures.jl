@@ -388,9 +388,9 @@ version = "1.3.0"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "Revise", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-path = ".."
+git-tree-sha1 = "3b82172864ec742b9d02a59ef0543d22b98e54e7"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "1.6.0"
+version = "1.5.0"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -1286,7 +1286,7 @@ version = "0.21.31"
 deps = ["FinEtools", "FinEtoolsFlexStructures", "JSON", "LinearAlgebra", "PlotlyJS", "Revise"]
 git-tree-sha1 = "c4ac75cddc17ff73d43feca292f02e24f210b68f"
 repo-rev = "main"
-repo-url = "https://github.com/PetrKryslUCSD/VisualStructures.jl.git"
+repo-url = "https://github.com/PetrKryslUCSD/VisualStructures.jl"
 uuid = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 version = "0.1.1"
 
