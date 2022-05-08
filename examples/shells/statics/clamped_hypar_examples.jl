@@ -32,6 +32,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32, visualize = false)
     # analytical solution for the vertical deflection and the midpoint of the
@@ -102,10 +103,12 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
     U = K\F
     scattersysvec!(dchi, U[:])
     targetu = dchi.values[nl, 3][1]
-    @info "Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Displacement Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Strain Energy Solution: $(U'*K*U/2)"
 
         # Visualization
     if visualize
+        vtkwrite("clamped_hypar_examples-geometry.vtu", fens, fes)
         scattersysvec!(dchi, (L/4)/abs(targetu).*U)
         update_rotation_field!(Rfield0, dchi)
         plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
