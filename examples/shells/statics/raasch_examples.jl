@@ -11,9 +11,7 @@ ratio of 0.35. In most tests the shear force is applied through the use of a
 distributing coupling constraint. The coupling constraint provides coupling
 between a reference node on which the load is prescribed and the nodes located
 on the free end. The distributed nodal loads on the free end are equivalent to
-a uniformly distributed load of 8.7563 N/m (0.05 lb/in). In two of the tests an
-equivalent shear force is applied as a distributed shear traction instead.
-
+a uniformly distributed load of 8.7563 N/m (0.05 lb/in). 
 
 """
 module raasch_examples
@@ -23,7 +21,7 @@ using FinEtools
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.FEMMShellT3FFModulew
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -31,12 +29,13 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 
 function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1)
+    # The physical quantities are provided in english units, dimensions in inches.10
     E = 3300.0;
     nu = 0.35;
     thickness  =  2.0;
     tolerance = thickness/2
-    # analytical solution for the vertical deflection under the load
-    analyt_sol = 5.022012648671993;
+    # Reference solution for the vertical deflection under the load. Obtained with a refined 20-node solid model.
+    ref_sol = 5.022012648671993;
     R = 46.0;
     formul = FEMMShellT3FFModule
     # formul = FEMMShellT3DSGMTModule
@@ -129,7 +128,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     scattersysvec!(dchi, U[:])
     nl = selectnode(fens; box = Float64[97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     targetu =  mean(dchi.values[nl, 3])
-    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
+    @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/ref_sol, digits = 4)*100)%"
 
     # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
 
@@ -185,7 +184,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
             dims = 1)
         pl = render(plots)
     end
-    return targetu/analyt_sol
+    return targetu/ref_sol
 end
 
 function test_convergence()

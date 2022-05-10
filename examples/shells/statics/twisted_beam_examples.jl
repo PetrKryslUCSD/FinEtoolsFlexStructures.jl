@@ -38,6 +38,7 @@ using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
+using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 params_thicker_dir_3 = (t =  0.32, force = 1.0, dir = 3, uex = 0.005424534868469); 
 params_thicker_dir_2 = (t =  0.32, force = 1.0, dir = 2, uex = 0.001753248285256); 
@@ -108,6 +109,7 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     if !visualize
         return true
     end
+    vtkwrite("twisted-geometry.vtu", fens, fes)
     scattersysvec!(dchi, (L/4)/dchi.values[nl, dir][1].*U)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),

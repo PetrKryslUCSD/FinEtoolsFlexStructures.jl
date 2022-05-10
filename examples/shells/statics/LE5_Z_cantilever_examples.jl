@@ -38,7 +38,7 @@ function zcant!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FI
 end
 
 
-function _execute_dsg_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = true)
+function _execute_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     E = 210e9;
     nu = 0.3;
     L = 10.0;
@@ -171,7 +171,7 @@ function test_convergence()
     formul = FEMMShellT3FFModule
     @info "LE5 Z-cantilever, formulation=$(formul)"
     for n in [0, 1, 2, 3, 4, ]
-        _execute_dsg_model(formul, "nle5xf3c.inp", n, false)
+        _execute_model(formul, "nle5xf3c.inp", n, false)
     end
     return true
 end

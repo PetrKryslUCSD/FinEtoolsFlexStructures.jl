@@ -1,22 +1,31 @@
-# Pressurized cylinder with no supports.
-# 
-# Example introduced in
-# @article{Lee2004,
-#    author = {Lee, P. S. and Bathe, K. J.},
-#    title = {Development of MITC isotropic triangular shell finite elements},
-#    journal = {Computers & Structures},
-#    volume = {82},
-#    number = {11-12},
-#    pages = {945-962},
-#    ISSN = {0045-7949},
-#    DOI = {10.1016/j.compstruc.2004.02.004},
-#    year = {2004},
-#    type = {Journal Article}
-# }
-module cos_2t_press_cylinder_free_examples
+"""
+Pressurized hyperboloid entirely free.
+
+Example introduced in
+Hiller, J.F. and K.J. Bathe, Measuring convergence of mixed finite element discretizations: 
+an application to shell structures. Computers & Structures, 2003. 81(8-11): p. 639-654.
+The applied pressure in the above paper needs to be 1 MPa for the energy values 
+to correspond to the two tables.
+
+See also: watch out, confusing mix up with magnitude of the modulus and applied pressure.
+@article{Lee2004,
+   author = {Lee, P. S. and Bathe, K. J.},
+   title = {Development of MITC isotropic triangular shell finite elements},
+   journal = {Computers & Structures},
+   volume = {82},
+   number = {11-12},
+   pages = {945-962},
+   ISSN = {0045-7949},
+   DOI = {10.1016/j.compstruc.2004.02.004},
+   year = {2004},
+   type = {Journal Article}
+}
+"""
+module cos_2t_press_hyperboloid_free_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.MeshModificationModule: distortblock
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -26,15 +35,14 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_m
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 # Parameters:
-E = 2.0e5
+E = 2.0e11
 nu = 1/3;
-pressure = 1.0;
-R = 1.0;
-L = 2.0;
+pressure = 1.0e6;
+Length = 2.0;
 
-# The cylinder axis is parallel to Y
+# The hyperboloid axis is parallel to Y
 
-function cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+function hyperbolic!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
     n = cross(tangents[:, 1], tangents[:, 2]) 
     n = n/norm(n)
     # r = vec(XYZ); r[2] = 0.0
@@ -48,19 +56,21 @@ function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_lab
     r = vec(XYZ); r[2] = 0.0
     r .= vec(r)/norm(vec(r))
     theta = atan(r[3], r[1])
-    forceout[1:3] = r*pressure*cos(2*theta)
+    n = cross(tangents[:, 1], tangents[:, 2]) 
+    n = n/norm(n)
+    forceout[1:3] = n*pressure*cos(2*theta)
     forceout[4:6] .= 0.0
     # @show dot(n, forceout[1:3])
     return forceout
 end
-function _execute_^-##10->1041^ || 311on::Friday0.452847;
-    ^#n'is'^^1too``sayingmodel(formul, n = 8, thickness = R/100, visualize = true)
 
-    tolerance = R/n/1000
-    fens, fes = T3block(90/360*2*pi,L/2,n,n);
+function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
+    tolerance = Length/n/100
+    fens, fes = distortblock(T3block, 90/360*2*pi, Length/2, n, n, distortion, distortion);
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
+        R = sqrt(1 + y^2)
         fens.xyz[i, :] .= (R*sin(a), y, R*cos(a))
     end
 
@@ -95,6 +105,11 @@ function _execute_^-##10->1041^ || 311on::Friday0.452847;
     for i in [1,5,6]
         setebc!(dchi, l1, true, i)
     end
+    # clamped edge perpendicular to Y
+    # l1 = selectnode(fens; box = Float64[-Inf Inf L/2 L/2 -Inf Inf], inflate = tolerance)
+    # for i in [1,2,3,4,5,6]
+    #     setebc!(dchi, l1, true, i)
+    # end
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -116,34 +131,34 @@ function _execute_^-##10->1041^ || 311on::Friday0.452847;
     @info "Strain Energy: $(round(strainenergy, digits = 9))"
 
     # Generate a graphical display of resultants
-    ocsys = CSys(3, 3, cylindrical!)
+    ocsys = CSys(3, 3, hyperbolic!)
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("m$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_free-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     scalars = []
     for nc in 1:3
         fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("n$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_free-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
     scalars = []
     for nc in 1:2
         fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
     end
-    vtkwrite("cos_2t_press_cylinder_free-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
     # Visualization
     if visualize
-        scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
+        scattersysvec!(dchi, (Length/8)/maximum(abs.(U)).*U)
         update_rotation_field!(Rfield0, dchi)
-        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        plots = cat(plot_space_box([[0 0 -Length/2]; [Length/2 Length/2 Length/2]]),
             #plot_nodes(fens),
             plot_midsurface(fens, fes; x = geom0.values, facecolor = "rgb(12, 12, 123)"),
             plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
@@ -154,21 +169,22 @@ function _execute_^-##10->1041^ || 311on::Friday0.452847;
     return strainenergy
 end
 
-function test_convergence(formul = FEMMShellT3FFModule, thickness = R/100)
-    @info "Pressurized Cylindrical shell, free ends, formulation=$(formul)"
-    _execute_^-##10->1041^ || 311on::Friday0.452847;
-    ^#n'is'^^1too``sayingmodel(formul, n, thickness, false)
-    for n in [8, 16, 32, 64, 128]
-    end
-    return true
-end
-
 function allrun()
     println("#####################################################")
     println("# test_convergence ")
     test_convergence()
     return true
 end # function allrun
+
+function test_convergence(formul = FEMMShellT3FFModule, thicknessmult = 1/100000, distortion = 0.0)
+    @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
+    results = []
+    ns = [16, 32, 64, 128, 256]
+    for n in ns
+        push!(results, _execute(formul, n, Length/2*thicknessmult, true, 2*distortion/n))
+    end
+    return ns, results
+end
 
 @info "All examples may be executed with "
 println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
