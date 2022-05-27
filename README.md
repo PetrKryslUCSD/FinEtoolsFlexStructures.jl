@@ -7,8 +7,12 @@
 # FinEtoolsFlexStructures.jl
 
 [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl) used for 
-- Simulations of large-displacement response of three-dimensional flexible-beam structures. Linear static analysis, modal analysis, linear buckling analysis. Nonlinear statics and dynamics;
-- Simulations of shell structures. Linear static analysis, modal analysis, explicit dynamic analysis. Shells can be homogeneous or layered (laminated, composite).
+- Simulations of large-displacement response of three-dimensional flexible-beam
+  structures. Linear static analysis, modal analysis, linear buckling analysis.
+  Nonlinear statics and dynamics;
+- Simulations of shell structures. Linear static analysis, modal analysis,
+  explicit dynamic analysis. Shells can be homogeneous or layered
+  (laminated, composite).
 
 ## Current limitations
 
@@ -19,8 +23,14 @@
 
 ## News
 
+- 05/26/2022: Paper on explicit dynamics accepted for publication  in the
+  International Journal for Numerical Methods in Engineering. [Draft is
+  available in PDF.](docs/expl-shells-compressed.pdf)
 - 05/07/2022: Upgraded to Julia 1.7.2.
-- 02/13/2022: [Paper](https://doi.org/10.1002/nme.6944) describing the robust triangular flat-facet shell element has been accepted for publication in the International Journal for Numerical Methods in Engineering. [Draft is available in PDF.](docs/shells-submitted.pdf)
+- 02/13/2022: [Paper](https://doi.org/10.1002/nme.6944) describing the robust
+  triangular flat-facet shell element has been accepted for publication in the
+  International Journal for Numerical Methods in Engineering. [Draft is
+  available in PDF.](docs/shells-submitted.pdf)
 - 01/29/2022: Explicit dynamics with CSR sparse matrix parallel multiplication.
 - 12/31/2021: Implemented model for layered (laminated, composite) plates and shells. 
 - 12/20/2021: Reorganized examples into a project.
@@ -53,7 +63,8 @@ using Pkg; Pkg.test();
 
 ## Examples
 
-The project was developed with Julia 1.6.4, and is operational with any version above that.
+The project was developed with Julia 1.6.4, and is operational with any version
+above that.
 
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
 as a result of cloning the repository.
@@ -63,7 +74,10 @@ The project needed for running examples can be activated and initialized by
 using Pkg; Pkg.activate("./examples"); Pkg.instantiate(); using Revise
 ```
 
-There are a number of examples, which may be executed as described in the conceptual guide to [`FinEtools`](https://github.com/PetrKryslUCSD/FinEtools.jl). As an example:
+There are a number of examples, which may be executed as described in the
+conceptual guide to [`FinEtools`]
+(https://github.com/PetrKryslUCSD/FinEtools.jl). As an example:
+
 ```
 julia> include(".\\examples\\shells\\dynamics\\dcbs_vibration_examples.jl")                                                              
 WARNING: replacing module dbcs_vibration_examples.                                                                                                                                                    
