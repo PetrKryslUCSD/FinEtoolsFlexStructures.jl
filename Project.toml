@@ -18,7 +18,7 @@ SymRCM = "286e6d88-80af-4590-acc9-0001b223b9bd"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-Arpack = "^0.5"
+Arpack = "=0.5.3"
 DataDrop = "^0.1"
 Dierckx = "^0.5"
 FinEtools = "^5"
