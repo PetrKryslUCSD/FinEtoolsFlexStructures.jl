@@ -47,7 +47,7 @@ params_thinner_dir_3 = (t =  0.0032, force = 1.0e-6, dir = 3, uex = 0.005256);
 params_thinner_dir_2 = (t =  0.0032, force = 1.0e-6, dir = 2, uex = 0.001294); 
 
 
-function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 8, nW = 2, visualize = true)
+function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 24, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
@@ -103,39 +103,52 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     # Solve
     U = K\F
     scattersysvec!(dchi, U[:])
-    @show dchi.values[nl, dir][1]/uex*100
+    result = dchi.values[nl, dir][1]
+    @show result/uex*100
 
     # Visualization
-    if !visualize
-        return true
-    end
-    vtkwrite("twisted-geometry.vtu", fens, fes)
-    scattersysvec!(dchi, (L/4)/dchi.values[nl, dir][1].*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+    if visualize
+        vtkwrite("twisted-geometry.vtu", fens, fes)
+        scattersysvec!(dchi, (L/4)/dchi.values[nl, dir][1].*U)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         plot_nodes(fens),
         plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    return true
+        dims = 1)
+        pl = render(plots)
+    end
+    
+    return result
 end
 
 function test_convergence()
     @info "Twisted, thicker"
-    ns = [2, 4, 8, 16, 32, 64, 128]
+    ns = [2, 4, 8, 16, 32, 64, 128,]
+    results = []
     for n in ns
-        _execute(params_thicker_dir_2..., 2*n, n, false)
+        v = _execute(params_thicker_dir_2..., 12*n, n, false)
+        push!(results, v)
     end
+    @show results
+    results = []
     for n in ns
-        _execute(params_thicker_dir_3..., 2*n, n, false)
+        v = _execute(params_thicker_dir_3..., 12*n, n, false)
+        push!(results, v)
     end
+    @show results
     @info "Twisted, thinner"
+    results = []
     for n in ns
-        _execute(params_thinner_dir_2..., 2*n, n, false)
+        v = _execute(params_thinner_dir_2..., 12*n, n, false)
+        push!(results, v)
     end
+    @show results
+    results = []
     for n in ns
-        _execute(params_thinner_dir_3..., 2*n, n, false)
+        v = _execute(params_thinner_dir_3..., 12*n, n, false)
+        push!(results, v)
     end
+    @show results
     return true
 end
 
