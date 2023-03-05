@@ -54,7 +54,9 @@ function _execute_model(n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
+    # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
+    # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
+    femm.mult_el_size = 1.00
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
