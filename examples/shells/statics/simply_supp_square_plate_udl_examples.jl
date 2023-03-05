@@ -275,10 +275,10 @@ function test_convergence_full()
     return true
 end
 
-function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001])
+function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001, 0.000001, 0.0000001, 1.0e-10])
     formul = FEMMShellT3FFModule
     @info "Simply supported square plate with uniform load,"
-    for n in [8]
+    for n in [2, 4, 8, 16, 32, 64]
         for tL_ratio in tL_ratios
             @info "thickness/length = $tL_ratio formulation=$(formul)"
             _execute_full_model(formul, n, tL_ratio, false)
