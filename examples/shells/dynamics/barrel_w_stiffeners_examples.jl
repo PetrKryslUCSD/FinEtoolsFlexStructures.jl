@@ -22,6 +22,7 @@ using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+using DataDrop
 using DataDrop: with_extension
 # using KrylovKit
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -94,6 +95,9 @@ function _execute_model(formul, input, visualize = true)
         M = mass(femm, geom0, dchi);
     end
     @info "Mass assembly time $tim [sec]"
+
+    # DataDrop.store_matrix("barrel_w_stiffeners.h5", "/K", K)
+    # DataDrop.store_matrix("barrel_w_stiffeners.h5", "/M", M)
 
     # Solve
     neigvs = 40
