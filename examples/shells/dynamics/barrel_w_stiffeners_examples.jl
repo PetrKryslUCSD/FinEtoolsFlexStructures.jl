@@ -1,16 +1,18 @@
 """
-Vibration analysis of free-floating thin plate
+Free vibration of steel barrel
 
-Free-vibration problem is solved for a homogeneous free-floating
-(unsupported) square plate. This is the NAFEMS Benchmark, Test No. FV12.
+The structure represents an empty container with spherical caps, two T
+stiffeners, and edge stiffener. This example tests the ability to represent
+creases in the surface, and junctions with more than two shell faces joined
+along a an intersection.
 
-The plate is discretized with shell elements. Because no displacements are
-prevented, the structure has six rigid body modes (six zero vibration
-frequencies).
+The nonzero Abaqus STRI3 frequencies are (in hertz):
 
-The nonzero benchmark frequencies are (in hertz): 
-
-1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668.
+231.48
+238.19
+250.09
+252.19
+260.12
 """
 module barrel_w_stiffeners_examples
 
