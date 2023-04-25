@@ -11,19 +11,19 @@ function test()
     CM = CompositeLayupModule
     cs = CM.cartesian_csys((1, 2, 3))  
     updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
-    @test norm(cs.csmat - 
+    @test norm(csmat(cs) -
         [1.0 0.0 0.0; 
         0.0 1.0 0.0; 
         0.0 0.0 1.0]) < 1.0e-15
     cs = CM.cartesian_csys((2, -1, 3))  
     updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
-    @test norm(cs.csmat - 
+    @test norm(csmat(cs) -
             [0.0 -1.0 0.0; 
             1.0 0.0 0.0; 
             0.0 0.0 1.0]) < 1.0e-15
     cs = CM.cartesian_csys((2, 1, -3))  
     updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
-    @test norm(cs.csmat - 
+    @test norm(csmat(cs) -
             [0.0 1.0 0.0; 
             1.0 0.0 0.0; 
             0.0 0.0 -1.0]) < 1.0e-15

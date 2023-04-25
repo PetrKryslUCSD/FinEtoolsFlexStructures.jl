@@ -178,7 +178,7 @@ end
 
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
     updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, labl);
-    n[:] .= mcsys.csmat[:, 3]
+    n[:] .= csmat(mcsys)[:, 3]
     return n
 end
 
@@ -786,10 +786,10 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, T, edisp_n)
         updatecsmat!(outputcsys, centroid, J0, fes.label[i]);
-        if dot(view(outputcsys.csmat, :, 3), view(E_G, :, 3)) < 0.95
+        if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
             @warn "Coordinate systems mismatched?"
         end
-        ocsm, ocsn = lla(E_G, outputcsys.csmat)
+        ocsm, ocsn = lla(E_G, csmat(outputcsys))
         o2_e[1, 1] = o2_e[2, 2]  = ocsm
         o2_e[1, 2] = ocsn; o2_e[2, 1] = -ocsn
         # Compute the Requested Quantity
