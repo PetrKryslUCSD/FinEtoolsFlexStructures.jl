@@ -14,8 +14,7 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
     csmatout[:, 2] .= (0.0, 1.0, 0.0)
-    csmatout[:, 3] .= (0.0, 0.0, 1.0)using .Main.tippling_examples; Main.tippling_examples.allrun()                 
-f
+    csmatout[:, 3] .= (0.0, 0.0, 1.0)
     return csmatout
 end
 

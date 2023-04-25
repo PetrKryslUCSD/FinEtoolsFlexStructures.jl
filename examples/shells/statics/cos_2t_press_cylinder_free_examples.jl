@@ -53,8 +53,7 @@ function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_lab
     # @show dot(n, forceout[1:3])
     return forceout
 end
-function _execute_^-##10->1041^ || 311on::Friday0.452847;
-    ^#n'is'^^1too``sayingmodel(formul, n = 8, thickness = R/100, visualize = true)
+function _execute(formul, n = 8, thickness = R/100, visualize = true)
 
     tolerance = R/n/1000
     fens, fes = T3block(90/360*2*pi,L/2,n,n);
@@ -156,9 +155,8 @@ end
 
 function test_convergence(formul = FEMMShellT3FFModule, thickness = R/100)
     @info "Pressurized Cylindrical shell, free ends, formulation=$(formul)"
-    _execute_^-##10->1041^ || 311on::Friday0.452847;
-    ^#n'is'^^1too``sayingmodel(formul, n, thickness, false)
     for n in [8, 16, 32, 64, 128]
+        _execute(formul, n, thickness, false)
     end
     return true
 end
