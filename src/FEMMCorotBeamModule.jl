@@ -107,7 +107,7 @@ function mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::
     dN = self._dN
     rho = massdensity(self.material)
     A, I1, I2, I3, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.x1x2_vector
-    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -154,7 +154,7 @@ function gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}
     OS = self._OS
     rho = massdensity(self.material)
     A, I1, I2, I3, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.x1x2_vector
-    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -203,7 +203,7 @@ function stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt},
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
-    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -243,7 +243,7 @@ function geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFl
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
     A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
-    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -284,7 +284,7 @@ function restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{F
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
     A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
-    startassembly!(assembler, dchi.nfreedofs);
+    startassembly!(assembler, nalldofs(dchi));
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -333,7 +333,7 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
     A, I2, I3, J, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.x1x2_vector
-    startassembly!(assembler, dchi.nfreedofs);
+    startassembly!(assembler, nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
@@ -344,7 +344,7 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
         L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
         _transfmat!(Te, Ft)
         L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
-        force = updateforce!(fi, ignore, ignore, fes.label[i]); # retrieve the applied load
+        force = updateforce!(fi, ignore, ignore, i, 0); # retrieve the applied load
         Lforce = Ft' * force # local distributed load components
         elvecf[1] = Lforce[1]*L0/2;
         elvecf[2] = Lforce[2]*L0/2;

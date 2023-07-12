@@ -18,7 +18,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot; #@gp "clear"
+using Gnuplot; @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots

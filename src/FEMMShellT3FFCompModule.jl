@@ -139,8 +139,8 @@ function make(integdomain, layup)
     return FEMMShellT3FFComp(integdomain, layup)
 end
 
-function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, labl::FInt)
-    updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, labl);
+function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, feid::FInt, qpid::FInt)
+    updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, feid, qpid);
     n[:] .= csmat(mcsys)[:, 3]
     return n
 end
@@ -427,7 +427,7 @@ function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
             J0[:, 1] = geom.values[j, :] - geom.values[i, :]
             J0[:, 2] = geom.values[k, :] - geom.values[i, :]
             for n in [i, j, k]
-                _compute_nodal_normal!(nnormal, layup.csys, geom.values[n, :], J0, self.integdomain.fes.label[el])
+                _compute_nodal_normal!(nnormal, layup.csys, geom.values[n, :], J0, el, 0)
                 normals[n, :] .+= nnormal
             end
         end
@@ -504,7 +504,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
-    startassembly!(assembler, size(elmat, 1), size(elmat, 2), count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi));
     for lg in self.layup_groups
         layup = lg[1]
         eset = lg[2]
@@ -521,7 +521,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             # Working copies to be transformed
             sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
             # Transform the laminate stiffnesses
-            updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1);
+            updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0);
             m, n = lla(E_G, csmat(layup.csys))
             plane_stress_T_matrix!(Tps, m, -n)
             tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
@@ -596,7 +596,7 @@ function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, 
     elmat = self._elmat
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
-    startassembly!(assembler,  size(elmat,1),  size(elmat,2),  count(fes), dchi.nfreedofs,  dchi.nfreedofs);
+    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi),  nalldofs(dchi));
     for lg in self.layup_groups
             layup = lg[1]
             eset = lg[2]
@@ -738,14 +738,14 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         _transfmat_a_to_e!(T, A_Es, gradN_e)
          # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, T, edisp_n)
-        updatecsmat!(outputcsys, centroid, J0, fes.label[i]);
+        updatecsmat!(outputcsys, centroid, J0, i, 0);
         if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
             @warn "Coordinate systems mismatched?"
         end
         # Established the stiffness matrices
         sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
         # Transform the laminate stiffnesses
-        updatecsmat!(layup.csys, centroid, J0, fes.label[i]);
+        updatecsmat!(layup.csys, centroid, J0, i, 0)
         m, n = lla(E_G, csmat(layup.csys))
         plane_stress_T_matrix!(Tps, m, -n)
         tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 

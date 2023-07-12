@@ -2,6 +2,7 @@ module mcompshell0
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -87,8 +88,7 @@ function test()
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -105,6 +105,7 @@ module mcompshell1
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -190,8 +191,7 @@ function test()
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -208,6 +208,7 @@ module mcompshell2
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -295,8 +296,7 @@ function test()
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -319,6 +319,7 @@ module mcompshell3
 # Clamped isotropic plate under uniform transverse pressure
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -384,8 +385,7 @@ function test_composite()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -446,8 +446,7 @@ function test_homogeneous()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -469,6 +468,7 @@ module mcompshell4
 # Clamped isotropic plate under uniform transverse pressure
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -536,8 +536,7 @@ function test_composite()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -562,6 +561,7 @@ module mcompshell5
 # The deflection of 2.026 mm was obtained with Abaqus.
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -637,8 +637,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     # for i in 1:3
     #     @show maximum(dchi.values[:, i]) ./phun("mm")
     #     @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -660,6 +659,7 @@ module mcompshell6
 # but the loading is transverse, pressure of magnitude 1.0
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -731,8 +731,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -751,6 +750,7 @@ module mcompshell7
 # Similar definition of the plate as in mcompshell6 but the layup is [-45/45]
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -822,8 +822,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -847,6 +846,7 @@ module mcompshell8
 
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -929,8 +929,7 @@ function test(load_multiplier)
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -955,6 +954,7 @@ module mcompshell9
 
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1044,8 +1044,7 @@ function test(load_multiplier)
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -1075,6 +1074,7 @@ module mcompshell10
 # is wrong in the paper. The power of the aspect ratio should also be 4.
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1161,8 +1161,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
 
     # @show maximum(dchi.values[:, 3]) * (100*E2) / (q*thickness*(a/thickness)^4)
     # @show maximum(dchi.values[:, 1]) * (100*E2) / (q*thickness*(a/thickness)^4)
@@ -1184,6 +1183,7 @@ module mcompshell11
 # R0031(3): Three-layer sandwich shell under normal pressure loading
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1260,8 +1260,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
 
     # R0031(3): Three-layer sandwich shell under normal pressure loading
     # lists 0.123'' = 3.1242 mm

@@ -1,5 +1,6 @@
 module mmodal1
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -60,9 +61,11 @@ function test()
         femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
         K = stiffness(femm, geom0, u0, Rfield0, dchi);
         M = mass(femm, geom0, u0, Rfield0, dchi);
+        K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+        M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
         # Solve the eigenvalue problem
-        d,v,nev,nconv = eigs(K, M; nev=2*neigvs, which=:SM)
+        d,v,nev,nconv = eigs(K_ff, M_ff; nev=2*neigvs, which=:SM)
         fs = real(sqrt.(complex(d)))/(2*pi)
         # println("Natural frequencies: $fs [Hz]")
         # println("Reference: $reffs [Hz]")
@@ -95,6 +98,7 @@ mmodal1.test()
 
 module mmassform11
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -179,6 +183,7 @@ mmassform11.test()
 
 module mmassform10
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -262,6 +267,7 @@ mmassform10.test()
 
 module mmassform12
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -345,6 +351,7 @@ mmassform12.test()
 
 module mmassform13
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members

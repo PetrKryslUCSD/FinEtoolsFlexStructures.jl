@@ -4,6 +4,7 @@ module scordelis_lo_dsg3_verification
 using Test
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -76,8 +77,7 @@ function _execute(n = 8, visualize = true)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     resultpercent = dchi.values[nl, 3][1]/analyt_sol*100
 
     return resultpercent
@@ -128,6 +128,7 @@ module raasch_dsg3_verification
 using Test
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -203,8 +204,7 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     nl = selectnode(fens; box = Float64[97.9615 97.9615 -16 -16 0 0], inflate = tolerance)
     targetu =  dchi.values[nl, 3][1]
     # @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
@@ -268,6 +268,7 @@ module twisted_beam_dsg3_verification
 
 using Test
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -335,8 +336,7 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     result =  dchi.values[nl, dir][1]/uex*100
     return result
 end
@@ -411,6 +411,7 @@ module LE5_Z_cantilever_dsg3_verification
 using Test
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -493,8 +494,7 @@ function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     return minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
 end
 
@@ -541,6 +541,7 @@ module barrel_vault_test
 using Test
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -632,14 +633,13 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
     
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
 
     targetu =  dchi.values[nl, 1][1]
     # @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Generate a graphical display of resultants
-    cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+    cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
         r = -vec(XYZ); r[3] = 0.0
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)

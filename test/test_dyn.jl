@@ -1,5 +1,6 @@
 module mfasttoptest1
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -90,7 +91,7 @@ function test()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     # tbox = plot_space_box([[-1.1*Width -1.1*Width 0]; [1.1*Width 1.1*Width 1.1*Length]])
     # tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -111,6 +112,10 @@ function test()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     fi = ForceIntensity(q);
 
+    _f(V) = vector_blocked(V, nfreedofs(dchi))[:f]
+    _ff(M) = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
+
     t = 0.0; #
     step = 0;
     while (t <= tend)
@@ -130,12 +135,12 @@ function test()
 
         iter = 1;
         while true
-            F = distribloads_global(femm, geom0, u1, Rfield1, dchi, fi)
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = _f(distribloads_global(femm, geom0, u1, Rfield1, dchi, fi))
+            Fr = _f(restoringforce(femm, geom0, u1, Rfield1, dchi));       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = _ff(stiffness(femm, geom0, u1, Rfield1, dchi));
+            M = _ff(mass(femm, geom0, u1, Rfield1, dchi));
+            G = _ff(gyroscopic(femm, geom0, u1, Rfield1, v1, dchi));
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv

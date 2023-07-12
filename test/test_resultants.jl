@@ -27,7 +27,7 @@ thickness = 0.25; # geometrical dimensions are in feet
 R = 25.0;
 L = 50.0;
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
     r = vec(XYZ); r[2] = 0.0; r[3] += R
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis

@@ -10,19 +10,19 @@ function test()
     labl = 1
     CM = CompositeLayupModule
     cs = CM.cartesian_csys((1, 2, 3))  
-    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
+    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl, 0);
     @test norm(csmat(cs) -
         [1.0 0.0 0.0; 
         0.0 1.0 0.0; 
         0.0 0.0 1.0]) < 1.0e-15
     cs = CM.cartesian_csys((2, -1, 3))  
-    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
+    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl, 0);
     @test norm(csmat(cs) -
             [0.0 -1.0 0.0; 
             1.0 0.0 0.0; 
             0.0 0.0 1.0]) < 1.0e-15
     cs = CM.cartesian_csys((2, 1, -3))  
-    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl);
+    updatecsmat!(cs, reshape(XYZ, 1, 3), J0, labl, 0);
     @test norm(csmat(cs) -
             [0.0 1.0 0.0; 
             1.0 0.0 0.0; 
@@ -82,7 +82,7 @@ mlayup2.test()
 module mlayup3
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -106,7 +106,7 @@ mlayup3.test()
 module mlayup4
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -135,7 +135,7 @@ mlayup4.test()
 module mlayup5
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -159,7 +159,7 @@ mlayup5.test()
 module mlayup6
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -183,7 +183,7 @@ mlayup6.test()
 module mlayup7
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -207,7 +207,7 @@ mlayup7.test()
 module mlayup8
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
@@ -230,7 +230,7 @@ mlayup8.test()
 module mlayup9
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtoolsDeforLinear.DeforModelRedModule
+using FinEtools.DeforModelRedModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()

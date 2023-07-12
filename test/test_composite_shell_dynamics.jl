@@ -5,6 +5,7 @@ module mcompshelldyn0
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -61,9 +62,12 @@ function test_homogeneous()
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
 
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
     # Solve
     neigvs = 8
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     # @show nconv
     fs = real(sqrt.(complex(d))) / (2 * pi)
     # From Blevins, Table 5.3, square plate SSSS
@@ -146,10 +150,12 @@ function test_composite()
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 8
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     # @show nconv
     fs = real(sqrt.(complex(d))) / (2 * pi)
     # oms = real(sqrt.(complex(d)))
@@ -301,6 +307,7 @@ module mcompshelldyn2
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -373,10 +380,12 @@ function test(nplies = 10, axes = (1, 2, 3))
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     
@@ -417,6 +426,7 @@ module mcompshelldyn3
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -494,10 +504,12 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     
@@ -534,6 +546,7 @@ module mcompshelldyn4
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -617,10 +630,12 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     
@@ -652,6 +667,7 @@ module mcompshelldyn6
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -719,10 +735,12 @@ function test()
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
         # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     @test abs(fs[1] - 42.62) / 42.62 < 1.0e-2
@@ -742,6 +760,7 @@ module mcompshelldyn7
 using Arpack
 using LinearAlgebra: norm, Transpose, mul!, I, Symmetric
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -809,10 +828,12 @@ function test(axes = (1, 2, 3))
     formul.associategeometry!(femm, geom0)
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = formul.mass(femm, geom0, dchi);
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
         # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
     @test nconv == neigvs   
     fs = real(sqrt.(complex(d))) / (2 * pi)
     @test abs(fs[1] - 47.86476186783638) / 47.86476186783638 < 1.0e-2
