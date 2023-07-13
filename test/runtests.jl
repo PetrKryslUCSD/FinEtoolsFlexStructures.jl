@@ -18,7 +18,7 @@ end
     include("test_beam_modal.jl")
 end
 @time @testset "Beam buckling" begin
-    include("test_buckling.jl")
+    include("test_beam_buckling.jl")
 end
 
 @time @testset "Shell dynamics" begin
@@ -28,7 +28,7 @@ end
     include("test_composite_layup.jl")
 end
 @time @testset "Shell resultants" begin
-    include("test_resultants.jl")
+    include("test_shell_resultants.jl")
 end
 @time @testset "Composite shell dynamics" begin
     include("test_composite_shell_dynamics.jl")
