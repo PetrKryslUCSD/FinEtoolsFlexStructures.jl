@@ -315,10 +315,12 @@ Compute the load vector due to distributed loads.
 
 Compute the global load vector corresponding to applied distributed
 load. Here it means force per unit length of the beam,
-in the configuration u1,Rfield1.
+in the configuration u1, Rfield1. These are only forces, not moments.
 
-Note: the force intensity must be uniform across the entire element.
-Note: the force intensity is given in the global coordinates.
+!!! note
+
+    The force intensity must be uniform across the entire element. The
+    force intensity is given in the global coordinates.
 """
 function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes

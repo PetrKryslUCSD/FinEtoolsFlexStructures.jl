@@ -11,6 +11,9 @@ end
 @time @testset "Beam mesh" begin
     include("test_mesh.jl")
 end
+@time @testset "Beam statics" begin
+    include("test_linear_statics.jl")
+end
 @time @testset "Beam modal" begin
     include("test_modal.jl")
 end
