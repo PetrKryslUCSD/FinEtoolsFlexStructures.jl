@@ -23,6 +23,7 @@
 
 ## News
 
+- 07/13/2023: Updated for Julia 1.9 and FinEtools 7.
 - 05/26/2022: Paper on explicit dynamics accepted for publication  in the
   International Journal for Numerical Methods in Engineering. [Draft is
   available in PDF.](docs/expl-shells-compressed.pdf)
