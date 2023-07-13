@@ -1,4 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FinEtoolsFlexStructures = "723391e6-6814-4d1d-921c-018f691214d8"
+REPLHistory = "a5566ce3-012c-4b09-85b8-62131f0c3f36"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SparseMatricesCSR = "a0a7dd2c-ebf4-11e9-1f05-cf50bc540ca1"
