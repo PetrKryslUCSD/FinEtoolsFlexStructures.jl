@@ -11,13 +11,14 @@ include("AssemblyModule.jl")
 include("CrossSectionModule.jl")
 include("CompositeLayupModule.jl")
 
-include("FESetCorotBeamModule.jl")
+include("FESetL2BeamModule.jl")
 include("FESetShellQ4Module.jl")
 include("FESetShellT3Module.jl")
 
 include("MeshFrameMemberModule.jl")
 
 include("FEMMCorotBeamModule.jl")
+# include("FEMMRITBeamModule.jl")
 
 include("FEMMPointMassModule.jl")
 

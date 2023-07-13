@@ -1,6 +1,6 @@
 using Test
 @time @testset "Beam transient dynamics" begin
-    include("test_dyn.jl")
+    include("test_beam_dyn.jl")
 end
 @time @testset "Utilities" begin
     include("test_utilities.jl")
@@ -9,13 +9,13 @@ end
     include("test_section.jl")
 end
 @time @testset "Beam mesh" begin
-    include("test_mesh.jl")
+    include("test_beam_mesh.jl")
 end
 @time @testset "Beam statics" begin
-    include("test_linear_statics.jl")
+    include("test_beam_linear_statics.jl")
 end
 @time @testset "Beam modal" begin
-    include("test_modal.jl")
+    include("test_beam_modal.jl")
 end
 @time @testset "Beam buckling" begin
     include("test_buckling.jl")
