@@ -112,8 +112,8 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam, local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
-using FinEtoolsFlexStructures.FESetCorotBeamModule: local_mass_CONSISTENT_WITH_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_mass_CONSISTENT_WITH_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA
 
 using Test
 
@@ -197,8 +197,8 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam, local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
-using FinEtoolsFlexStructures.FESetCorotBeamModule: local_mass_CONSISTENT_NO_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_NO_ROTATION_INERTIA
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_mass_CONSISTENT_WITH_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA, local_mass_CONSISTENT_NO_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_NO_ROTATION_INERTIA
 
 using Test
 function test()
@@ -281,8 +281,8 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam, local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
-using FinEtoolsFlexStructures.FESetCorotBeamModule: local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!, MASS_TYPE_LUMPED_DIAGONAL_NO_ROTATION_INERTIA
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_mass_CONSISTENT_WITH_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA, local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!, MASS_TYPE_LUMPED_DIAGONAL_NO_ROTATION_INERTIA
 
 using Test
 function test()
@@ -365,8 +365,8 @@ using LinearAlgebra: dot
 using Arpack
 using LinearAlgebra
 using SparseArrays
-using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam, local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
-using FinEtoolsFlexStructures.FESetCorotBeamModule: local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!, MASS_TYPE_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_frame_and_def!, local_mass_original!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!
+using FinEtoolsFlexStructures.FEMMCorotBeamModule: local_mass_CONSISTENT_WITH_ROTATION_INERTIA!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA, local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!, local_mass_original!, MASS_TYPE_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA
 
 using Test
 function test()

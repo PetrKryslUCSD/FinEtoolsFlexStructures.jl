@@ -4,8 +4,6 @@ using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
 using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
-using ..FESetCorotBeamModule: FESetL2CorotBeam, local_frame_and_def!, local_mass!, local_stiffness!, natural_forces!, local_geometric_stiffness!, local_forces!, MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA
-
 
 """
     FEMMPointMass{S<:AbstractFESet}
@@ -29,7 +27,7 @@ This is a general routine for the abstract linear-deformation  FEMM.
 function mass(self::FEMMPointMass, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     dofnums = zeros(FInt, 1, 6); 
-    startassembly!(assembler, 3, 3, count(fes), dchi.nfreedofs, dchi.nfreedofs);
+    startassembly!(assembler, 3 * 3 * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
         assemble!(assembler, self._massmatrix, dofnums[1:3], dofnums[1:3]); 

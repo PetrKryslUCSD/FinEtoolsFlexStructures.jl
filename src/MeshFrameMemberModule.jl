@@ -4,8 +4,7 @@ module MeshFrameMemberModule
 using Dierckx
 using LinearAlgebra: norm
 using FinEtools
-using ..FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam
-using ..FinEtoolsFlexStructures.FESetCorotBeamModule: cat
+using ..FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam, cat
 
 
 """
@@ -68,7 +67,7 @@ function frame_member(xyz, nL, crosssection; label = 0)
         _x1x2_vector[i] = deepcopy(par.x1x2_vector)
         _dimensions[i] = deepcopy(par.dimensions)
     end
-    fes = FESetL2CorotBeam(connasarray(fes), crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
+    fes = FESetL2Beam(connasarray(fes), crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
     setlabel!(fes, label)
     return fens, fes
 end
