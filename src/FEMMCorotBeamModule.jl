@@ -9,9 +9,9 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 
 
 """
-    FEMMDeforLinear{MR<:AbstractDeforModelRed,  S<:AbstractFESet, F<:Function, M<:AbstractMatDeforLinearElastic} <: FEMMCorotBeam
+    FEMMCorotBeam{S<:FESetL2Beam, F<:Function} <: AbstractFEMM
 
-Class for linear deformation finite element modeling machine.
+Class for co-rotational beam finite element modeling machine.
 """
 mutable struct FEMMCorotBeam{S<:FESetL2Beam, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
