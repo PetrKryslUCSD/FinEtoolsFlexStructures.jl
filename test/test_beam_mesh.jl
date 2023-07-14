@@ -1,18 +1,3 @@
-module m1
-using FinEtools
-using FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam
-using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionCircle
-using Test
-function test()
-    cs = CrossSectionCircle(s -> 5.9910, s -> [0.0, 0.0, 1.0])
-    fes = FESetL2Beam([1 2; 2 3; 3 4], cs)
-    @test count(fes) == 3
-    true
-end
-end
-using .m1
-m1.test()
-
 module m2
 using FinEtools
 using FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam

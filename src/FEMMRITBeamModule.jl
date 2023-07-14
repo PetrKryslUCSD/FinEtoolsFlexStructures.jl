@@ -8,11 +8,11 @@ import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 
 """
-    FEMMRITBeam{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+    FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for linear reduced-integration beam finite element modeling machine.
+Class for linear reduced-integration Timoshenko beam finite element modeling machine.
 """
-mutable struct FEMMRITBeam{S<:AbstractFESet, F<:Function} <: AbstractFEMM
+mutable struct FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::MatDeforElastIso # material object
     # The attributes below are buffers used in various operations.
@@ -37,7 +37,8 @@ mutable struct FEMMRITBeam{S<:AbstractFESet, F<:Function} <: AbstractFEMM
     _OS::FFltMat
 end
 
-function FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2Beam, F<:Function}
+function FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+    typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
     _ecoords0 = fill(0.0, 2, 3); 
     _dofnums = zeros(FInt, 1, 12);
     _F0 = fill(0.0, 3, 3); 
@@ -57,8 +58,10 @@ function FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso)
     _RI = fill(0.0, 3, 3);    
     _RJ = fill(0.0, 3, 3);    
     _OS = fill(0.0, 3, 3)
-    any(x -> isinf(x), integdomain.fes.A2s) && error("The shear areas must be finite numbers")
-    any(x -> isinf(x), integdomain.fes.A3s) && error("The shear areas must be finite numbers")
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(integdomain.fes)
+    any(x -> isinf(x), A2s) && error("The shear areas must be finite numbers")
+    any(x -> isinf(x), A3s) && error("The shear areas must be finite numbers")
+
     return FEMMRITBeam(integdomain, material,
      _ecoords0,
      _dofnums, 
@@ -75,6 +78,12 @@ function FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso)
      _i_phi3,
      _LF,
      _RI, _RJ, _OS)
+end
+
+function properties(fes)
+    d = delegateof(fes)
+    # A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
+    d.A, d.I1, d.I2, d.I3, d.J, d.A2s, d.A3s, d.x1x2_vector, d.dimensions
 end
 
 function b_phi1!(b, h, F0)
@@ -148,6 +157,7 @@ Compute the material stiffness matrix.
 """
 function stiffness(self::FEMMRITBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
+    beamfes = delegateof(fes)
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Te = self._F0, self._Te
     elmat = self._elmat
@@ -161,7 +171,7 @@ function stiffness(self::FEMMRITBeam, assembler::ASS, geom0::NodalField{FFlt}, u
     _i_phi3 = self._i_phi3
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
-    A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -231,7 +241,7 @@ function distribloads_global(self::FEMMRITBeam, assembler::ASS, geom0::NodalFiel
     ignore = fill(0.0 , 0, 0)
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
-    A, I2, I3, J, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);

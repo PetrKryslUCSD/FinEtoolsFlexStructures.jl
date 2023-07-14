@@ -9,11 +9,11 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 
 
 """
-    FEMMCorotBeam{S<:FESetL2Beam, F<:Function} <: AbstractFEMM
+    FEMMCorotBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
 Class for co-rotational beam finite element modeling machine.
 """
-mutable struct FEMMCorotBeam{S<:FESetL2Beam, F<:Function} <: AbstractFEMM
+mutable struct FEMMCorotBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::MatDeforElastIso # material object
     # The attributes below are buffers used in various operations.
@@ -46,7 +46,8 @@ mutable struct FEMMCorotBeam{S<:FESetL2Beam, F<:Function} <: AbstractFEMM
     _OS::FFltMat
 end
 
-function FEMMCorotBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2Beam, F<:Function}
+function FEMMCorotBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+    typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
     _ecoords0 = fill(0.0, 2, 3); 
     _ecoords1 = fill(0.0, 2, 3)
     _edisp1 = fill(0.0, 2, 3); 
@@ -82,6 +83,12 @@ function FEMMCorotBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIs
      _elvec, _elvecf, 
      _aN, _dN, _DN, _PN, _LF, 
      _RI, _RJ, _OS)
+end
+
+function properties(fes)
+    d = delegateof(fes)
+    # A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
+    d.A, d.I1, d.I2, d.I3, d.J, d.A2s, d.A3s, d.x1x2_vector, d.dimensions
 end
 
 function _transfmat!(Te, Ft)
@@ -725,7 +732,7 @@ function mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::
     elmat, elmatTe = self._elmat, self._elmatTe
     dN = self._dN
     rho = massdensity(self.material)
-    A, I1, I2, I3, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -772,7 +779,7 @@ function gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}
     OmegaTilde = self._elmato
     OS = self._OS
     rho = massdensity(self.material)
-    A, I1, I2, I3, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -821,7 +828,7 @@ function stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt},
     aN, dN, DN = self._aN, self._dN, self._DN
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
-    A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -861,7 +868,7 @@ function geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFl
     aN, dN, DN, PN = self._aN, self._dN, self._DN, self._PN
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
-    A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -902,7 +909,7 @@ function restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{F
     elvec = self._elvec
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
-    A, I2, I3, J, A2s, A3s, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.A2s, fes.A3s, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, nalldofs(dchi));
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
@@ -953,9 +960,9 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
     ignore = fill(0.0 , 0, 0)
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
-    A, I2, I3, J, x1x2_vector = fes.A, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, nalldofs(dchi))
-    for i = 1:count(fes) # Loop over elements
+    for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         gathervalues_asmat!(u1, edisp1, fes.conn[i]);
         ecoords1 .= ecoords0 .+ edisp1

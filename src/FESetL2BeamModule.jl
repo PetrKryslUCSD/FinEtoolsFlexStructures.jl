@@ -6,8 +6,6 @@ using ..CrossSectionModule: AbstractCrossSectionType
 using LinearAlgebra: norm, Transpose, mul!
 
 mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
-    conn::Array{NTuple{2, FInt}, 1};
-    label::FIntVec; 
     crosssection::CT
     A::FFltVec
     I1::FFltVec
@@ -20,7 +18,7 @@ mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
     dimensions::Vector{FFltVec}
 end
 
-function FESetL2Beam(conn::FIntMat, crosssection::CT) where {CT}
+function FESetL2Beam(N::IT, crosssection::CT) where {IT<:Integer, CT}
     par = crosssection.parameters(0.0)
     N = size(conn, 1)
     _A = fill(par.A, N)
@@ -32,16 +30,7 @@ function FESetL2Beam(conn::FIntMat, crosssection::CT) where {CT}
     _A3s = fill(par.A3s, N)
     _x1x2_vector = [par.x1x2_vector for i in 1:N]
     _dimensions = [par.dimensions for i in 1:N]
-    self = FESetL2Beam(NTuple{2, FInt}[], FInt[], crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
-    self = fromarray!(self, conn)
-    setlabel!(self, 0)
-    return self
-end
-
-function FESetL2Beam(conn::FIntMat, crosssection::CT, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions) where {CT}
-    dummy = FESetL2(conn)
-    setlabel!(dummy, 0)
-    return FESetL2Beam(dummy.conn, dummy.label, crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
+    return  FESetL2Beam(crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
 end
 
 """
@@ -50,10 +39,8 @@ end
 Concatenate two sets of beam elements.
 """
 function cat(self::T,  other::T) where {T<:FESetL2Beam}
-    @assert self.crosssection === other.crosssection "Cannot concatenate sets with distinct cross-sections"
+    self.crosssection === other.crosssection  || error("Cannot concatenate sets with distinct cross-sections")
     result = deepcopy(self)
-    result.conn = vcat(self.conn, other.conn);
-    setlabel!(result, vcat(self.label, other.label))
     result.A = vcat(self.A, other.A);
     result.I1 = vcat(self.I1, other.I1);
     result.I2 = vcat(self.I2, other.I2);
@@ -73,9 +60,7 @@ Subset of a beam-element set
 """
 function subset(self::T, L::FIntVec) where {T<:FESetL2Beam}
     result = deepcopy(self)
-    result.conn = deepcopy(self.conn[L])
-    result.label = deepcopy(self.label[L])
-    result.A = self.A[L] 
+    result.A = self.A[L]
     result.I1 = self.I1[L]
     result.I2 = self.I2[L]
     result.I3 = self.I3[L]

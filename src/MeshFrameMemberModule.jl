@@ -67,8 +67,9 @@ function frame_member(xyz, nL, crosssection; label = 0)
         _x1x2_vector[i] = deepcopy(par.x1x2_vector)
         _dimensions[i] = deepcopy(par.dimensions)
     end
-    fes = FESetL2Beam(connasarray(fes), crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
     setlabel!(fes, label)
+    beamfes = FESetL2Beam(crosssection, _A, _I1, _I2, _I3, _J, _A2s, _A3s, _x1x2_vector, _dimensions)
+    accepttodelegate(fes, beamfes)
     return fens, fes
 end
 
@@ -97,10 +98,12 @@ finite elements.
 """
 function merge_members(members; tolerance = 0.001)
     fens, allfes = fuse_members(members; tolerance = tolerance)
-    fes = allfes[1]
+    fes = allfes[1]; beamfes = delegateof(fes)
     for ofes in allfes[2:end]
         fes = cat(fes, ofes)
+        beamfes = cat(beamfes, delegateof(ofes))
     end
+    accepttodelegate(fes, beamfes)
     return fens, fes
 end
 

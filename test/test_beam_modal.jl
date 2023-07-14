@@ -165,7 +165,8 @@ function test()
     push!(members, frame_member([0 0 0; 0 0 L], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
 
-    A, I1, I2, I3, J, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    dfes = delegateof(fes)
+    A, I1, I2, I3, J, x1x2_vector = dfes.A, dfes.I1, dfes.I2, dfes.I3, dfes.J, dfes.x1x2_vector
     G = E / 2 / (1 + nu)
     i = 1
 
@@ -249,7 +250,8 @@ function test()
     push!(members, frame_member([0 0 0; 0 0 L], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
 
-    A, I1, I2, I3, J, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    dfes = delegateof(fes)
+    A, I1, I2, I3, J, x1x2_vector = dfes.A, dfes.I1, dfes.I2, dfes.I3, dfes.J, dfes.x1x2_vector
     G = E / 2 / (1 + nu)
     i = 1
 
@@ -333,7 +335,8 @@ function test()
     push!(members, frame_member([0 0 0; 0 0 L], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
 
-    A, I1, I2, I3, J, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    dfes = delegateof(fes)
+    A, I1, I2, I3, J, x1x2_vector = dfes.A, dfes.I1, dfes.I2, dfes.I3, dfes.J, dfes.x1x2_vector
     G = E / 2 / (1 + nu)
     i = 1
 
@@ -417,7 +420,8 @@ function test()
     push!(members, frame_member([0 0 0; 0 0 L], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
 
-    A, I1, I2, I3, J, x1x2_vector = fes.A, fes.I1, fes.I2, fes.I3, fes.J, fes.x1x2_vector
+    dfes = delegateof(fes)
+    A, I1, I2, I3, J, x1x2_vector = dfes.A, dfes.I1, dfes.I2, dfes.I3, dfes.J, dfes.x1x2_vector
     G = E / 2 / (1 + nu)
     i = 1
 
