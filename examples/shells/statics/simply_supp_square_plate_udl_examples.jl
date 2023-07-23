@@ -2,6 +2,7 @@
 module simply_supp_square_plate_udl_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -12,7 +13,7 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 
 
-function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
     csmatout[:, 2] .= (0.0, 1.0, 0.0)
     csmatout[:, 3] .= (0.0, 0.0, 1.0)
@@ -92,8 +93,7 @@ function _execute_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
@@ -218,14 +218,13 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Visualization
     if visualize
-
+        U = gathersysvec(dchi)
         # Generate a graphical display of resultants
         # scalars = []
         # for nc in 1:3
