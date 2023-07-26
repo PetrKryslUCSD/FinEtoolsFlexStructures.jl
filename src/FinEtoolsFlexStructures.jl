@@ -18,6 +18,7 @@ include("FESetShellT3Module.jl")
 include("MeshFrameMemberModule.jl")
 
 include("FEMMCorotBeamModule.jl")
+include("FEMMLinBeamModule.jl")
 include("FEMMRITBeamModule.jl")
 
 include("FEMMPointMassModule.jl")
