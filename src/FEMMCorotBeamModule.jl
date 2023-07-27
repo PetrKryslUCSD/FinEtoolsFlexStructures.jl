@@ -953,7 +953,6 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
     R1I, R1J = self._RI, self._RJ
-    elmat, elmatTe = self._elmat, self._elmatTe
     aN, dN, DN, PN = self._aN, self._dN, self._DN, self._PN
     elvec, elvecf = self._elvec, self._elvecf
     Lforce = fill(0.0, 3)
@@ -968,7 +967,6 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
         ecoords1 .= ecoords0 .+ edisp1
         R1I[:] .= Rfield1.values[fes.conn[i][1], :];
         R1J[:] .= Rfield1.values[fes.conn[i][2], :];
-        fill!(elmat,  0.0); # Initialize element matrix
         L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
         _transfmat!(Te, Ft)
         L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
