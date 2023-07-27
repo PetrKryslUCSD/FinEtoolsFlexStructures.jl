@@ -1,12 +1,13 @@
 module FEMMLinBeamModule
 
 using LinearAlgebra: norm, Transpose, mul!
+using LinearAlgebra
 using FinEtools
 using FinEtools.MatrixUtilityModule: complete_lt!
 using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
-
+import FinEtools.FEMMBaseModule: inspectintegpoints
 
 """
     FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
@@ -28,9 +29,6 @@ mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     _FtI::FFltMat
     _FtJ::FFltMat
     _Te::FFltMat
-    _tempelmat1::FFltMat
-    _tempelmat2::FFltMat
-    _tempelmat3::FFltMat
     _elmat::FFltMat
     _elmatTe::FFltMat
     _elmato::FFltMat
@@ -41,15 +39,14 @@ mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     _DN::FFltMat
     _PN::FFltVec
     _LF::FFltVec
-    _OS::FFltMat
 end
 
-function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
-    _eccentricity_f1_1 = fill(0.0, count(integdomain.fes))
-    _eccentricity_f1_2 = fill(0.0, count(integdomain.fes))
-    _eccentricity_f2 = fill(0.0, count(integdomain.fes))
-    _eccentricity_f3 = fill(0.0, count(integdomain.fes))
+    _eccentricity_f1_1 = fill(uniform_eccentricity[1], count(integdomain.fes))
+    _eccentricity_f1_2 = fill(uniform_eccentricity[2], count(integdomain.fes))
+    _eccentricity_f2 = fill(uniform_eccentricity[3], count(integdomain.fes))
+    _eccentricity_f3 = fill(uniform_eccentricity[4], count(integdomain.fes))
     _ecoords0 = fill(0.0, 2, 3);
     _dofnums = zeros(FInt, 1, 12);
     _F0 = fill(0.0, 3, 3); 
@@ -57,10 +54,7 @@ function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso)
     _FtI = fill(0.0, 3, 3); 
     _FtJ = fill(0.0, 3, 3)
     _Te = fill(0.0, 12, 12)
-    _tempelmat1 = fill(0.0, 12, 12); 
-    _tempelmat2 = fill(0.0, 12, 12); 
-    _tempelmat3 = fill(0.0, 12, 12)
-    _elmat = fill(0.0, 12, 12);    
+    _elmat = fill(0.0, 12, 12);
     _elmatTe = fill(0.0, 12, 12);    
     _elmato = fill(0.0, 12, 12)
     _elvec = fill(0.0, 12);    
@@ -70,18 +64,19 @@ function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso)
     _DN = fill(0.0, 6, 6)
     _PN = fill(0.0, 6)
     _LF = fill(0.0, 12)
-    _RI = fill(0.0, 3, 3);    
-    _RJ = fill(0.0, 3, 3);    
-    _OS = fill(0.0, 3, 3)
     return FEMMLinBeam(integdomain, material,
      _eccentricity_f1_1, _eccentricity_f1_2, _eccentricity_f2, _eccentricity_f3,
      _ecoords0,
      _dofnums, 
      _F0, _Ft, _FtI, _FtJ, _Te,
-     _tempelmat1, _tempelmat2, _tempelmat3, _elmat, _elmatTe, _elmato, 
+     _elmat, _elmatTe, _elmato,
      _elvec, _elvecf, 
-     _aN, _dN, _DN, _PN, _LF, 
-     _OS)
+     _aN, _dN, _DN, _PN, _LF
+     )
+end
+
+function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+    return FEMMLinBeam(integdomain, material, [0.0, 0.0, 0.0, 0.0])
 end
 
 function properties(fes)
@@ -625,6 +620,18 @@ function local_forces!(FL, PN, L, aN)
     return FL
 end
 
+function _eccentricitytransformation(Te, eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3)
+    Te .= zero(eltype(Te))
+    Te[1:3, 1:3] = Te[4:6, 4:6] = Te[7:9, 7:9] = Te[10:12, 10:12] = LinearAlgebra.I(3)
+    Te[1, 4:6] .= (0.0, eccentricity_f3, -eccentricity_f2)
+    Te[2, 4:6] .= (-eccentricity_f3, 0.0, eccentricity_f1_1)
+    Te[3, 4:6] .= (eccentricity_f2, -eccentricity_f1_1, 0.0)
+    Te[7, 10:12] .= (0.0, eccentricity_f3, -eccentricity_f2)
+    Te[8, 10:12] .= (-eccentricity_f3, 0.0, eccentricity_f1_2)
+    Te[9, 10:12] .= (eccentricity_f2, -eccentricity_f1_2, 0.0)
+    return Te
+end
+
 """
     mass(self::FEMMLinBeam,  assembler::A,
       geom::NodalField{FFlt},
@@ -677,11 +684,13 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
     elmat, elmatTe = self._elmat, self._elmatTe
     aN, dN, DN = self._aN, self._dN, self._DN
+    eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
+        self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
-    for i = 1:count(fes) # Loop over elements
+    for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
         fill!(elmat,  0.0); # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
@@ -689,6 +698,9 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
         local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
+        _eccentricitytransformation(Te, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
+        mul!(elmatTe, elmat, Te)
+        mul!(elmat, Transpose(Te), elmatTe)
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
@@ -763,6 +775,59 @@ end
 function distribloads_global(self::FEMMLinBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
     assembler = SysvecAssembler();
     return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi);
+end
+
+
+"""
+    inspectintegpoints(
+        self::FEMM,
+        geom::NodalField{FT},
+        felist::AbstractVector{IT},
+        inspector::F,
+        idat,
+        quantity = :Cauchy;
+        context...,
+    ) where {FEMM<:AbstractFEMM, FT, IT, F<:Function}
+
+Inspect integration points.
+"""
+function inspectintegpoints(
+    self::FEMM,
+    geom::NodalField{FT},
+    felist::AbstractVector{IT},
+    inspector::F,
+    idat,
+    quantity = :localforces;
+    context...,
+) where {FEMM<:FEMMLinBeam,FT,IT,F<:Function}
+    ecoords0, dofnums = self._ecoords0, self._dofnums
+    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
+    elmat, elmatTe = self._elmat, self._elmatTe
+    elvec, elvecf = self._elvec, self._elvecf
+    aN, dN, DN = self._aN, self._dN, self._DN
+    eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
+        self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
+    E = self.material.E
+    G = E / 2 / (1 + self.material.nu)::Float64
+    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
+    # Loop over  all the elements and all the quadrature points within them
+    for ilist  in  1:length(felist) # Loop over elements
+        i = felist[ilist];
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
+        gathervalues_asvec!(dchi, elvec, fes.conn[i]);
+        L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
+        _transfmat!(Te, F0)
+        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
+        mul!(elmatTe, elmat, Transpose(Te))
+        mul!(elmat, Te, elmatTe)
+        _eccentricitytransformation(Te, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
+        mul!(elmatTe, elmat, Te)
+        mul!(elmat, Transpose(Te), elmatTe)
+        # Compute the vector of local forces
+        mul!(elvecf, elmat, elvec)
+        idat = inspector(idat, i, fes.conn[i], ecoords, elvecf, nothing);
+    end # Loop over elements
+    return idat; # return the updated inspector data
 end
 
 end # module
