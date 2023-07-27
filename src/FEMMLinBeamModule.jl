@@ -17,10 +17,7 @@ Class for co-rotational beam finite element modeling machine.
 mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
     material::MatDeforElastIso # material object
-    eccentricity_f1_1::FFltVec
-    eccentricity_f1_2::FFltVec
-    eccentricity_f2::FFltVec
-    eccentricity_f3::FFltVec
+    eccentricities::FFltMat
     # The attributes below are buffers used in various operations.
     _ecoords0::FFltMat
     _dofnums::FIntMat
@@ -43,10 +40,11 @@ end
 
 function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
-    _eccentricity_f1_1 = fill(uniform_eccentricity[1], count(integdomain.fes))
-    _eccentricity_f1_2 = fill(uniform_eccentricity[2], count(integdomain.fes))
-    _eccentricity_f2 = fill(uniform_eccentricity[3], count(integdomain.fes))
-    _eccentricity_f3 = fill(uniform_eccentricity[4], count(integdomain.fes))
+    _eccentricities = fill(0.0, count(integdomain.fes), 4)
+    _eccentricities[:, 1] .= uniform_eccentricity[1] # first node, f1 direction
+    _eccentricities[:, 2] .= uniform_eccentricity[2] # second node, f1 direction
+    _eccentricities[:, 3] .= uniform_eccentricity[3] # f2 direction
+    _eccentricities[:, 4] .= uniform_eccentricity[4] # f3 direction
     _ecoords0 = fill(0.0, 2, 3);
     _dofnums = zeros(FInt, 1, 12);
     _F0 = fill(0.0, 3, 3); 
@@ -65,7 +63,7 @@ function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,
     _PN = fill(0.0, 6)
     _LF = fill(0.0, 12)
     return FEMMLinBeam(integdomain, material,
-     _eccentricity_f1_1, _eccentricity_f1_2, _eccentricity_f2, _eccentricity_f3,
+     _eccentricities,
      _ecoords0,
      _dofnums, 
      _F0, _Ft, _FtI, _FtJ, _Te,
@@ -684,8 +682,7 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
     elmat, elmattemp, Secc = self._elmat, self._elmatTe, self._elmato
     aN, dN, DN = self._aN, self._dN, self._DN
-    eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
-        self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
+    eccentricities = self.eccentricities
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
@@ -695,7 +692,7 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
         fill!(elmat,  0.0); # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _transfmat!(Te, F0)
-        _eccentricitytransformation(Secc, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
+        _eccentricitytransformation(Secc, eccentricities[i, :]...)
         local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
         # First transform from slave to master (U_s = Secc * U_m)
         mul!(elmattemp, elmat, Secc)
@@ -731,12 +728,14 @@ in the configuration u1, Rfield1. These are only forces, not moments.
 """
 function distribloads_global(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
     fes = self.integdomain.fes
-    ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
+    ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    R1I, R1J = self._RI, self._RJ
-    elmat, elmatTe = self._elmat, self._elmatTe
-    aN, dN, DN, PN = self._aN, self._dN, self._DN, self._PN
-    elvec, elvecf = self._elvec, self._elvecf
+    eccentricities = self.eccentricities
+    elmat, elmatTe, Secc = self._elmat, self._elmatTe, self._elmato
+    disp_g, disp_f_m, forc_f_s = self._elvec, self._elvecf, self._LF
+    forc_f_m = deepcopy(forc_f_s)
+    forc_f_s = deepcopy(forc_f_m)
+    forc_g = deepcopy(forc_f_m)
     Lforce = fill(0.0, 3)
     ignore = fill(0.0 , 0, 0)
     E = self.material.E
@@ -745,31 +744,27 @@ function distribloads_global(self::FEMMLinBeam, assembler::ASS, geom0::NodalFiel
     startassembly!(assembler, nalldofs(dchi))
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        gathervalues_asmat!(u1, edisp1, fes.conn[i]);
-        ecoords1 .= ecoords0 .+ edisp1
-        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
-        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
-        fill!(elmat,  0.0); # Initialize element matrix
-        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
-        _transfmat!(Te, Ft)
-        L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
+        L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
+        _transfmat!(Te, F0)
+        _eccentricitytransformation(Secc, eccentricities[i, :]...)
         force = updateforce!(fi, ignore, ignore, i, 0); # retrieve the applied load
-        Lforce = Ft' * force # local distributed load components
-        elvecf[1] = Lforce[1]*L0/2;
-        elvecf[2] = Lforce[2]*L0/2;
-        elvecf[3] = Lforce[3]*L0/2;
-        elvecf[4] = 0;
-        elvecf[5] = -Lforce[3]*L0^2/12;
-        elvecf[6] = +Lforce[2]*L0^2/12;
-        elvecf[7] = Lforce[1]*L0/2;
-        elvecf[8] = Lforce[2]*L0/2;
-        elvecf[9] = Lforce[3]*L0/2;
-        elvecf[10] = 0;
-        elvecf[11] = +Lforce[3]*L0^2/12;
-        elvecf[12] = -Lforce[2]*L0^2/12;
-        mul!(elvec, Te, elvecf)
+        Lforce = F0' * force # local distributed load components
+        forc_f_s[1] = Lforce[1]*L0/2;
+        forc_f_s[2] = Lforce[2]*L0/2;
+        forc_f_s[3] = Lforce[3]*L0/2;
+        forc_f_s[4] = 0;
+        forc_f_s[5] = -Lforce[3]*L0^2/12;
+        forc_f_s[6] = +Lforce[2]*L0^2/12;
+        forc_f_s[7] = Lforce[1]*L0/2;
+        forc_f_s[8] = Lforce[2]*L0/2;
+        forc_f_s[9] = Lforce[3]*L0/2;
+        forc_f_s[10] = 0;
+        forc_f_s[11] = +Lforce[3]*L0^2/12;
+        forc_f_s[12] = -Lforce[2]*L0^2/12;
+        mul!(forc_f_m, Transpose(Secc), forc_f_s)
+        mul!(forc_g, Te, forc_f_m)
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
-        assemble!(assembler, elvec, dofnums); 
+        assemble!(assembler, forc_g, dofnums);
     end # Loop over elements
     return makevector!(assembler);
 end
@@ -808,12 +803,11 @@ function inspectintegpoints(
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
     elmat, elmatTe, Secc = self._elmat, self._elmatTe, self._elmato
-    gdispl, fdisplm, forces = self._elvec, self._elvecf, self._LF
+    disp_g, disp_f_m, forces = self._elvec, self._elvecf, self._LF
     mforces = deepcopy(forces)
-    fdispls = deepcopy(fdisplm)
+    disp_f_s = deepcopy(disp_f_m)
     aN, dN, DN = self._aN, self._dN, self._DN
-    eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
-        self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
+    eccentricities = self.eccentricities
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
@@ -821,18 +815,18 @@ function inspectintegpoints(
     for ilist  in  1:length(felist) # Loop over elements
         i = felist[ilist];
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        gathervalues_asvec!(dchi, gdispl, fes.conn[i]);
+        gathervalues_asvec!(dchi, disp_g, fes.conn[i]);
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
-        _eccentricitytransformation(Secc, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
+        _eccentricitytransformation(Secc, eccentricities[i, :]...)
         _transfmat!(Te, F0)
         elmat .= zero(eltype(elmat))
         local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
         # First transform from the global coordinates into master local coordinates
-        mul!(fdisplm, Transpose(Te), gdispl) # master displ in f-frame
+        mul!(disp_f_m, Transpose(Te), disp_g) # master displ in f-frame
         # Then transform from master to slave (U_s = Secc * U_m)
-        mul!(fdispls, Secc, fdisplm) # slave displ in f-frame
+        mul!(disp_f_s, Secc, disp_f_m) # slave displ in f-frame
         # Finally compute the forces acting on the slave nodes
-        mul!(forces, elmat, fdispls)
+        mul!(forces, elmat, disp_f_s)
         idat = inspector(idat, i, fes.conn[i], ecoords0, forces, nothing);
     end # Loop over elements
     return idat; # return the updated inspector data
