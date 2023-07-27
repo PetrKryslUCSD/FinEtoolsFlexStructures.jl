@@ -682,7 +682,7 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
     fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    elmat, elmatTe = self._elmat, self._elmatTe
+    elmat, elmattemp, Secc = self._elmat, self._elmatTe, self._elmato
     aN, dN, DN = self._aN, self._dN, self._DN
     eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
         self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
@@ -695,12 +695,14 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
         fill!(elmat,  0.0); # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _transfmat!(Te, F0)
+        _eccentricitytransformation(Secc, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
         local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
-        _eccentricitytransformation(Te, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
-        mul!(elmatTe, elmat, Te)
-        mul!(elmat, Transpose(Te), elmatTe)
+        # First transform from slave to master (U_s = Secc * U_m)
+        mul!(elmattemp, elmat, Secc)
+        mul!(elmat, Transpose(Secc), elmattemp)
+        # Then transform from the master local coordinates into global coordinates
+        mul!(elmattemp, elmat, Transpose(Te))
+        mul!(elmat, Te, elmattemp)
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
@@ -793,17 +795,22 @@ Inspect integration points.
 """
 function inspectintegpoints(
     self::FEMM,
-    geom::NodalField{FT},
+    geom0::NodalField{FT},
+    dchi::NodalField{FT},
+    dT::NodalField{FT},
     felist::AbstractVector{IT},
     inspector::F,
     idat,
     quantity = :localforces;
     context...,
 ) where {FEMM<:FEMMLinBeam,FT,IT,F<:Function}
+    fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    elmat, elmatTe = self._elmat, self._elmatTe
-    elvec, elvecf = self._elvec, self._elvecf
+    elmat, elmatTe, Secc = self._elmat, self._elmatTe, self._elmato
+    gdispl, fdisplm, forces = self._elvec, self._elvecf, self._LF
+    mforces = deepcopy(forces)
+    fdispls = deepcopy(fdisplm)
     aN, dN, DN = self._aN, self._dN, self._DN
     eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3 =
         self.eccentricity_f1_1, self.eccentricity_f1_2, self.eccentricity_f2, self.eccentricity_f3
@@ -814,18 +821,19 @@ function inspectintegpoints(
     for ilist  in  1:length(felist) # Loop over elements
         i = felist[ilist];
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        gathervalues_asvec!(dchi, elvec, fes.conn[i]);
+        gathervalues_asvec!(dchi, gdispl, fes.conn[i]);
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
+        _eccentricitytransformation(Secc, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
         _transfmat!(Te, F0)
+        elmat .= zero(eltype(elmat))
         local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
-        _eccentricitytransformation(Te, eccentricity_f1_1[i], eccentricity_f1_2[i], eccentricity_f2[i], eccentricity_f3[i])
-        mul!(elmatTe, elmat, Te)
-        mul!(elmat, Transpose(Te), elmatTe)
-        # Compute the vector of local forces
-        mul!(elvecf, elmat, elvec)
-        idat = inspector(idat, i, fes.conn[i], ecoords, elvecf, nothing);
+        # First transform from the global coordinates into master local coordinates
+        mul!(fdisplm, Transpose(Te), gdispl) # master displ in f-frame
+        # Then transform from master to slave (U_s = Secc * U_m)
+        mul!(fdispls, Secc, fdisplm) # slave displ in f-frame
+        # Finally compute the forces acting on the slave nodes
+        mul!(forces, elmat, fdispls)
+        idat = inspector(idat, i, fes.conn[i], ecoords0, forces, nothing);
     end # Loop over elements
     return idat; # return the updated inspector data
 end
