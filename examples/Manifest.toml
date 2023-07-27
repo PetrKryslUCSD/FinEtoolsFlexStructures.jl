@@ -582,10 +582,14 @@ deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[deps.IntervalSets]]
-deps = ["Dates", "Random", "Statistics"]
-git-tree-sha1 = "16c0cc91853084cb5f58a78bd209513900206ce6"
+deps = ["Dates", "Random"]
+git-tree-sha1 = "19ef25c6befb8076aefbc6f89d9011b415fb25da"
 uuid = "8197267c-284f-5f27-9208-e0e47529a953"
-version = "0.7.4"
+version = "0.7.5"
+weakdeps = ["Statistics"]
+
+    [deps.IntervalSets.extensions]
+    IntervalSetsStatisticsExt = "Statistics"
 
 [[deps.IrrationalConstants]]
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
@@ -1410,7 +1414,7 @@ uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 version = "0.21.33"
 
 [[deps.VisualStructures]]
-deps = ["FinEtools", "JSON", "LinearAlgebra", "PlotlyJS", "REPLHistory", "Revise"]
+deps = ["FinEtools", "JSON", "LinearAlgebra", "PlotlyJS", "REPLHistory", "Revise", "Statistics"]
 path = "../../VisualStructures.jl"
 uuid = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 version = "0.1.2"
