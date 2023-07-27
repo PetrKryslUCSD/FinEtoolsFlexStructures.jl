@@ -25,7 +25,7 @@ using Arpack
 using LinearAlgebra
 using SparseArrays
 using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
+using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json, plot_local_frames
 
 function test(nel = 2)
     E = 12.0*phun("GPa")
@@ -34,7 +34,7 @@ function test(nel = 2)
     b = Thickness = 0.2*phun("m")
     h = Depth = 0.4*phun("m")
     I = b * h^3 / 12
-    ecc = 0.10*phun("m")
+    ecc = -0.10*phun("m")
     L = 10.0*phun("m")
     k_s = 5/6 # shear correction factor
     w = 2000.0*phun("kg/m^3") * 10.0*phun("m/sec^2")
@@ -100,12 +100,14 @@ function test(nel = 2)
 
     inspectintegpoints(femm, geom0, dchi, NodalField([1.0]), 1:count(fes), inspector, nothing)
 
-    scaling = 2e2
+    scaling = 100.0
     dchi.values .*= scaling
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[-L -L -L]; [L L L]]),
         plot_nodes(fens),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values); dims = 1)
+        plot_local_frames(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
+        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values, ecc = femm.eccentricities);
+        dims = 1)
     pl = render(plots)
 
     true
@@ -139,7 +141,7 @@ using Arpack
 using LinearAlgebra
 using SparseArrays
 using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
+using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json, plot_local_frames
 
 function test(nel = 2)
     E = 12.0*phun("GPa")
@@ -148,7 +150,7 @@ function test(nel = 2)
     b = 0.4*phun("m")
     h = 0.2*phun("m")
     I = b^3 * h / 12
-    ecc = 0.10*phun("m")
+    ecc = -0.10*phun("m")
     L = 10.0*phun("m")
     k_s = 5/6 # shear correction factor
     w = 2000.0*phun("kg/m^3") * 10.0*phun("m/sec^2")
@@ -189,8 +191,8 @@ function test(nel = 2)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     q = fill(0.0, 3); q[2] = w * b * h
-        fi = ForceIntensity(q)
-        F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity(q)
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
     solve!(dchi, K, F)
@@ -214,12 +216,14 @@ function test(nel = 2)
 
     inspectintegpoints(femm, geom0, dchi, NodalField([1.0]), 1:count(fes), inspector, nothing)
 
-    scaling = 2e2
+    scaling = 100.0
     dchi.values .*= scaling
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[-L -L -L]; [L L L]]),
         plot_nodes(fens),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values); dims = 1)
+        plot_local_frames(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
+        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values, ecc = femm.eccentricities);
+        dims = 1)
     pl = render(plots)
 
     true
