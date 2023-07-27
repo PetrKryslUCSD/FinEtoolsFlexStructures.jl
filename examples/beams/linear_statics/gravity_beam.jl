@@ -28,15 +28,19 @@ function test(nel = 2)
     # Section Properties
     b = Thickness = 0.2*phun("m")
     h = Depth = 0.4*phun("m")
+    I = b * h^3 / 12
+    ecc = 0.10*phun("m")
     L = 10.0*phun("m")
     k_s = 5/6 # shear correction factor
     w = 2000.0*phun("kg/m^3") * 10.0*phun("m/sec^2")
+    uniform_eccentricity = [0.0, 0.0, ecc, 0.0]
+    # uniform_eccentricity = [0.0, 0.0, 0.0*phun("m"), 0.0]
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s) # Timoshenko
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0]) # Bernoulli
 
-    xyz = [[-L/2 0 0]; [L/2 0 0]]
+    xyz = [[L/2 0 0]; [-L/2 0 0]]
     fens, fes = frame_member(xyz, nel, cs)
 
     # Material properties
@@ -60,18 +64,37 @@ function test(nel = 2)
     numberdofs!(dchi);
 
     # Assemble the global discrete system
-    femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1), b * h), material)
+    femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1), b * h), material, uniform_eccentricity)
+
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
     q = fill(0.0, 6); q[2] = w
     fi = ForceIntensity(q)
-    @show F = distribloads(femm, geom0, dchi, fi, 3);
+    F = distribloads(femm, geom0, dchi, fi, 3);
 
     # Solve the static problem
     solve!(dchi, K, F)
+
+
+    K_df = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:df]
+    F_d =  K_df * gathersysvec(dchi, :f)
+    H =  F_d[dchi.dofnums[leftl[1], 1]-nfreedofs(dchi)]
+    M0 = H * ecc
+    @show deflw = (5 * w * b * h * L^4) / (384 * E * I)
+    @show deflH = (M0 * L^2) / (8 * E * I)
+    @show deflw - deflH
     @show extrema(dchi.values[:, 2])
 
-    scaling = 1e1
+    function inspector(idat, i, conn, ecoords, elvecf, loc)
+        if conn[1] == leftl[1] || conn[2] == leftl[1]
+            @info "element at support"
+            @show elvecf
+        end
+    end
+
+    inspectintegpoints(femm, geom0, 1:count(fes), inspector, nothing)
+
+    scaling = 1e2
     dchi.values .*= scaling
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[-L -L -L]; [L L L]]),
@@ -81,7 +104,7 @@ function test(nel = 2)
 
     true
 end
-test(4)
+test(80)
 end # module
 
 nothing
