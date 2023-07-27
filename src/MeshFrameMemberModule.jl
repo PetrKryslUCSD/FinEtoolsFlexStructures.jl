@@ -12,6 +12,8 @@ using ..FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam, cat
 
 Mesh of a generally curved beam member given by the location of the
 vertices of the spline curve.
+
+`nL` = number of elements
 """
 function frame_member(xyz, nL, crosssection; label = 0)
     npts = size(xyz,1);
