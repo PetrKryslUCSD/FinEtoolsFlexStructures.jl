@@ -23,6 +23,7 @@
 
 ## News
 
+- 08/14/2023: Updated for Julia 1.9.2. Revised nomenclature of layup transformation matrices.
 - 07/13/2023: Updated for Julia 1.9 and FinEtools 7.
 - 05/26/2022: Paper on explicit dynamics accepted for publication  in the
   International Journal for Numerical Methods in Engineering. [Draft is
