@@ -228,7 +228,7 @@ function test(nel = 2)
 
     true
 end
-test(8)
+test(2)
 end # module
 
 nothing

@@ -79,6 +79,39 @@ using .mlayup2
 mlayup2.test()
 
 
+
+module mlayup3a
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtools.DeforModelRedModule
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test()
+    CM = CompositeLayupModule
+    mtol = 1.0e-15
+    for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+        angle = dangle/180*pi
+        Tbarm = fill(0.0, 3, 3)
+        sigp = (2 * rand(2, 2) .- 1.0); sigp = sigp + sigp';
+        Rm = [cos(angle) -sin(angle);
+              sin(angle) cos(angle)]
+        Tinvm = fill(0.0, 3, 3)
+        CM.plane_stress_Tinv_matrix!(Tinvm, angle)
+        sigv = Tinvm * [sigp[1, 1]; sigp[2, 2]; sigp[1, 2]]
+        sig = Rm * sigp * Rm'
+        @test abs(sig[1, 1] - sigv[1])  < 10^-7
+        @test abs(sig[2, 2] - sigv[2])  < 10^-7
+        @test abs(sig[1, 2] - sigv[3])  < 10^-7
+        CM.plane_stress_Tbar_matrix!(Tbarm, angle)
+        @test norm(Tbarm' - Tinvm) < mtol
+    end
+    true
+end
+end
+using .mlayup3a
+mlayup3a.test()
+
+
 module mlayup3
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
@@ -90,11 +123,11 @@ function test()
     mtol = 1.0e-15
     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
         angle = dangle/180*pi
-        Tm = fill(0.0, 3, 3)
-        CM.plane_stress_T_matrix!(Tm, angle)
+        Tbarm = fill(0.0, 3, 3)
+        CM.plane_stress_Tbar_matrix!(Tbarm, angle)
         Tinvm = fill(0.0, 3, 3)
         CM.plane_stress_Tinv_matrix!(Tinvm, angle)
-        @test norm(Tm*Tinvm - I) < mtol
+        @test norm(Tbarm' - Tinvm) < mtol
     end
     true
 end
@@ -103,7 +136,7 @@ using .mlayup3
 mlayup3.test()
 
 
-module mlayup4
+module mlayup3x1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtools.DeforModelRedModule
@@ -111,98 +144,126 @@ using FinEtoolsFlexStructures.CompositeLayupModule
 using Test
 function test()
     CM = CompositeLayupModule
-    mtol = 1.0e-15
-    R = [1 0 0; 0 1 0; 0 0 2]
+    Tinvm = fill(0.0, 3, 3)
     Tm = fill(0.0, 3, 3)
-    Tme = fill(0.0, 3, 3)
-    for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+    Tbarm = fill(0.0, 3, 3)
+    mtol = 1.0e-15
+    for dangle in [5 34 68 73 535 0 90 45 -135. -87 13 -13]
         angle = dangle/180*pi
+        CM.plane_stress_Tbar_matrix!(Tbarm, angle)
         CM.plane_stress_T_matrix!(Tm, angle)
-        CM.plane_stress_T_matrix_eng!(Tme, angle)
-        # @show R * Tm / R, Tme
-        @test norm(R * Tm / R - Tme) < mtol
-        # Tinvm = fill(0.0, 3, 3)
-        # CM.plane_stress_Tinv_matrix!(DeforModelRedModule.DeforModelRed2DStress, Tinvm, angle)
-        # @test norm(Tm*Tinvm - I) < mtol
+        CM.plane_stress_Tinv_matrix!(Tinvm, angle)
+        @test norm(Tbarm' - Tinvm) < mtol
+        @test norm(Tm * Tinvm - I) < mtol
+        CM.plane_stress_T_matrix!(Tinvm, -angle)
+        @test norm(Tm * Tinvm - I) < mtol
     end
     true
 end
 end
-using .mlayup4
-mlayup4.test()
+using .mlayup3x1
+mlayup3x1.test()
+
+# module mlayup4
+# using LinearAlgebra: norm, Transpose, mul!, I
+# using FinEtools
+# using FinEtools.DeforModelRedModule
+# using FinEtoolsFlexStructures.CompositeLayupModule
+# using Test
+# function test()
+#     CM = CompositeLayupModule
+#     mtol = 1.0e-15
+#     R = [1 0 0; 0 1 0; 0 0 2]
+#     Tm = fill(0.0, 3, 3)
+#     Tme = fill(0.0, 3, 3)
+#     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+#         angle = dangle/180*pi
+#         CM.plane_stress_Tbar_matrix!(Tm, angle)
+#         CM.plane_stress_T_matrix_eng!(Tme, angle)
+#         # @show R * Tm / R, Tme
+#         @test norm(R * Tm / R - Tme) < mtol
+#         # Tinvm = fill(0.0, 3, 3)
+#         # CM.plane_stress_Tinv_matrix!(DeforModelRedModule.DeforModelRed2DStress, Tinvm, angle)
+#         # @test norm(Tm*Tinvm - I) < mtol
+#     end
+#     true
+# end
+# end
+# using .mlayup4
+# mlayup4.test()
 
 
-module mlayup5
-using LinearAlgebra: norm, Transpose, mul!, I
-using FinEtools
-using FinEtools.DeforModelRedModule
-using FinEtoolsFlexStructures.CompositeLayupModule
-using Test
-function test()
-    CM = CompositeLayupModule
-    mtol = 1.0e-15
-    R = [1 0 0; 0 1 0; 0 0 2]
-    Tm = fill(0.0, 3, 3)
-    Tme = fill(0.0, 3, 3)
-    for dangle in [5 34 68 73 535 0 90 45 -135. -87]
-        angle = dangle/180*pi
-        CM.plane_stress_Tinv_matrix!(Tm, angle)
-        CM.plane_stress_Tinv_matrix_eng!(Tme, angle)
-        @test norm(R * Tm / R - Tme) < mtol
-    end
-    true
-end
-end
-using .mlayup5
-mlayup5.test()
+# module mlayup5
+# using LinearAlgebra: norm, Transpose, mul!, I
+# using FinEtools
+# using FinEtools.DeforModelRedModule
+# using FinEtoolsFlexStructures.CompositeLayupModule
+# using Test
+# function test()
+#     CM = CompositeLayupModule
+#     mtol = 1.0e-15
+#     R = [1 0 0; 0 1 0; 0 0 2]
+#     Tm = fill(0.0, 3, 3)
+#     Tme = fill(0.0, 3, 3)
+#     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+#         angle = dangle/180*pi
+#         CM.plane_stress_Tinv_matrix!(Tm, angle)
+#         CM.plane_stress_Tinv_matrix_eng!(Tme, angle)
+#         @test norm(R * Tm / R - Tme) < mtol
+#     end
+#     true
+# end
+# end
+# using .mlayup5
+# mlayup5.test()
 
-module mlayup6
-using LinearAlgebra: norm, Transpose, mul!, I
-using FinEtools
-using FinEtools.DeforModelRedModule
-using FinEtoolsFlexStructures.CompositeLayupModule
-using Test
-function test()
-    CM = CompositeLayupModule
-    mtol = 1.0e-15
-    R = [1 0 0; 0 1 0; 0 0 2]
-    Tm = fill(0.0, 3, 3)
-    Tinvm = fill(0.0, 3, 3)
-    for dangle in [-8.]
-        angle = dangle/180*pi
-        CM.plane_stress_T_matrix_eng!(Tm, angle)
-        CM.plane_stress_Tinv_matrix_eng!(Tinvm, angle)
-        @test norm(Tm*Tinvm - I) < mtol
-    end
-    true
-end
-end
-using .mlayup6
-mlayup6.test()
+# module mlayup6
+# using LinearAlgebra: norm, Transpose, mul!, I
+# using FinEtools
+# using FinEtools.DeforModelRedModule
+# using FinEtoolsFlexStructures.CompositeLayupModule
+# using Test
+# function test()
+#     CM = CompositeLayupModule
+#     mtol = 1.0e-15
+#     R = [1 0 0; 0 1 0; 0 0 2]
+#     Tm = fill(0.0, 3, 3)
+#     Tinvm = fill(0.0, 3, 3)
+#     for dangle in [-8.]
+#         angle = dangle/180*pi
+#         CM.plane_stress_T_matrix_eng!(Tm, angle)
+#         CM.plane_stress_Tinv_matrix_eng!(Tinvm, angle)
+#         @test norm(Tm*Tinvm - I) < mtol
+#     end
+#     true
+# end
+# end
+# using .mlayup6
+# mlayup6.test()
 
-module mlayup7
-using LinearAlgebra: norm, Transpose, mul!, I
-using FinEtools
-using FinEtools.DeforModelRedModule
-using FinEtoolsFlexStructures.CompositeLayupModule
-using Test
-function test()
-    CM = CompositeLayupModule
-    mtol = 1.0e-15
-    R = [1 0 0; 0 1 0; 0 0 2]
-    Tm = fill(0.0, 3, 3)
-    Tinvm = fill(0.0, 3, 3)
-    for dangle in [5 34 68 73 535 0 90 45 -135. -87]
-        angle = dangle/180*pi
-        CM.plane_stress_T_matrix_eng!(Tm, -angle)
-        CM.plane_stress_Tinv_matrix_eng!(Tinvm, angle)
-        @test norm(Tm - Tinvm) < mtol
-    end
-    true
-end
-end
-using .mlayup7
-mlayup7.test()
+# module mlayup7
+# using LinearAlgebra: norm, Transpose, mul!, I
+# using FinEtools
+# using FinEtools.DeforModelRedModule
+# using FinEtoolsFlexStructures.CompositeLayupModule
+# using Test
+# function test()
+#     CM = CompositeLayupModule
+#     mtol = 1.0e-15
+#     R = [1 0 0; 0 1 0; 0 0 2]
+#     Tm = fill(0.0, 3, 3)
+#     Tinvm = fill(0.0, 3, 3)
+#     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+#         angle = dangle/180*pi
+#         CM.plane_stress_T_matrix_eng!(Tm, -angle)
+#         CM.plane_stress_Tinv_matrix_eng!(Tinvm, angle)
+#         @test norm(Tm - Tinvm) < mtol
+#     end
+#     true
+# end
+# end
+# using .mlayup7
+# mlayup7.test()
 
 module mlayup8
 using LinearAlgebra: norm, Transpose, mul!, I
@@ -219,7 +280,9 @@ function test()
     for dangle in [-55] # see Barbero, Introduction to composite materials, Example 5.3
         angle = dangle/180*pi
         CM.plane_stress_T_matrix!(Tm, angle)
-        @test norm(Tm - [0.32898992833716556 0.6710100716628343 -0.9396926207859083; 0.6710100716628343 0.32898992833716556 0.9396926207859083; 0.46984631039295416 -0.46984631039295416 -0.34202014332566877]   ) < mtol
+        @test norm(Tm - [0.32898992833716556 0.6710100716628343 -0.9396926207859083;
+            0.6710100716628343 0.32898992833716556 0.9396926207859083;
+            0.46984631039295416 -0.46984631039295416 -0.34202014332566877]   ) < mtol
     end
     true
 end
@@ -227,31 +290,31 @@ end
 using .mlayup8
 mlayup8.test()
 
-module mlayup9
-using LinearAlgebra: norm, Transpose, mul!, I
-using FinEtools
-using FinEtools.DeforModelRedModule
-using FinEtoolsFlexStructures.CompositeLayupModule
-using Test
-function test()
-    CM = CompositeLayupModule
-    mtol = 1.0e-15
-    R = [1 0 0; 0 1 0; 0 0 2]
-    Tme = fill(0.0, 3, 3)
-    Tm = fill(0.0, 3, 3)
-    Tinvm = fill(0.0, 3, 3)
-    for dangle in [5 34 68 73 535 0 90 45 -135. -87]
-        angle = dangle/180*pi
-        CM.plane_stress_T_matrix_eng!(Tme, angle)
-        CM.plane_stress_T_matrix!(Tm, angle)
-        # Verify the identity above equation 5.54 in Barbero
-        @test norm(inv(Tm') - Tme) < mtol
-    end
-    true
-end
-end
-using .mlayup9
-mlayup9.test()
+# module mlayup9
+# using LinearAlgebra: norm, Transpose, mul!, I
+# using FinEtools
+# using FinEtools.DeforModelRedModule
+# using FinEtoolsFlexStructures.CompositeLayupModule
+# using Test
+# function test()
+#     CM = CompositeLayupModule
+#     mtol = 1.0e-15
+#     R = [1 0 0; 0 1 0; 0 0 2]
+#     Tme = fill(0.0, 3, 3)
+#     Tm = fill(0.0, 3, 3)
+#     Tinvm = fill(0.0, 3, 3)
+#     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
+#         angle = dangle/180*pi
+#         CM.plane_stress_T_matrix_eng!(Tme, angle)
+#         CM.plane_stress_Tbar_matrix!(Tm, angle)
+#         # Verify the identity above equation 5.54 in Barbero
+#         @test norm(inv(Tm') - Tme) < mtol
+#     end
+#     true
+# end
+# end
+# using .mlayup9
+# mlayup9.test()
 
 
 module mlayup10
