@@ -11,7 +11,7 @@ using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!,
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: QTEQTransformer, QEQTTransformer, Layup2ElementAngle
-using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_T_matrix!, transverse_shear_T_matrix!, laminate_inertia!
+using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_Tbar_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
 
 const __nn = 3 # number of nodes
@@ -523,7 +523,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             # Transform the laminate stiffnesses
             updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0);
             m, n = lla(E_G, csmat(layup.csys))
-            plane_stress_T_matrix!(Tps, m, -n)
+            plane_stress_Tbar_matrix!(Tps, m, -n)
             tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
             transverse_shear_T_matrix!(Tts, m, n)
             tts!(sH, Tts)
@@ -747,7 +747,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         # Transform the laminate stiffnesses
         updatecsmat!(layup.csys, centroid, J0, i, 0)
         m, n = lla(E_G, csmat(layup.csys))
-        plane_stress_T_matrix!(Tps, m, -n)
+        plane_stress_Tbar_matrix!(Tps, m, -n)
         tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
         transverse_shear_T_matrix!(Tts, m, n)
         tts!(sH, Tts)
