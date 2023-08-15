@@ -499,8 +499,8 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
-    tps! = QEQTTransformer(Tps)
-    tts! = QEQTTransformer(Tts)
+    tps! = QTEQTransformer(Tps)
+    tts! = QTEQTransformer(Tts)
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
@@ -523,7 +523,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             # Transform the laminate stiffnesses
             updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0);
             m, n = lla(E_G, csmat(layup.csys))
-            plane_stress_Tbar_matrix!(Tps, m, -n)
+            plane_stress_Tbar_matrix!(Tps, m, n)
             tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
             transverse_shear_T_matrix!(Tts, m, n)
             tts!(sH, Tts)
@@ -687,8 +687,8 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
-    tps! = QEQTTransformer(Tps)
-    tts! = QEQTTransformer(Tts)
+    tps! = QTEQTransformer(Tps)
+    tts! = QTEQTransformer(Tts)
     lla = Layup2ElementAngle()
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
@@ -747,7 +747,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         # Transform the laminate stiffnesses
         updatecsmat!(layup.csys, centroid, J0, i, 0)
         m, n = lla(E_G, csmat(layup.csys))
-        plane_stress_Tbar_matrix!(Tps, m, -n)
+        plane_stress_Tbar_matrix!(Tps, m, n)
         tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
         transverse_shear_T_matrix!(Tts, m, n)
         tts!(sH, Tts)
