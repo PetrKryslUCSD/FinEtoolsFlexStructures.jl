@@ -161,12 +161,12 @@ end
     laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
 
 Compute the laminate stiffnesses, membrane, extension-bending coupling, and bending.
+
+Aij coefficients represent in-plane stiffness of the laminate, the Cij
+coefficients represent bending stiffness, the Bij represent bending-extension
+coupling.
 """
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
-    # Aij coefficients represent in-plane stiffness of the laminate, the Cij
-    # coefficients represent bending stiffness, the Bij represent
-    # bending-extension coupling, and the Hij represent intralaminar shear
-    # stiffness.
     A .= zero(eltype(A))
     B .= zero(eltype(A))
     C .= zero(eltype(A))
@@ -196,10 +196,11 @@ end
 """
     laminate_transverse_stiffness!(cl::CompositeLayup, H)
 
-Computed the laminate transverse stiffness.
+Compute the laminate transverse stiffness.
+
+Hij represent intralaminar shear stiffness.
 """
 function laminate_transverse_stiffness!(cl::CompositeLayup, H)
-    # Hij represent intralaminar shear stiffness.
     H .= zero(eltype(H))
     Dts = deepcopy(H)
     T = deepcopy(H)
@@ -214,7 +215,7 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
         @. Dts = p._Dts
         Dts = tf(Dts, T)
         # Compute the transverse shear stiffness The correction factor
-        # accounting for the parable distribution of the shear stress is due to
+        # accounting for the parabolic distribution of the shear stress is due to
         # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
         # Materials, 2008
         @. H += 5/4*(ze - zs - 4/3*(ze^3-zs^3)/layup_thickness^2) * Dts
@@ -223,6 +224,11 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
     return H
 end
 
+"""
+    laminate_inertia!(cl::CompositeLayup)
+
+Compute the laminate inertia.
+"""
 function laminate_inertia!(cl::CompositeLayup)
     layup_thickness = sum(p.thickness for p in cl.plies)
     zs = -layup_thickness/2 - cl.offset
@@ -242,7 +248,7 @@ end
     plane_stress_Tbar_matrix!(Tm::Array{T, 2}, angle) where {T}
     plane_stress_Tbar_matrix!(Tm::Array{T, 2}, m, n) where {T}
 
-Compute the transformation matrix FROM engineering strain components on the
+Compute the transformation matrix of engineering strain components FROM the
 LAYUP coordinate system TO the PLY coordinate system.
 
 `angle` = angle (in radians) between the first basis vector of the layup
@@ -273,8 +279,8 @@ end
     plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
     plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, m, n) where {T}
 
-Compute the transformation matrix FROM stress vector components on the LAYOUT
-coordinate system TO the PLY coordinate system.
+Compute the transformation matrix of the stress vector components FROM the
+LAYOUT coordinate system TO the PLY coordinate system.
 
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
@@ -299,7 +305,7 @@ end
 """
     plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
 
-Compute the transformation matrix FROM stress vector components in the PLY
+Compute the transformation matrix of stress vector components FROM the PLY
 coordinate system TO the LAYOUT coordinate system.
 
 `angle` = angle (in radians) between the first basis vector of the layup
@@ -316,50 +322,6 @@ function plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
     n=sin(-angle);
     return plane_stress_Tinv_matrix!(Tm, m, n)
 end
-
-"""
-    plane_stress_T_matrix_eng!(Tm::Array{T, 2}, angle) where {T}
-
-Compute the transformation matrix between strain engineering components on the
-layup coordinate system into the ply coordinate system.
-
-`angle` = angle between the first basis vector of the layup coordinate system
-    and the first basis vector of the ply coordinate system
-
-The matrix of transformation is `Tme = R * Tm / R`, where `Tm`
-is the transformation matrix in tensor components, and `R` is the Reuter matrix,
-`R = [1 0 0; 0 1 0; 0 0 2]`.
-"""
-# function plane_stress_T_matrix_eng!(Tm::Array{T, 2}, angle) where {T}
-#     m=cos(angle);
-#     n=sin(angle);
-#     Tm[1, 1] =  (m^2);  Tm[1, 2] = (n^2);   Tm[1, 3] = (m*n)
-#     Tm[2, 1] = (n^2);   Tm[2, 2] = (m^2);   Tm[2, 3] = (-m*n)
-#     Tm[3, 1] = (-2*m*n);  Tm[3, 2] = (2*m*n);   Tm[3, 3] = (m*m-n*n)
-#     return Tm
-# end
-
-"""
-    plane_stress_Tinv_matrix_eng!(Tinvm::Array{T, 2}, angle) where {T}
-
-Compute the transformation matrix between strain engineering components on the
-ply coordinate system into the layout coordinate system.
-
-`angle` = angle between the first basis vector of the layup coordinate system
-    and the first basis vector of the ply coordinate system
-
-The matrix of transformation is `Tme = R * Tm / R`, where `Tm`
-is the transformation matrix in tensor components, and `R` is the Reuter matrix,
-`R = [1 0 0; 0 1 0; 0 0 2]`.
-"""
-# function  plane_stress_Tinv_matrix_eng!(Tinvm::Array{T, 2}, angle) where {T}
-#     m=cos(angle);
-#     n=sin(angle);
-#     Tinvm[1, 1] = (m^2); Tinvm[1, 2] = (n^2);  Tinvm[1, 3] = (-m*n)
-#     Tinvm[2, 1] = (n^2); Tinvm[2, 2] = (m^2);  Tinvm[2, 3] = (m*n)
-#     Tinvm[3, 1] = (2*m*n); Tinvm[3, 2] = (-2*m*n); Tinvm[3, 3] = (m*m-n*n)
-#     return Tinvm
-# end
 
 """
     transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
