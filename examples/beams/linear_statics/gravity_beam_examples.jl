@@ -1,7 +1,4 @@
-
-nothing
-
-
+module gravity_beam_examples
 
 """
 gravity loading on a straight beam
@@ -112,7 +109,7 @@ function test(nel = 2)
 
     true
 end
-test(8)
+
 end # module
 
 nothing
@@ -228,8 +225,24 @@ function test(nel = 2)
 
     true
 end
-test(2)
+
 end # module
 
+function allrun()
+    println("#####################################################")
+    println("# mgravitybeam4.test ")
+    mgravitybeam4.test(2)
+    mgravitybeam4.test(3)
+    println("#####################################################")
+    println("# mgravitybeam5.test ")
+    mgravitybeam5.test(2)
+    mgravitybeam5.test(3)
+end
+
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
 nothing
 

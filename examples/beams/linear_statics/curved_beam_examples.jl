@@ -1,4 +1,20 @@
+module curved_beam_examples
 
+
+
+using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
+using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
+using FinEtoolsFlexStructures.FEMMLinBeamModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using LinearAlgebra: dot
+using Arpack
+using LinearAlgebra
+using SparseArrays
+using Test
+using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
 """
 CURVED BEAM WITH STATIC LOADS
@@ -22,26 +38,7 @@ G = 4,000,000 lb/in2
 Section Properties
 Thickness = 0. 1 in
 """
-module mcurvedbeam2
-
-using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
-using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
-using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
-using FinEtoolsFlexStructures.FEMMLinBeamModule
-using FinEtoolsFlexStructures.FEMMLinBeamModule: FEMMLinBeam
-stiffness = FEMMLinBeamModule.stiffness
-distribloads_global = FEMMLinBeamModule.distribloads_global
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
-using LinearAlgebra: dot
-using Arpack
-using LinearAlgebra
-using SparseArrays
-using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
-
-function test(direction = 2)
+function test2(direction = 2)
     E = 10000000.0 #  lb/in2
     nu = 0.25
     # Section Properties
@@ -92,8 +89,8 @@ function test(direction = 2)
     numberdofs!(dchi);
 
     # Assemble the global discrete system
-    femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    femm = FEMMLinBeamModule.FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1)), material)
+    K = FEMMLinBeamModule.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
@@ -116,13 +113,9 @@ function test(direction = 2)
 
     true
 end
-test(2)
-test(3)
-end # module
-
-nothing
 
 
+using FinEtoolsFlexStructures.FEMMCorotBeamModule
 
 """
 CURVED BEAM WITH STATIC LOADS
@@ -146,26 +139,8 @@ G = 4,000,000 lb/in2
 Section Properties
 Thickness = 0. 1 in
 """
-module mcurvedbeam1
 
-using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
-using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
-using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
-using FinEtoolsFlexStructures.FEMMCorotBeamModule
-using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
-stiffness = FEMMCorotBeamModule.stiffness
-distribloads_global = FEMMCorotBeamModule.distribloads_global
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
-using LinearAlgebra: dot
-using Arpack
-using LinearAlgebra
-using SparseArrays
-using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
-
-function test(direction = 2)
+function test3(direction = 2)
     E = 10000000.0 #  lb/in2
     nu = 0.25
     # Section Properties
@@ -216,8 +191,8 @@ function test(direction = 2)
     numberdofs!(dchi);
 
     # Assemble the global discrete system
-    femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    femm = FEMMCorotBeamModule.FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 1)), material)
+    K = FEMMCorotBeamModule.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
@@ -240,8 +215,21 @@ function test(direction = 2)
 
     true
 end
-test(2)
-test(3)
-end # module
 
+function allrun()
+    println("#####################################################")
+    println("# test2 ")
+    test2(2)
+    test2(3)
+    println("#####################################################")
+    println("# test3 ")
+    test3(2)
+    test3(3)
+    return true
+end # function allrun
+
+@info "All examples may be executed with "
+println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+
+end # module
 nothing
