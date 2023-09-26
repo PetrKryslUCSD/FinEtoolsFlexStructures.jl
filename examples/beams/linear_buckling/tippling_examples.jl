@@ -1,6 +1,7 @@
 module tippling_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -68,8 +69,7 @@ function tippling_1()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve!(dchi, K, F)
     @show  dchi.values[tipn, :]
 
     # Compute the geometric stiffness
@@ -77,8 +77,11 @@ function tippling_1()
     update_rotation_field!(Rfield0, dchi)
     Kg = geostiffness(femm, geom0, u0, Rfield0, dchi);
 
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    Kg_ff = matrix_blocked(Kg, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
     # Solve the eigenvalue problem
-    d,v,nconv = eigs(-Kg, K; nev=neigvs, which=:LM, explicittransform=:none)
+    d,v,nconv = eigs(-Kg_ff, K_ff; nev=neigvs, which=:LM, explicittransform=:none)
     fs = 1.0 ./ (d) ./ magn_scale
     println("Buckling factors: $fs [ND]")
     println("Reference: $reffs [ND]")
