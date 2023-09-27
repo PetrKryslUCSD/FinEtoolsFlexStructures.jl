@@ -10,7 +10,12 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 """
     FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for linear reduced-integration Timoshenko beam finite element modeling machine.
+Class for linear reduced-integration beam finite element modeling machine.
+
+Only linear kinematics is implemented at the moment, and only linear basis
+functions are available (i.e. it is a two-node element). The beam stiffness is
+shear-flexible(Timoshenko). The local beam stiffness is expressed analytically:
+the one-point numerical integration is hardwired.
 """
 mutable struct FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
@@ -37,6 +42,13 @@ mutable struct FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     _OS::FFltMat
 end
 
+"""
+    FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+
+Constructor.
+
+Supply integration domain (mesh) and the material.
+"""
 function FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
     _ecoords0 = fill(0.0, 2, 3); 

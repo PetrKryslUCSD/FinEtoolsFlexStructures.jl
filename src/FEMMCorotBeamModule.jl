@@ -11,7 +11,7 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 """
     FEMMCorotBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for co-rotational beam finite element modeling machine.
+Type for co-rotational beam finite element modeling machine (FEMM).
 """
 mutable struct FEMMCorotBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
@@ -46,6 +46,13 @@ mutable struct FEMMCorotBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     _OS::FFltMat
 end
 
+"""
+    FEMMCorotBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+
+Constructor.
+
+Supply the integration domain and the material.
+"""
 function FEMMCorotBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
     _ecoords0 = fill(0.0, 2, 3); 

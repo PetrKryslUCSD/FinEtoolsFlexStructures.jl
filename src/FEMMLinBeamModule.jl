@@ -12,7 +12,13 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 """
     FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for co-rotational beam finite element modeling machine.
+Class for linear beam finite element modeling machine.
+
+The beam can be connected to the nodes with given eccentricities (the transverse
+eccentricity is uniform along its length). Only linear kinematics is
+implemented at the moment. The beam stiffness can be either shear-flexible
+(Timoshenko), or shear-rigid (Bernoulli-Euler). The local beam stiffness is
+expressed analytically: no numerical integration is involved.
 """
 mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     integdomain::IntegDomain{S, F} # integration domain data
@@ -38,6 +44,15 @@ mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
     _LF::FFltVec
 end
 
+"""
+    FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
+
+Constructor.
+
+Supply the integration domain, material, and the eccentricity parameters
+(given in the order: first node, f1 direction, second node, f1 direction, f2
+direction, f3 direction).
+"""
 function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
     _eccentricities = fill(0.0, count(integdomain.fes), 4)
@@ -73,6 +88,13 @@ function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,
      )
 end
 
+"""
+    FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+
+Constructor.
+
+Supply the integration domain and the material. The eccentricities are assumed to be zero.
+"""
 function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
     return FEMMLinBeam(integdomain, material, [0.0, 0.0, 0.0, 0.0])
 end
