@@ -160,11 +160,12 @@ end
 """
     laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
 
-Compute the laminate stiffnesses, membrane, extension-bending coupling, and bending.
+Compute the laminate stiffness matrices, membrane, extension-bending
+coupling, and bending.
 
-Aij coefficients represent in-plane stiffness of the laminate, the Dij
-coefficients represent bending stiffness, the Bij represent bending-extension
-coupling.
+A, B, and D are the familiar 3x3 matrices: Aij coefficients represent in-plane
+stiffness of the laminate, the Dij coefficients represent bending stiffness,
+the Bij represent bending-extension coupling.
 """
 function laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
     A .= zero(eltype(A))

@@ -496,7 +496,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
-    sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
     tps! = QTEQTransformer(Tps)
@@ -519,12 +519,12 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             _ecoords_e!(ecoords_e, J0, E_G)
             gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
             # Working copies to be transformed
-            sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
+            sA[:] .= A[:]; sB[:] .= B[:]; sD[:] .= D[:];     sH[:] .= H[:]
             # Transform the laminate stiffnesses
             updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0);
             m, n = lla(E_G, csmat(layup.csys))
             plane_stress_Tbar_matrix!(Tps, m, n)
-            tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
+            tps!(sA, Tps); tps!(sB, Tps); tps!(sD, Tps);
             transverse_shear_T_matrix!(Tts, m, n)
             tts!(sH, Tts)
             # Construct the Stiffness Matrix
@@ -532,7 +532,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             _Bmmat!(Bm, gradN_e)
             add_btdb_ut_only!(elmat, Bm, Ae, sA, DpsBmb)
             _Bbmat!(Bb, gradN_e)
-            add_btdb_ut_only!(elmat, Bb, Ae, sC, DpsBmb)
+            add_btdb_ut_only!(elmat, Bb, Ae, sD, DpsBmb)
             add_b1tdb2!(elmat, Bm, Bb, Ae, sB, DpsBmb)
             add_b1tdb2!(elmat, Bb, Bm, Ae, sB, DpsBmb)
             # he = sqrt(2*Ae) # we avoid taking the square root here, replacing
@@ -684,7 +684,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
-    sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
     tps! = QTEQTransformer(Tps)
@@ -743,12 +743,12 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
             @warn "Coordinate systems mismatched?"
         end
         # Established the stiffness matrices
-        sA[:] .= A[:]; sB[:] .= B[:]; sC[:] .= C[:];     sH[:] .= H[:]
+        sA[:] .= A[:]; sB[:] .= B[:]; sD[:] .= D[:];     sH[:] .= H[:]
         # Transform the laminate stiffnesses
         updatecsmat!(layup.csys, centroid, J0, i, 0)
         m, n = lla(E_G, csmat(layup.csys))
         plane_stress_Tbar_matrix!(Tps, m, n)
-        tps!(sA, Tps); tps!(sB, Tps); tps!(sC, Tps); 
+        tps!(sA, Tps); tps!(sB, Tps); tps!(sD, Tps);
         transverse_shear_T_matrix!(Tts, m, n)
         tts!(sH, Tts)
         # The output coordinate system
@@ -761,7 +761,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         kurv = Bb * edisp_e
         memstr = Bm * edisp_e
         if quant == BENDING_MOMENT
-            mom = sB * memstr + sC * kurv
+            mom = sB * memstr + sD * kurv
             m = [mom[1] mom[3]; mom[3] mom[2]]
             mo = o2_e' * m * o2_e
             out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]

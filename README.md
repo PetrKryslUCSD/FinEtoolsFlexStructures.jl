@@ -17,13 +17,13 @@
 ## Current limitations
 
 - Only elastic structures can be modeled.
-- Only simple solid beam cross sections are implemented. Open thin-walled beams cannot be simulated at this point since the warping of the section is not enabled.
+- Only simple solid or closed thin-walled beam cross sections are implemented. Open thin-walled beams cannot be simulated at this point since the warping of the section is not enabled.
 - Shell reference surface offset not yet tested.
 - Neither beams nor shells can be attached with an offset (eccentricity).
 
 ## News
 
-- 09/26/2023: Multiple examples revised.
+- 09/26/2023: Multiple examples revised. Numerous documentation improvements.
 - 08/14/2023: Updated for Julia 1.9.2. Revised nomenclature of layup transformation matrices.
 - 07/13/2023: Updated for Julia 1.9 and FinEtools 7.
 - 05/26/2022: Paper on explicit dynamics accepted for publication  in the
