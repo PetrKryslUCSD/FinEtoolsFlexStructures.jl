@@ -5,6 +5,15 @@ import FinEtools: cat, subset
 using ..CrossSectionModule: AbstractCrossSectionType
 using LinearAlgebra: norm, Transpose, mul!
 
+"""
+    mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
+
+Type of a two-node beam finite element set.
+
+The elements in the set have the same cross section type, but since the cross
+section dimensions may depend on the coordinate, each individual element may
+have a different area, second moments of area, etc.
+"""
 mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
     crosssection::CT
     A::FFltVec
@@ -18,6 +27,13 @@ mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
     dimensions::Vector{FFltVec}
 end
 
+"""
+    FESetL2Beam(N::IT, crosssection::CT) where {IT<:Integer, CT}
+
+Constructor.
+
+Supply the total number of elements in the set, and the cross-section definition.
+"""
 function FESetL2Beam(N::IT, crosssection::CT) where {IT<:Integer, CT}
     par = crosssection.parameters(0.0)
     N = size(conn, 1)
@@ -56,7 +72,7 @@ end
 """
     subset(self::T, L::FIntVec) where {T<:FESetL2Beam}
 
-Subset of a beam-element set
+Subset of a beam-element set.
 """
 function subset(self::T, L::FIntVec) where {T<:FESetL2Beam}
     result = deepcopy(self)

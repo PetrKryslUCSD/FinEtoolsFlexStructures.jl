@@ -62,7 +62,7 @@ Order = [:function]
 ## FESetL2BeamModule functions
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Modules = [FinEtoolsFlexStructures.FESetL2BeamModule]
 Private = true
 Order = [:function]
 ```
@@ -86,7 +86,7 @@ Order = [:function]
 ## FEMMLinBeamModule functions
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Modules = [FinEtoolsFlexStructures.FEMMLinBeamModule]
 Private = true
 Order = [:function]
 ```
@@ -94,7 +94,7 @@ Order = [:function]
 ## FEMMRITBeamModule functions
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Modules = [FinEtoolsFlexStructures.FEMMRITBeamModule]
 Private = true
 Order = [:function]
 ```

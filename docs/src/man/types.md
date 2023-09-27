@@ -62,7 +62,7 @@ Order = [:type]
 ## FESetL2BeamModule types
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Modules = [FinEtoolsFlexStructures.FESetL2BeamModule]
 Private = true
 Order = [:type]
 ```
@@ -86,7 +86,7 @@ Order = [:type]
 ## FEMMLinBeamModule types
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Modules = [FinEtoolsFlexStructures.FEMMLinBeamModule]
 Private = true
 Order = [:type]
 ```
@@ -94,7 +94,7 @@ Order = [:type]
 ## FEMMRITBeamModule types
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Modules = [FinEtoolsFlexStructures.FEMMRITBeamModule]
 Private = true
 Order = [:type]
 ```
