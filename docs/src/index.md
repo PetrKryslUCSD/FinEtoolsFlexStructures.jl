@@ -1,9 +1,8 @@
 # FinEtoolsFlexStructures Documentation
 
-<!--- ## Tutorials
 
 The [tutorials](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructuresTutorials.jl) are provided in the form of Julia scripts and Markdown files in a separate [package](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructuresTutorials.jl). 
---->
+
 
 ## Manual
 

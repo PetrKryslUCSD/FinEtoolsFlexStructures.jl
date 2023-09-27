@@ -2,28 +2,22 @@
 
 ## Table of Contents
 
-- [CrossSectionModule functions](@ref)
 - [CompositeLayupModule functions](@ref)
-- [FESetShellT3Module functions](@ref)
+- [CrossSectionModule functions](@ref)
 - [MeshFrameMemberModule functions](@ref)
+- [RotUtilModule functions](@ref)
+- [TransformerModule functions](@ref)
+- [FESetL2BeamModule functions](@ref)
+- [FESetShellT3Module functions](@ref)
 - [FEMMCorotBeamModule functions](@ref)
+- [FEMMLinBeamModule functions](@ref)
+- [FEMMRITBeamModule functions](@ref)
 - [FEMMShellT3FFModule functions](@ref)
 - [FEMMShellT3FFCompModule functions](@ref)
 - [FEMMPointMassModule functions](@ref)
 - [FEMMPointGroundedSpringModule functions](@ref)
-- [RotUtilModule functions](@ref)
-- [VisUtilModule functions](@ref)
-- [TransformerModule functions](@ref)
 
 
-
-## CrossSectionModule functions
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.CrossSectionModule]
-Private = true
-Order = [:function]
-```
 
 ## CompositeLayupModule functions
 
@@ -33,10 +27,10 @@ Private = true
 Order = [:function]
 ```
 
-## FESetShellT3Module functions
+## CrossSectionModule functions
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Modules = [FinEtoolsFlexStructures.CrossSectionModule]
 Private = true
 Order = [:function]
 ```
@@ -49,7 +43,55 @@ Private = true
 Order = [:function]
 ```
 
+## RotUtilModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.RotUtilModule]
+Private = true
+Order = [:function]
+```
+
+## TransformerModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.TransformerModule]
+Private = true
+Order = [:function]
+```
+
+## FESetL2BeamModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Private = true
+Order = [:function]
+```
+
+## FESetShellT3Module functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Private = true
+Order = [:function]
+```
+
 ## FEMMCorotBeamModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Private = true
+Order = [:function]
+```
+
+## FEMMLinBeamModule functions
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Private = true
+Order = [:function]
+```
+
+## FEMMRITBeamModule functions
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
@@ -85,30 +127,6 @@ Order = [:function]
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMPointGroundedSpringModule]
-Private = true
-Order = [:function]
-```
-
-## RotUtilModule functions
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.RotUtilModule]
-Private = true
-Order = [:function]
-```
-
-## VisUtilModule functions
-
-```@autodocs
-Modules = [VisualStructures]
-Private = true
-Order = [:function]
-```
-
-## TransformerModule functions
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.TransformerModule]
 Private = true
 Order = [:function]
 ```

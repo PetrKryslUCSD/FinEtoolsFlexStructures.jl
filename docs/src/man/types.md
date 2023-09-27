@@ -2,28 +2,22 @@
 
 ## Table of Contents
 
-- [CrossSectionModule types](@ref)
 - [CompositeLayupModule types](@ref)
-- [FESetShellT3Module types](@ref)
+- [CrossSectionModule types](@ref)
 - [MeshFrameMemberModule types](@ref)
+- [RotUtilModule types](@ref)
+- [TransformerModule types](@ref)
+- [FESetL2BeamModule types](@ref)
+- [FESetShellT3Module types](@ref)
 - [FEMMCorotBeamModule types](@ref)
+- [FEMMLinBeamModule types](@ref)
+- [FEMMRITBeamModule types](@ref)
 - [FEMMShellT3FFModule types](@ref)
 - [FEMMShellT3FFCompModule types](@ref)
 - [FEMMPointMassModule types](@ref)
 - [FEMMPointGroundedSpringModule types](@ref)
-- [RotUtilModule types](@ref)
-- [VisUtilModule types](@ref)
-- [TransformerModule types](@ref)
 
 
-
-## CrossSectionModule types
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.CrossSectionModule]
-Private = true
-Order = [:type]
-```
 
 ## CompositeLayupModule types
 
@@ -33,10 +27,10 @@ Private = true
 Order = [:type]
 ```
 
-## FESetShellT3Module types
+## CrossSectionModule types
 
 ```@autodocs
-Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Modules = [FinEtoolsFlexStructures.CrossSectionModule]
 Private = true
 Order = [:type]
 ```
@@ -49,7 +43,55 @@ Private = true
 Order = [:type]
 ```
 
+## RotUtilModule types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.RotUtilModule]
+Private = true
+Order = [:type]
+```
+
+## TransformerModule types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.TransformerModule]
+Private = true
+Order = [:type]
+```
+
+## FESetL2BeamModule types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Private = true
+Order = [:type]
+```
+
+## FESetShellT3Module types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FESetShellT3Module]
+Private = true
+Order = [:type]
+```
+
 ## FEMMCorotBeamModule types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Private = true
+Order = [:type]
+```
+
+## FEMMLinBeamModule types
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
+Private = true
+Order = [:type]
+```
+
+## FEMMRITBeamModule types
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMCorotBeamModule]
@@ -85,30 +127,6 @@ Order = [:type]
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMPointGroundedSpringModule]
-Private = true
-Order = [:type]
-```
-
-## RotUtilModule types
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.RotUtilModule]
-Private = true
-Order = [:type]
-```
-
-## VisUtilModule types
-
-```@autodocs
-Modules = [VisualStructures]
-Private = true
-Order = [:type]
-```
-
-## TransformerModule types
-
-```@autodocs
-Modules = [FinEtoolsFlexStructures.TransformerModule]
 Private = true
 Order = [:type]
 ```
