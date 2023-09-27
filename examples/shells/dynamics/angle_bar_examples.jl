@@ -23,6 +23,7 @@ using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plo
 using PlotlyJS
 using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
+using SparseMatricesCSR
 using ThreadedSparseCSR
 using UnicodePlots
 using InteractiveUtils
@@ -149,7 +150,8 @@ function _execute_parallel_csr(nref = 2, nthr = 0)
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = SparseMatricesCSR.sparsecsr(findnz(K)..., size(K)...)
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
     # Solve
@@ -190,7 +192,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0)
         pointdofs[k] = dchi.dofnums[points[k], 3]
     end
         
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
         dx = XYZ[1] - fens.xyz[points["Load"], 1]
         dy = XYZ[2] - fens.xyz[points["Load"], 2]
         dz = XYZ[3] - fens.xyz[points["Load"], 3]
