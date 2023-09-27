@@ -8,7 +8,7 @@ import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 """
     FEMMPointMass{S<:AbstractFESet}
 
-Class for linear deformation finite element modeling machine.
+Type for linear deformation finite element modeling machine.
 """
 mutable struct FEMMPointMass{S<:AbstractFESet} <: AbstractFEMM
     integdomain::IntegDomain{S} # integration domain data

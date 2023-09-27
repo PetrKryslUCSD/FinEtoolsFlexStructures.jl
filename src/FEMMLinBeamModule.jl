@@ -12,7 +12,7 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 """
     FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for linear beam finite element modeling machine.
+Type for linear beam finite element modeling machine.
 
 The beam can be connected to the nodes with given eccentricities (the transverse
 eccentricity is uniform along its length). Only linear kinematics is

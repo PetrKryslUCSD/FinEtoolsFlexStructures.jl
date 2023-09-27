@@ -28,7 +28,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 """
     FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
 
-Class for the finite element modeling machine of the T3 triangular Flat-Facet
+Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
 normals. This formulation is suitable for modelling of COMPOSITE (layered) materials. 
 

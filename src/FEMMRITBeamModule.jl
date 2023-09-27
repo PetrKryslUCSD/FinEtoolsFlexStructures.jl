@@ -10,7 +10,7 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 """
     FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
 
-Class for linear reduced-integration beam finite element modeling machine.
+Type for linear reduced-integration beam finite element modeling machine.
 
 Only linear kinematics is implemented at the moment, and only linear basis
 functions are available (i.e. it is a two-node element). The beam stiffness is
