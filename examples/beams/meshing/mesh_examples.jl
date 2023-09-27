@@ -1,7 +1,7 @@
 module mesh_examples
 
 using FinEtools
-using FinEtoolsFlexStructures.FESetCorotBeamModule: FESetL2CorotBeam
+using FinEtoolsFlexStructures
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionCircle, CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio
