@@ -494,7 +494,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    A, B, C, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
     sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
@@ -509,7 +509,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
         layup = lg[1]
         eset = lg[2]
         t = thickness(layup)
-        laminate_stiffnesses!(layup, A, B, C)
+        laminate_stiffnesses!(layup, A, B, D)
         laminate_transverse_stiffness!(layup, H)
         for i in eset # Loop over elements in the layup group
             gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
@@ -682,7 +682,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    A, B, C, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
+    A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
     sA, sB, sC = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
@@ -720,7 +720,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         # Look up the layup
         layup = self.layup_groups[self._layup_group_lookup[i]][1]
         t = thickness(layup)
-        laminate_stiffnesses!(layup, A, B, C)
+        laminate_stiffnesses!(layup, A, B, D)
         laminate_transverse_stiffness!(layup, H)
         gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
         gathervalues_asvec!(u, edisp, fes.conn[i]);

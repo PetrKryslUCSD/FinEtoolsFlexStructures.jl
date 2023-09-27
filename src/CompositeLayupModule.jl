@@ -158,18 +158,18 @@ function thickness(cl::CompositeLayup)
 end
 
 """
-    laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
+    laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
 
 Compute the laminate stiffnesses, membrane, extension-bending coupling, and bending.
 
-Aij coefficients represent in-plane stiffness of the laminate, the Cij
+Aij coefficients represent in-plane stiffness of the laminate, the Dij
 coefficients represent bending stiffness, the Bij represent bending-extension
 coupling.
 """
-function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
+function laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
     A .= zero(eltype(A))
     B .= zero(eltype(A))
-    C .= zero(eltype(A))
+    D .= zero(eltype(A))
     Dps = deepcopy(A)
     Tbar = deepcopy(A)
     tf = QTEQTransformer(Dps)
@@ -187,10 +187,10 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, C)
         # Compute the extension-bending coupling stiffness
         @. B += (ze^2 - zs^2)/2 * Dps
         # Compute the bending stiffness
-        @. C += (ze^3 - zs^3)/3 * Dps
+        @. D += (ze^3 - zs^3)/3 * Dps
         zs += p.thickness
     end
-    return A, B, C
+    return A, B, D
 end
 
 """
