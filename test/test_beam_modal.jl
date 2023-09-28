@@ -461,7 +461,6 @@ function test(mass_type = FEMMLinBeamModule.MASS_TYPE_CONSISTENT_WITH_ROTATION_I
         rho=5e-9;
         b=3.0; h=30.0; L=240.0; # cross-sectional dimensions and length of each leg in millimeters
         # Choose the mass formulation:
-        mass_type=2;
         scale = 0.4
 
         # Reference frequencies
