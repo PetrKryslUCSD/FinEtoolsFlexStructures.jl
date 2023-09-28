@@ -417,9 +417,9 @@ weakdeps = ["SparseArrays", "Statistics"]
 
 [[deps.FinEtools]]
 deps = ["ChunkSplitters", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "f61d3eb79a5967c3b00a32ccb3bb6974b4a52058"
+git-tree-sha1 = "618319117bc5c9869ba7edc746c2f3fc92a32208"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "7.0.4"
+version = "7.0.5"
 
 [[deps.FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "SuiteSparse", "Test"]
@@ -431,7 +431,7 @@ version = "2.0.1"
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "2.0.4"
+version = "2.0.5"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
