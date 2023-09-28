@@ -10,7 +10,7 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer, QEQTTransformer, Layup2ElementAngle
+using ..TransformerModule: QTEQTransformer, Layup2ElementAngle
 using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_Tbar_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
 
