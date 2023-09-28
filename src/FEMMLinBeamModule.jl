@@ -665,23 +665,26 @@ function mass(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::No
     fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    R1I, R1J = self._RI, self._RJ
-    elmat, elmatTe = self._elmat, self._elmatTe
+    elmat, elmattemp, Secc = self._elmat, self._elmatTe, self._elmato
+    eccentricities = self.eccentricities
     dN = self._dN
     rho = massdensity(self.material)
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        R1I[:] .= Rfield1.values[fes.conn[i][1], :];
-        R1J[:] .= Rfield1.values[fes.conn[i][2], :];
         fill!(elmat,  0.0); # Initialize element matrix
-        L1, Ft, dN = local_frame_and_def!(Ft, dN, F0, FtI, FtJ, ecoords0, x1x2_vector[i], ecoords1, R1I, R1J);
-        _transfmat!(Te, Ft)
+        L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
+        _transfmat!(Te, F0)
         L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
+        _eccentricitytransformation(Secc, eccentricities[i, :]...)
         local_mass!(elmat, A[i], I1[i], I2[i], I3[i], rho, L0, mass_type);
-        mul!(elmatTe, elmat, Transpose(Te))
-        mul!(elmat, Te, elmatTe)
+        # First transform from slave to master (U_s = Secc * U_m)
+        mul!(elmattemp, elmat, Secc)
+        mul!(elmat, Transpose(Secc), elmattemp)
+        # Then transform from the master local coordinates into global coordinates
+        mul!(elmattemp, elmat, Transpose(Te))
+        mul!(elmat, Te, elmattemp)
         gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
         assemble!(assembler, elmat, dofnums, dofnums); 
     end # Loop over elements
