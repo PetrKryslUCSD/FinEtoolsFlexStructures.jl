@@ -9,6 +9,7 @@ using LinearAlgebra
 using SparseArrays
 using Arpack
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -58,7 +59,7 @@ rho = 7800.0
 R = 0.1
 L = 0.8
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -111,15 +112,22 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = FEMMShellT3FFModule.mass(femm, geom0, dchi);
+
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    K = nothing; M = nothing;
+    # dchi.dofnums[dchi.dofnums .> nfreedofs(dchi)] .= 0
+    # @show minimum(dchi.dofnums), maximum(dchi.dofnums), nfreedofs(dchi)
+
     # Check that the mass matrix is diagonal
     # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
-    I, J, V = findnz(M)
+    I, J, V = findnz(M_ff)
     for i in 1:length(I)
         if I[i] != J[i]
             V[i] = 0.0
         end
     end
-    M = sparse(I, J, V, dchi.nfreedofs, dchi.nfreedofs)
+    M_ff = sparse(I, J, V, size(M_ff)...)
     
 # Solve
     function pwr(A, B)
@@ -134,7 +142,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         end
         sqrt((v' * A * v) / (v' * B * v))
     end
-    @time omega_max = pwr(K, M)
+    @time omega_max = pwr(K_ff, M_ff)
     @show omega_max
 
     # @time evals, evecs, nconv = eigs(Symmetric(K), Symmetric(M); nev=1, which=:LM, explicittransform=:none)
@@ -162,7 +170,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     for i in 1:count(fens)
         for j in 3
             d = dchi.dofnums[i, j]
-            if d > 0
+            if d > 0 && d <= nfreedofs(dchi)
                 V0[d] = initialvelocity(fens.xyz[i, :])
             end
         end
@@ -181,7 +189,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         end
         nothing
     end
-    loop!(M, K, U0, V0, nsteps*dt, dt, peek)
+    loop!(M_ff, K_ff, U0, V0, nsteps*dt, dt, peek)
     
     # @gp  "set terminal windows 0 "  :-
 

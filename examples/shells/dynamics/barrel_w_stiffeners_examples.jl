@@ -19,6 +19,7 @@ module barrel_w_stiffeners_examples
 using LinearAlgebra
 using Arpack
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -101,10 +102,13 @@ function _execute_model(formul, input, visualize = true)
     # DataDrop.store_matrix("barrel_w_stiffeners.h5", "/K", K)
     # DataDrop.store_matrix("barrel_w_stiffeners.h5", "/M", M)
 
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
     # Solve
     neigvs = 40
     tim = @elapsed begin
-        evals, evecs, convinfo = eigs(Symmetric(K+OmegaShift*M), Symmetric(M); nev=neigvs, which=:SM, explicittransform=:none)
+        evals, evecs, convinfo = eigs(Symmetric(K_ff+OmegaShift*M_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
         # evals, evecs, convinfo = geneigsolve((K+OmegaShift*M, M), neigvs,  :SR, krylovdim = 80)
     end
     @show convinfo
