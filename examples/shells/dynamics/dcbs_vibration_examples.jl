@@ -8,6 +8,7 @@ module dbcs_vibration_examples
 
 using Arpack
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -81,10 +82,13 @@ function _execute_dsg_model(formul, n, visualize)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
     M = mass(femm, geom0, dchi);
 
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
     # Solve
     OmegaShift = 0.0*2*pi
     neigvs = 4
-    d, v, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     fs = real(sqrt.(complex(d)))/(2*pi)
     @show fs

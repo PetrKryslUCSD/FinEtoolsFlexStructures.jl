@@ -24,6 +24,7 @@ module clamp_cyl_vibration_examples
 using Arpack
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -37,7 +38,7 @@ rho = 7800.0
 R = 0.1
 L = 0.4
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -95,10 +96,13 @@ function _execute(n = 2, thickness = 0.01, visualize = true)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
     M = mass(femm, geom0, dchi);
 
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
     # Solve
     OmegaShift = 0.0*2*pi
     neigvs = 20
-    evals, evecs, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+    evals, evecs, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     evals[:] = evals .- OmegaShift;
     fs = real(sqrt.(complex(evals)))/(2*pi)
     @show fs
