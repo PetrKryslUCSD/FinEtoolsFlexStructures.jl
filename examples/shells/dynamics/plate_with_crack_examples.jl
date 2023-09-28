@@ -9,6 +9,7 @@ using LinearAlgebra
 using SparseArrays
 using Arpack
 using FinEtools
+using FinEtools.AlgoBaseModule: solve!, matrix_blocked, vector_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -16,6 +17,7 @@ using FinEtoolsFlexStructures.AssemblyModule
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using SymRCM
+using SparseMatricesCSR
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
 using Gnuplot; @gp "clear"
@@ -163,10 +165,15 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
 
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
-    SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
+
+    K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
     M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
     
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
+    K_ff = SparseMatricesCSR.sparsecsr(findnz(K_ff)..., size(K_ff)...)
+
     # Solve
     function pwr(K, M)
         invM = fill(0.0, size(M, 1))
@@ -183,7 +190,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
         end
         sqrt((v' * (K * v)) / (v' * M * v))
     end
-    @time omega_max = pwr(K, M)
+    @time omega_max = pwr(K_ff, M_ff)
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
     @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
 
@@ -198,7 +205,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     
     # Four cycles of the carrier frequency
 
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
         dx = XYZ[1] - fens.xyz[mpoint, 1]
         dy = XYZ[2] - fens.xyz[mpoint, 2]
         dz = XYZ[3] - fens.xyz[mpoint, 3]
@@ -212,6 +219,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(FFlt, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    Fmag = vector_blocked(Fmag, nfreedofs(dchi))[:f]
 
     function force!(F, t)
         mul = 0.0
@@ -239,7 +247,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     end
 
     @info "$nsteps steps"
-    parloop_csr!(M, K, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
+    parloop_csr!(M_ff, K_ff, ksi, U0, V0, nsteps*dt, dt, force!, peek, nthr)
     
     if visualize
         # @gp  "set terminal windows 0 "  :-
