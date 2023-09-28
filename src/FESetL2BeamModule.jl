@@ -32,11 +32,12 @@ end
 
 Constructor.
 
-Supply the total number of elements in the set, and the cross-section definition.
+Supply the total number of elements in the set, and the cross-section
+definition. The parameters of the section are assumed to be uniform along the
+set of the beam elements.
 """
 function FESetL2Beam(N::IT, crosssection::CT) where {IT<:Integer, CT}
     par = crosssection.parameters(0.0)
-    N = size(conn, 1)
     _A = fill(par.A, N)
     _I1 = fill(par.I1, N)
     _I2 = fill(par.I2, N)
@@ -70,11 +71,12 @@ function cat(self::T,  other::T) where {T<:FESetL2Beam}
 end
 
 """
-    subset(self::T, L::FIntVec) where {T<:FESetL2Beam}
+    subset(self::T, L::IT) where {T<:FESetL2Beam, IT}
 
 Subset of a beam-element set.
 """
-function subset(self::T, L::FIntVec) where {T<:FESetL2Beam}
+function subset(self::T, L::IT) where {T<:FESetL2Beam, IT}
+    @info "Here"
     result = deepcopy(self)
     result.A = self.A[L]
     result.I1 = self.I1[L]
