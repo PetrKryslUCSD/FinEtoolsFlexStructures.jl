@@ -723,15 +723,13 @@ function local_forces!(FL, PN, L, aN)
 end
 
 """
-    mass(self::FEMMCorotBeam,  assembler::A,
-      geom::NodalField{FFlt},
-      u::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
 
 Compute the consistent mass matrix
 
 This is a general routine for the abstract linear-deformation  FEMM.
 """
-function mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -760,21 +758,19 @@ function mass(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::
     return makematrix!(assembler);
 end
 
-function mass(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
+function mass(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return mass(self, assembler, geom0, u1, Rfield1, dchi; mass_type = mass_type);
 end
 
 """
-    gyroscopic(self::FEMMCorotBeam,  assembler::A,
-      geom::NodalField{FFlt},
-      u::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, v1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
 
 Compute the quadratic-inertial-term (gyroscopic) mass matrix
 
 This is a general routine for the abstract linear-deformation  FEMM.
 """
-function gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, v1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, v1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -816,17 +812,17 @@ function gyroscopic(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}
     return makematrix!(assembler);
 end
 
-function gyroscopic(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, v1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
+function gyroscopic(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, v1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return gyroscopic(self, assembler, geom0, u1, Rfield1, v1, dchi; mass_type = mass_type);
 end
 
 """
-    stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -855,18 +851,18 @@ function stiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt},
     return makematrix!(assembler);
 end
 
-function stiffness(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function stiffness(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 
 """
-    geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
 
 Compute the geometric stiffness matrix.
 """
-function geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -896,17 +892,17 @@ function geostiffness(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFl
     return makematrix!(assembler);
 end
 
-function geostiffness(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function geostiffness(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysmatAssemblerSparseSymm();
     return geostiffness(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 """
-    restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}) where {ASS<:AbstractSysmatAssembler, T<:Number}
+    restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysvecAssembler, GFT<:Number, T<:Number, TI<:Number}
 
 Compute the vector of the restoring elastic forces
 """
-function restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
+function restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysvecAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -936,13 +932,13 @@ function restoringforce(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{F
     return makevector!(assembler);
 end
 
-function restoringforce(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
+function restoringforce(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysvecAssembler();
     return restoringforce(self, assembler, geom0, u1, Rfield1, dchi);
 end
 
 """
-    distribloads_global(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{T}, fi) where {T<:Number}
+    distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, GFT<:Number, T<:Number, TI<:Number}
     
 Compute the load vector due to distributed loads.
 
@@ -955,7 +951,7 @@ in the configuration u1, Rfield1. These are only forces, not moments.
     The force intensity must be uniform across the entire element. The
     force intensity is given in the global coordinates.
 """
-function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
+function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, GFT<:Number, T<:Number, TI<:Number}
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums = self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -998,7 +994,7 @@ function distribloads_global(self::FEMMCorotBeam, assembler::ASS, geom0::NodalFi
     return makevector!(assembler);
 end
 
-function distribloads_global(self::FEMMCorotBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
+function distribloads_global(self::FEMMCorotBeam, geom0::NodalField{GFT}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {GFT<:Number, T<:Number, TI<:Number}
     assembler = SysvecAssembler();
     return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi);
 end
