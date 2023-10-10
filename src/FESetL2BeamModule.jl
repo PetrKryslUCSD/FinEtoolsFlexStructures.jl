@@ -76,7 +76,6 @@ end
 Subset of a beam-element set.
 """
 function subset(self::T, L::IT) where {T<:FESetL2Beam, IT}
-    @info "Here"
     result = deepcopy(self)
     result.A = self.A[L]
     result.I1 = self.I1[L]
