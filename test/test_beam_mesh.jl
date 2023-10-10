@@ -46,7 +46,7 @@ function test()
     fes = subset(fes, list)
     accepttodelegate(fes, subset(fes.delegateof, list))
     @test count(fes) == 2
-    @show fes
+    # @show fes
     true
 end
 test()
@@ -69,7 +69,7 @@ function test()
 
     cs = CrossSectionCircle(s -> 5.9910, s -> [0.0, 0.0, 1.0])
     fes = FESetL2Beam(nL, cs)
-    @show fes
+    # @show fes
     true
 end
 test()
