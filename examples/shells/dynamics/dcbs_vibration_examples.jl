@@ -8,7 +8,7 @@ module dbcs_vibration_examples
 
 using Arpack
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3

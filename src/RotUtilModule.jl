@@ -2,6 +2,7 @@ module RotUtilModule
 
 using LinearAlgebra: norm, mul!
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 
 """
     initial_Rfield(fens)

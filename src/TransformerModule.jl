@@ -2,32 +2,33 @@ module TransformerModule
 
 using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 
 """
-    QTEQTransformer
+    TransformerQtEQ
 
-QTEQTransformer of element matrices.
+TransformerQtEQ of element matrices.
 
 A callable object: computes `Q^T * E * Q`, where `E` the element stiffness
-matrix, and `Q` is the transformation matrix.
+matrix, and `Q` is the transformation matrix. Both are assumed to be square.
 
 Buffers the intermediate result. Hence no allocation is incurred.
 """
-struct QTEQTransformer
-    _buff::FFltMat
-    function QTEQTransformer(Q)
-        _buff = fill(0.0, size(Q)...); 
-        return new(_buff)
+struct TransformerQtEQ{T}
+    _buff::Matrix{T}
+    function TransformerQtEQ(Q::Matrix{T}) where {T}
+        _buff = fill(zero(eltype(Q)), size(Q)...);
+        return new{T}(_buff)
     end
 end
 
 """
-    (o::QTEQTransformer)(E, Q)
+    (o::TransformerQtEQ)(E, Q)
 
 Perform the transformation on the matrix `E` with the transformation matrix
 `Q`: `Ebar = Q^T * E * Q`.
 """
-(o::QTEQTransformer)(E, Q) = begin
+(o::TransformerQtEQ)(E, Q) = let
     @assert size(o._buff) == size(Q)
     @assert size(E) == size(Q)
     mul!(o._buff, E, Q)
@@ -35,15 +36,21 @@ Perform the transformation on the matrix `E` with the transformation matrix
     return E
 end
 
-struct Layup2ElementAngle
-    M::FFltMat
-    M2D::FFltMat
+
+"""
+    Layup2ElementAngle{T}
+
+A callable object: computes the cosine and sine of the angle between the element frame and the layup reference direction.
+"""
+struct Layup2ElementAngle{T}
+    M::Matrix{T}
+    M2D::Matrix{T}
 end
 
-function Layup2ElementAngle()
-    Layup2ElementAngle(fill(0.0, 3, 3), fill(0.0, 2, 2))
+function Layup2ElementAngle(T = FFlt)
+    Layup2ElementAngle(fill(zero(T), 3, 3), fill(zero(T), 2, 2))
 end
-   
+
 function (o::Layup2ElementAngle)(E_G, lcsmat)
     mul!(o.M, E_G', lcsmat)
     o.M2D[1, 1] = o.M[1, 1]
@@ -54,9 +61,10 @@ function (o::Layup2ElementAngle)(E_G, lcsmat)
     o.M2D[:, 2] ./= norm(@view o.M2D[:, 2])
     m = (o.M2D[1, 1] + o.M2D[2, 2]) / 2
     n = (o.M2D[1, 2] - o.M2D[2, 1]) / 2
-    sn = n >= 0.0 ? +1.0 : -1.0
+    sn = (n >= 0.0 ? +1.0 : -1.0)
     n = sn * sqrt(1 - m^2)
     return m, n
 end
 
 end # module
+

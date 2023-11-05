@@ -3,6 +3,7 @@ module FEMMShellT3FFCompModule
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
 using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 import FinEtools.FEMMBaseModule: associategeometry!
@@ -10,7 +11,7 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer, Layup2ElementAngle
+using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_Tbar_matrix!, transverse_shear_T_matrix!, laminate_inertia!
 
 
@@ -489,7 +490,7 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = QTEQTransformer(elmat)
+    transformwith = TransformerQtEQ(elmat)
     lla = Layup2ElementAngle()
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
@@ -499,8 +500,8 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
-    tps! = QTEQTransformer(Tps)
-    tts! = QTEQTransformer(Tts)
+    tps! = TransformerQtEQ(Tps)
+    tts! = TransformerQtEQ(Tts)
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
@@ -678,7 +679,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = QTEQTransformer(elmat)
+    transformwith = TransformerQtEQ(elmat)
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
@@ -687,8 +688,8 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
     sH = zeros(2, 2)
     Tps, Tts = zeros(3, 3), zeros(2, 2)
-    tps! = QTEQTransformer(Tps)
-    tts! = QTEQTransformer(Tts)
+    tps! = TransformerQtEQ(Tps)
+    tts! = TransformerQtEQ(Tts)
     lla = Layup2ElementAngle()
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)

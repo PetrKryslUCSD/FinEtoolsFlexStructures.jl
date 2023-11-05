@@ -4,7 +4,7 @@
 module argyr_l_frame_modal_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members

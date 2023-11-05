@@ -2,7 +2,7 @@ module mcompshell0
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -80,15 +80,15 @@ function test()
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf 0 0 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf ay ay 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, -0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, -0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -105,7 +105,7 @@ module mcompshell1
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -183,15 +183,15 @@ function test()
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf 0 0 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[-Inf Inf ay ay 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, -0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, -0.1*phun("MPa")*thickness, 0, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -208,7 +208,7 @@ module mcompshell2
 # From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -288,15 +288,15 @@ function test()
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[-200*phun("N/mm"), 0, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[-200*phun("N/mm"), 0, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[ax ax -Inf Inf 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[200*phun("N/mm"), 0, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[200*phun("N/mm"), 0, 0, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -319,7 +319,7 @@ module mcompshell3
 # Clamped isotropic plate under uniform transverse pressure
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -381,11 +381,11 @@ function test_composite()
 
     # Edge load
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -442,11 +442,11 @@ function test_homogeneous()
 
     # Edge load
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -468,7 +468,7 @@ module mcompshell4
 # Clamped isotropic plate under uniform transverse pressure
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -532,11 +532,11 @@ function test_composite()
 
     # Edge load
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i])
         # @show minimum(dchi.values[:, i])
@@ -561,7 +561,7 @@ module mcompshell5
 # The deflection of 2.026 mm was obtained with Abaqus.
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -633,11 +633,11 @@ function test()
 
     # Face load
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # for i in 1:3
     #     @show maximum(dchi.values[:, i]) ./phun("mm")
     #     @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -659,7 +659,7 @@ module mcompshell6
 # but the loading is transverse, pressure of magnitude 1.0
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -727,11 +727,11 @@ function test()
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -750,7 +750,7 @@ module mcompshell7
 # Similar definition of the plate as in mcompshell6 but the layup is [-45/45]
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -818,11 +818,11 @@ function test()
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show  maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -846,7 +846,7 @@ module mcompshell8
 
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -921,15 +921,15 @@ function test(load_multiplier)
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[ax ax -Inf Inf 0 0 ], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[-0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[-0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -954,7 +954,7 @@ module mcompshell9
 
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1036,15 +1036,15 @@ function test(load_multiplier)
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf ax ax], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, 0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     l1 = selectelem(fens, bfes, box = Float64[0 0 -Inf Inf 0 0], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, -0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -0.1*phun("MPa")*load_multiplier*thickness, 0, 0, 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     for i in 1:3
         # @show maximum(dchi.values[:, i]) ./phun("mm")
         # @show minimum(dchi.values[:, i]) ./phun("mm")
@@ -1074,7 +1074,7 @@ module mcompshell10
 # is wrong in the paper. The power of the aspect ratio should also be 4.
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1157,11 +1157,11 @@ function test()
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 
     # @show maximum(dchi.values[:, 3]) * (100*E2) / (q*thickness*(a/thickness)^4)
     # @show maximum(dchi.values[:, 1]) * (100*E2) / (q*thickness*(a/thickness)^4)
@@ -1183,7 +1183,7 @@ module mcompshell11
 # R0031(3): Three-layer sandwich shell under normal pressure loading
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -1256,11 +1256,11 @@ function test()
     K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, q, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
     
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 
     # R0031(3): Three-layer sandwich shell under normal pressure loading
     # lists 0.123'' = 3.1242 mm

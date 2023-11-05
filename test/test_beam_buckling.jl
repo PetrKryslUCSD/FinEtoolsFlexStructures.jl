@@ -1,6 +1,6 @@
 module mbuckling1
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -62,11 +62,11 @@ function test()
     tipn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L/10000)
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -magn*b*h/magn_scale, 0, 0, 0, 0]);
+    fi = ForceIntensity([0, -magn*b*h/magn_scale, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show  dchi.values[tipn, :]
 
     # Compute the geometric stiffness

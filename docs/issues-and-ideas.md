@@ -94,7 +94,7 @@ I implemented, even though this is based on the central point.
 #     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
 #     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
 #     elmat = self._elmat
-#     transformwith = QTEQTransformer(elmat)
+#     transformwith = TransformerQtEQ(elmat)
 #     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
 #     Dps, Dt = _shell_material_stiffness(self.material)
 #     scf = 5/6;  # shear correction factor

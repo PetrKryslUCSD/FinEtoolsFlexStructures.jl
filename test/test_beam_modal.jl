@@ -130,7 +130,7 @@ function test()
     edisp1 = fill(0.0, 2, 3); 
     evel1 = fill(0.0, 2, 6); 
     evel1f = fill(0.0, 2, 6)
-    dofnums = zeros(FInt, 1, 12); 
+    dofnums = zeros(Int, 1, 12);
     F0 = fill(0.0, 3, 3); 
     Ft = fill(0.0, 3, 3); 
     FtI = fill(0.0, 3, 3); 
@@ -215,7 +215,7 @@ function test()
     edisp1 = fill(0.0, 2, 3); 
     evel1 = fill(0.0, 2, 6); 
     evel1f = fill(0.0, 2, 6)
-    dofnums = zeros(FInt, 1, 12); 
+    dofnums = zeros(Int, 1, 12);
     F0 = fill(0.0, 3, 3); 
     Ft = fill(0.0, 3, 3); 
     FtI = fill(0.0, 3, 3); 
@@ -300,7 +300,7 @@ function test()
     edisp1 = fill(0.0, 2, 3); 
     evel1 = fill(0.0, 2, 6); 
     evel1f = fill(0.0, 2, 6)
-    dofnums = zeros(FInt, 1, 12); 
+    dofnums = zeros(Int, 1, 12);
     F0 = fill(0.0, 3, 3); 
     Ft = fill(0.0, 3, 3); 
     FtI = fill(0.0, 3, 3); 
@@ -385,7 +385,7 @@ function test()
     edisp1 = fill(0.0, 2, 3); 
     evel1 = fill(0.0, 2, 6); 
     evel1f = fill(0.0, 2, 6)
-    dofnums = zeros(FInt, 1, 12); 
+    dofnums = zeros(Int, 1, 12);
     F0 = fill(0.0, 3, 3); 
     Ft = fill(0.0, 3, 3); 
     FtI = fill(0.0, 3, 3); 

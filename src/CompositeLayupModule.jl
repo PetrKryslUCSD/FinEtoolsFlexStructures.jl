@@ -1,10 +1,11 @@
 module CompositeLayupModule
 
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.TransformerModule: QTEQTransformer
+using FinEtoolsFlexStructures.TransformerModule: TransformerQtEQ
 
 """
     cartesian_csys(axes)
@@ -19,7 +20,7 @@ Create a material Cartesian coordinate system.
   vector is opposite to the third global basis vector.
 """
 function cartesian_csys(axes)
-    function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
+    function cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
         csmatout[:] .= 0.0
         for j in 1:3
             aj = abs(axes[j]); sj = sign(axes[j])
@@ -173,7 +174,7 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
     D .= zero(eltype(A))
     Dps = deepcopy(A)
     Tbar = deepcopy(A)
-    tf = QTEQTransformer(Dps)
+    tf = TransformerQtEQ(Dps)
     # Transform into the composite layup coordinate system.
     layup_thickness = thickness(cl)
     zs = -layup_thickness/2 - cl.offset
@@ -205,7 +206,7 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
     H .= zero(eltype(H))
     Dts = deepcopy(H)
     T = deepcopy(H)
-    tf = QTEQTransformer(Dts)
+    tf = TransformerQtEQ(Dts)
     # Transform into the composite layup coordinate system.
     layup_thickness = sum(p.thickness for p in cl.plies)
     zs = -layup_thickness/2 - cl.offset

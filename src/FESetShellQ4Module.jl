@@ -2,8 +2,6 @@ module FESetShellQ4Module
 
 using FinEtools
 using FinEtools.MeshQuadrilateralModule
-import FinEtools.FESetModule: cat, subset, nodesperelem
-using FinEtools.MatrixUtilityModule: complete_lt! 
 using LinearAlgebra: norm, Transpose, mul!
 
 struct FESetShellQ4 <: AbstractFESet2Manifold{4}

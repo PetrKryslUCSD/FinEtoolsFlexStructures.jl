@@ -3,7 +3,7 @@ module curved_beam_examples
 
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -99,7 +99,7 @@ function test2(direction = 2)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -201,7 +201,7 @@ function test3(direction = 2)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 

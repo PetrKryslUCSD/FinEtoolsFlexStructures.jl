@@ -14,17 +14,17 @@ The elements in the set have the same cross section type, but since the cross
 section dimensions may depend on the coordinate, each individual element may
 have a different area, second moments of area, etc.
 """
-mutable struct FESetL2Beam{CT} <: AbstractFESet1Manifold{2}
+mutable struct FESetL2Beam{CT, FVT} <: AbstractFESet1Manifold{2}
     crosssection::CT
-    A::FFltVec
-    I1::FFltVec
-    I2::FFltVec
-    I3::FFltVec
-    J::FFltVec
-    A2s::FFltVec
-    A3s::FFltVec
-    x1x2_vector::Vector{FFltVec}
-    dimensions::Vector{FFltVec}
+    A::Vector{FVT}
+    I1::Vector{FVT}
+    I2::Vector{FVT}
+    I3::Vector{FVT}
+    J::Vector{FVT}
+    A2s::Vector{FVT}
+    A3s::Vector{FVT}
+    x1x2_vector::Vector{Vector{FVT}}
+    dimensions::Vector{Vector{FVT}}
 end
 
 """
@@ -38,6 +38,7 @@ set of the beam elements.
 """
 function FESetL2Beam(N::IT, crosssection::CT) where {IT<:Integer, CT}
     par = crosssection.parameters(0.0)
+    FVT = typeof(par.A)
     _A = fill(par.A, N)
     _I1 = fill(par.I1, N)
     _I2 = fill(par.I2, N)

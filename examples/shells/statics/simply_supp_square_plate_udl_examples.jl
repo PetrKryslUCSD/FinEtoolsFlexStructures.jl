@@ -2,7 +2,7 @@
 module simply_supp_square_plate_udl_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -93,7 +93,7 @@ function _execute_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true
 
     # @infiltrate
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
@@ -218,7 +218,7 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
 
     # @infiltrate
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 

@@ -1,7 +1,7 @@
 module tippling_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -69,7 +69,7 @@ function tippling_1()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     @show  dchi.values[tipn, :]
 
     # Compute the geometric stiffness

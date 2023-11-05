@@ -9,7 +9,7 @@ using LinearAlgebra
 using SparseArrays
 using Arpack
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked, vector_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked, vector_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3

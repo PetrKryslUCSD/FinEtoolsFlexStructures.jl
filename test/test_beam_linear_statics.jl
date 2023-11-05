@@ -2,7 +2,7 @@ module mssbeam1
 #  Simply supported beam with distributed load. Soft axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -71,11 +71,11 @@ function test()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[q, 0, 0]);
+    fi = ForceIntensity([q, 0, 0]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, 1], deflex
     @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
@@ -89,7 +89,7 @@ module mssbeam2
 #  Simply supported beam with distributed load. Stiff axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -158,11 +158,11 @@ function test()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[0, 0, q]);
+    fi = ForceIntensity([0, 0, q]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, 3], deflex
     @test norm(dchi.values[tipl, 3] .- deflex) / deflex < 1.0e-5
 
@@ -175,7 +175,7 @@ module mccbeam1
 #  Clamped-clamped beam with distributed load. Soft axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -244,11 +244,11 @@ function test()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[q, 0, 0]);
+    fi = ForceIntensity([q, 0, 0]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, 1], deflex
     @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
@@ -262,7 +262,7 @@ module mccbeam2
 #  Clamped-clamped beam with distributed load. Stiff axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -331,11 +331,11 @@ function test()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[0, 0, q]);
+    fi = ForceIntensity([0, 0, q]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, 3], deflex
     @test norm(dchi.values[tipl, 3] .- deflex) / deflex < 1.0e-5
 
@@ -368,7 +368,7 @@ module margyrislframe1
 # displacements correlate in the obvious way.
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -425,11 +425,11 @@ function test()
 
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[-magn, 0, 0, 0, 0, 0]);
+    fi = ForceIntensity([-magn, 0, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 
     # @show dchi.values[tipn, 1:3], deflex
     @test norm(vec(dchi.values[tipn, 1:3]) - vec(deflex)) / norm(deflex) < 1.0e-5
@@ -462,7 +462,7 @@ module margyrislframe2
 # obvious way.
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -519,11 +519,11 @@ function test()
 
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, magn, 0, 0, 0, 0]);
+    fi = ForceIntensity([0, magn, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 
     # @show dchi.values[tipn, 1:3], deflex
     @test norm(vec(dchi.values[tipn, 1:3]) - vec(deflex)) / norm(deflex) < 1.0e-5
@@ -560,7 +560,7 @@ Thickness = 0. 1 in
 module mcurvedbeam1
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -635,7 +635,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -678,7 +678,7 @@ Thickness = 0. 1 in
 module mcurvedbeam2
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -753,7 +753,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -795,7 +795,7 @@ Thickness = 0. 1 in
 module mcurvedbeam3
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -870,7 +870,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -912,7 +912,7 @@ Thickness = 0. 1 in
 module mcurvedbeam4
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -987,7 +987,7 @@ function test()
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -1012,7 +1012,7 @@ module mccbeamThin1
 #  Clamped-clamped beam with distributed load. Soft axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1083,11 +1083,11 @@ function test(b = 2)
     femm = FEMMRITBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[q, 0, 0]);
+    fi = ForceIntensity([q, 0, 0]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     return dchi.values[tipl, 1][1] / deflex * 100, b/L
     # @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
@@ -1111,7 +1111,7 @@ module mccbeamThin2
 #  Clamped-clamped beam with distributed load. Soft axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1182,11 +1182,11 @@ function test(b = 2)
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[q, 0, 0]);
+    fi = ForceIntensity([q, 0, 0]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     return dchi.values[tipl, 1][1] / deflex * 100, b/L
     # @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
@@ -1235,7 +1235,7 @@ Thickness = 0. 1 in
 module mcurvedbeam2a
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1312,7 +1312,7 @@ function test(direction = 2)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -1359,7 +1359,7 @@ Thickness = 0. 1 in
 module mcurvedbeam1a
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1436,7 +1436,7 @@ function test(direction = 2)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
@@ -1462,7 +1462,7 @@ Inconsistent loading with distribloads
 module mgravitybeamincons2
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1530,7 +1530,7 @@ function test(nel = 2)
     F = distribloads(femm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 # @show dchi.values
 
     K_df = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:df]
@@ -1577,7 +1577,7 @@ Alternative definition of the cross section orientation
 module mgravitybeamincons3
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1645,7 +1645,7 @@ function test(nel = 2)
     F = distribloads(femm, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
 # @show dchi.values
 
     K_df = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:df]
@@ -1684,7 +1684,7 @@ module msslinbeam1
 #  Simply supported beam with distributed load. Soft axis bending
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -1753,11 +1753,11 @@ function test()
     femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
 
-    fi = ForceIntensity(FFlt[q, 0, 0]);
+    fi = ForceIntensity([q, 0, 0]);
     F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
 
     # Solve the static problem
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     # @show dchi.values[tipl, 1], deflex
     @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 

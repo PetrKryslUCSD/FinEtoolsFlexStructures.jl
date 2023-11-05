@@ -2,6 +2,7 @@ module FEMMCorotBeamModule
 
 using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 using FinEtools.MatrixUtilityModule: complete_lt!
 using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso

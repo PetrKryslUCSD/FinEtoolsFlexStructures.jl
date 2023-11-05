@@ -2,7 +2,7 @@
 module simply_supp_square_plate_conc_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -79,7 +79,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     U = gathersysvec(dchi)
     @show n, dchi.values[nl, 3]/analyt_sol*100
 

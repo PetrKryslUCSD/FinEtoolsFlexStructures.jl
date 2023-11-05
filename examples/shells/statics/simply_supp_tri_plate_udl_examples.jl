@@ -2,7 +2,7 @@
 module simply_supp_tri_plate_udl_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -92,7 +92,7 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.1, visualize = true)
 
     # @infiltrate
     # Solve
-    solve!(dchi, K, F)
+    solve_blocked!(dchi, K, F)
     targetu =  maximum(dchi.values[:, 3])
     @info "Target: $(round(targetu, digits=8))"
     @info "CPT: $(round(targetu/cpt_solution, digits = 4)*100)%"

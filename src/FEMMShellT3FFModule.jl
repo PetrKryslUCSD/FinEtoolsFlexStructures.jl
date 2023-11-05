@@ -3,6 +3,7 @@ module FEMMShellT3FFModule
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
 using FinEtools
+using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
 using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 import FinEtools.FEMMBaseModule: associategeometry!
@@ -10,7 +11,7 @@ import FinEtools.FEMMBaseModule: inspectintegpoints
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
 using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!
 using ..FESetShellT3Module: FESetShellT3
-using ..TransformerModule: QTEQTransformer, Layup2ElementAngle
+using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
@@ -566,7 +567,7 @@ function stiffness(self::FEMMShellT3FF, assembler::ASS, geom0::NodalField{FFlt},
     ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
-    transformwith = QTEQTransformer(elmat)
+    transformwith = TransformerQtEQ(elmat)
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
@@ -733,7 +734,7 @@ function inspectintegpoints(self::FEMMShellT3FF, geom0::NodalField{FFlt},  u::No
     elmat = self._elmat
     _nodal_triads_e! = NodalTriadsE()
     _transfmat_g_to_a! = TransfmatGToA()
-    transformwith = QTEQTransformer(elmat)
+    transformwith = TransformerQtEQ(elmat)
     lla = Layup2ElementAngle()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
