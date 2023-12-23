@@ -56,17 +56,35 @@ using Pkg; Pkg.activate("."); Pkg.instantiate();
 using Pkg; Pkg.test(); 
 ```
 
-## Examples
+## Tutorials
 
-The project was developed with Julia 1.6.4, and is operational with any version
-above that.
+There are a number of tutorials explaining the use of this package.
+Check out the [index](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.jl/blob/main/tutorials/index.md). They are tutorials themselves can be executed as
+follows:
+
+- Download the package or clone it.
+```
+git clone https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.jl.git
+```
+- Change into the `tutorials` folder: `cd .\FinEtoolsFlexStructures.jl\tutorials`.
+- Start Julia: `julia`.
+- Activate the environment:
+```
+using Pkg; Pkg.activate("."); Pkg.instantiate();
+```
+- Execute the desired tutorial. Here we arbitrarily pick one:
+```
+include("circle_modal_tut.jl")
+```
+
+## Examples
 
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
 as a result of cloning the repository.
 
 The project needed for running examples can be activated and initialized by
 ```
-using Pkg; Pkg.activate("./examples"); Pkg.instantiate(); using Revise
+using Pkg; Pkg.activate("./examples"); Pkg.instantiate();
 ```
 
 There are a number of examples, which may be executed as described in the
