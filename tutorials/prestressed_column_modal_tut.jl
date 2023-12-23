@@ -20,6 +20,7 @@
 # The finite element code realize on the basic functionality implemented in this
 # package.
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked
 
 # The material parameters may be defined with the specification of the units.
 # The elastic properties are:
@@ -158,6 +159,9 @@ CB = FEMMCorotBeamModule
 # displacement/rotation fields. 
 K = CB.stiffness(femm, geom0, u0, Rfield0, dchi);
 
+# Extract the free-free block of the matrix.
+K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
+
 # Now we construct the means of applying the concentrated force of prestress at
 # the movable node. The node is the "boundary" of the domain of the column.
 loadbdry = FESetP1(reshape([movable], 1, 1))
@@ -171,14 +175,15 @@ lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
 # Therefore, buckling will be caused by applying  a negative buckling factor.
 # Numerically, the buckling factor corresponding to failure is then of the
 # magnitude of the Euler force. 
-fi = ForceIntensity(FFlt[0, 1.0, 0, 0, 0, 0]);
+fi = ForceIntensity(Float64[0, 1.0, 0, 0, 0, 0]);
 
 # The distributed loading is now integrated over the "volume" of the integration
 # domain.
 F = CB.distribloads(lfemm, geom0, dchi, fi, 3);
+F_f = vector_blocked(F, nfreedofs(dchi))[:f]
 
 # Solve for the displacement under @show the static load
-scattersysvec!(dchi, K\F);
+scattersysvec!(dchi, K_ff\F_f);
 
 # Update deflections so that the initial stress can be computed. First the
 # displacements:
@@ -199,6 +204,11 @@ M = CB.mass(femm, geom0, u0, Rfield0, dchi);
 # and we have the complete discrete model for the solution of the free vibration problem.
 
 
+# Extract the free-free block of the matrices.
+M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
+
+Kg_ff = matrix_blocked(Kg, nfreedofs(dchi))[:ff]
+
 
 # ## Solve the free-vibration problem
 
@@ -215,7 +225,7 @@ Ps = collect(linearspace(-1.0, 1.0, 50)).*PEul
 freqs = let freqs =[];
     for P in Ps
         # Note that we take the complete stiffness matrix: elastic plus prestress (initial stress).
-        evals, evecs, nconv = eigs(K + P.*Kg, M; nev=neigvs, which=:SM, explicittransform = :none);
+        evals, evecs, nconv = eigs(K_ff + P.*Kg_ff, M_ff; nev=neigvs, which=:SM, explicittransform = :none);
         # The fundamental frequency:
         f = sqrt(evals[1]) / (2 * pi);
         push!(freqs, f);
