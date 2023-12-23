@@ -37,7 +37,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
 """
-    FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
+    mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}} <: AbstractFEMM
 
 Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -45,8 +45,8 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{S<:FESetT3,F<:Function} <: AbstractFEMM
-    integdomain::IntegDomain{S,F} # integration domain data
+mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}} <: AbstractFEMM
+    integdomain::ID # integration domain data
     # Definitions of layups
     layup_groups::Vector{Tuple{CompositeLayup,Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     # Configuration parameters
@@ -82,14 +82,17 @@ end
 
 
 """
-    FEMMShellT3FFComp(integdomain::IntegDomain{S, F}, layup::CompositeLayup) where {S<:FESetT3, F<:Function}
+    FEMMShellT3FFComp(
+        integdomain::ID,
+        layup::CompositeLayup,
+    )  where {ID<:IntegDomain{S} where {S<:FESetT3}}
 
 Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 """
 function FEMMShellT3FFComp(
-    integdomain::IntegDomain{S,F},
+    integdomain::ID,
     layup::CompositeLayup,
-) where {S<:FESetT3,F<:Function}
+)  where {ID<:IntegDomain{S} where {S<:FESetT3}}
     _nnmax = 0
     for j = 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])

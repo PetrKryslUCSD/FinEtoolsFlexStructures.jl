@@ -8,12 +8,12 @@ using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 
 """
-    FEMMPointMass{S<:AbstractFESet}
+    mutable struct FEMMPointMass{ID<:IntegDomain} <: AbstractFEMM
 
 Type for linear deformation finite element modeling machine.
 """
-mutable struct FEMMPointMass{S<:AbstractFESet} <: AbstractFEMM
-    integdomain::IntegDomain{S} # integration domain data
+mutable struct FEMMPointMass{ID<:IntegDomain} <: AbstractFEMM
+    integdomain::ID # integration domain data
     _massmatrix::FFltMat
 end
 

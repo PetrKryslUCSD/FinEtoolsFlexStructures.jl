@@ -8,12 +8,12 @@ using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 
 """
-    FEMMPointGroundedSpring{S<:AbstractFESet}
+    mutable struct FEMMPointGroundedSpring{ID<:IntegDomain} <: AbstractFEMM
 
 Type for finite element modeling machine for grounded springs.
 """
-mutable struct FEMMPointGroundedSpring{S<:AbstractFESet} <: AbstractFEMM
-    integdomain::IntegDomain{S} # integration domain data
+mutable struct FEMMPointGroundedSpring{ID<:IntegDomain} <: AbstractFEMM
+    integdomain::ID # integration domain data
     _stiffmatrix::FFltMat
 end
 

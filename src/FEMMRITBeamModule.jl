@@ -10,7 +10,7 @@ import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
 using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 
 """
-    FEMMRITBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
+    mutable struct FEMMRITBeam{ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso} <: AbstractFEMM
 
 Type for linear reduced-integration beam finite element modeling machine.
 
@@ -19,9 +19,9 @@ functions are available (i.e. it is a two-node element). The beam stiffness is
 shear-flexible(Timoshenko). The local beam stiffness is expressed analytically:
 the one-point numerical integration is hardwired.
 """
-mutable struct FEMMRITBeam{S<:FESetL2,F<:Function} <: AbstractFEMM
-    integdomain::IntegDomain{S,F} # integration domain data
-    material::MatDeforElastIso # material object
+mutable struct FEMMRITBeam{ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso} <: AbstractFEMM
+    integdomain::ID # integration domain data
+    material::M # material object
     # The attributes below are buffers used in various operations.
     _ecoords0::FFltMat
     _dofnums::FIntMat
@@ -45,16 +45,19 @@ mutable struct FEMMRITBeam{S<:FESetL2,F<:Function} <: AbstractFEMM
 end
 
 """
-    FEMMRITBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+    FEMMRITBeam(
+        integdomain::ID,
+        material::M,
+    ) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
 
 Constructor.
 
 Supply integration domain (mesh) and the material.
 """
 function FEMMRITBeam(
-    integdomain::IntegDomain{S,F},
-    material::MatDeforElastIso,
-) where {S<:FESetL2,F<:Function}
+    integdomain::ID,
+    material::M,
+) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam ||
         error("Expected to delegate to FESetL2Beam")
     _ecoords0 = fill(0.0, 2, 3)

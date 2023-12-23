@@ -12,7 +12,7 @@ using ..FESetL2BeamModule: FESetL2Beam, initial_local_frame!
 import FinEtools.FEMMBaseModule: inspectintegpoints
 
 """
-    FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
+    mutable struct FEMMLinBeam{ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso} <: AbstractFEMM
 
 Type for linear beam finite element modeling machine.
 
@@ -22,9 +22,9 @@ implemented at the moment. The beam stiffness can be either shear-flexible
 (Timoshenko), or shear-rigid (Bernoulli-Euler). The local beam stiffness is
 expressed analytically: no numerical integration is involved.
 """
-mutable struct FEMMLinBeam{S<:FESetL2,F<:Function} <: AbstractFEMM
-    integdomain::IntegDomain{S,F} # integration domain data
-    material::MatDeforElastIso # material object
+mutable struct FEMMLinBeam{ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso} <: AbstractFEMM
+    integdomain::ID # integration domain data
+    material::M # material object
     eccentricities::FFltMat
     # The attributes below are buffers used in various operations.
     _ecoords0::FFltMat
@@ -47,7 +47,11 @@ mutable struct FEMMLinBeam{S<:FESetL2,F<:Function} <: AbstractFEMM
 end
 
 """
-    FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
+    FEMMLinBeam(
+        integdomain::ID,
+        material::M,
+        uniform_eccentricity,
+    ) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
 
 Constructor.
 
@@ -56,10 +60,10 @@ Supply the integration domain, material, and the eccentricity parameters
 direction, f3 direction).
 """
 function FEMMLinBeam(
-    integdomain::IntegDomain{S,F},
-    material::MatDeforElastIso,
+    integdomain::ID,
+    material::M,
     uniform_eccentricity,
-) where {S<:FESetL2,F<:Function}
+) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
     typeof(delegateof(integdomain.fes)) <: FESetL2Beam ||
         error("Expected to delegate to FESetL2Beam")
     _eccentricities = fill(0.0, count(integdomain.fes), 4)
@@ -109,16 +113,19 @@ function FEMMLinBeam(
 end
 
 """
-    FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+    FEMMLinBeam(
+        integdomain::ID,
+        material::M,
+    ) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
 
 Constructor.
 
 Supply the integration domain and the material. The eccentricities are assumed to be zero.
 """
 function FEMMLinBeam(
-    integdomain::IntegDomain{S,F},
-    material::MatDeforElastIso,
-) where {S<:FESetL2,F<:Function}
+    integdomain::ID,
+    material::M,
+) where {ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso}
     return FEMMLinBeam(integdomain, material, [0.0, 0.0, 0.0, 0.0])
 end
 
