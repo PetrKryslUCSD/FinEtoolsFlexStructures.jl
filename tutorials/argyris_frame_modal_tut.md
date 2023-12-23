@@ -2,6 +2,8 @@
 
 Source code: [`argyris_frame_modal_tut.jl`](argyris_frame_modal_tut.jl)
 
+Last updated: 12/23/23
+
 ## Description
 
 Vibration analysis of a L-shaped frame under a loading.
@@ -40,30 +42,40 @@ using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield
 using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
 using FinEtoolsFlexStructures.FEMMCorotBeamModule
+````
+
+The co-rotational beam functionality is in the `FEMMCorotBeamModule` module.
+We need to refer to it by the `module.function` notation. `CB` is a handy
+abbreviation.
+
+````julia
 CB = FEMMCorotBeamModule
 ````
 
-Parameters:
+Parameters: Young's modules and Poisson ratio. Note that we can supply inputs
+in particular physical units.
 
 ````julia
 E = 71240.0 * phun("MPa")
-nu = 0.31; # Poisson ratio
+nu = 0.31;
 rho = 5000 * phun("kg/m^3");
 ````
 
-cross-sectional dimensions and length of each leg in millimeters
+Cross-sectional dimensions and length of each leg in millimeters:
 
 ````julia
 b = 0.6 * phun("mm"); h = 30.0 * phun("mm"); L = 240.0 * phun("mm");
 ````
 
-Magnitude of the total applied force, Newton
+Magnitude of the total applied force.
 
 ````julia
 magn = 1e-5 * phun("N");
 ````
 
-Cross-sectional properties
+Cross-sectional properties are represented by the object as a functions of the
+distance along the curve (here those are returning constants). Dimensions of
+the cross section and the orientation of the section are defined:
 
 ````julia
 cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 1.0, 0.0])
@@ -81,8 +93,8 @@ push!(members, frame_member([L 0 L; L 0 0], n, cs))
 fens, fes = merge_members(members; tolerance = L / 10000)
 ````
 
-Construct the requisite fields, geometry and displacement
-Initialize configuration variables
+Construct the requisite fields (geometry and displacement).
+Initialize configuration variables.
 
 ````julia
 geom0 = NodalField(fens.xyz)
@@ -91,7 +103,7 @@ Rfield0 = initial_Rfield(fens)
 dchi = NodalField(zeros(size(fens.xyz,1), 6))
 ````
 
-Apply EBC's: one point is clamped.
+Apply EBC's (supports): one leg is clamped.
 
 ````julia
 l1 = selectnode(fens; box = [0 0 0 0 L L], tolerance = L / 10000)
@@ -102,10 +114,16 @@ applyebc!(dchi)
 numberdofs!(dchi);
 ````
 
-Material properties
+Material properties. This material object represents an isotropic material.
 
 ````julia
 material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+````
+
+## Solve the static problem to find the internal forces
+
+````julia
+@info "Solving the static problem"
 ````
 
 Assemble the global discrete system. The stiffness and mass matrices are
@@ -117,7 +135,11 @@ K = CB.stiffness(femm, geom0, u0, Rfield0, dchi);
 M = CB.mass(femm, geom0, u0, Rfield0, dchi);
 ````
 
-Construct force intensity,  loaded boundary, and assemble the load.
+These matrices have dimensions that correspond to the total number of degrees
+of freedom, not just the free degrees of freedom (the actual unknowns).
+
+Construct force intensity, select the loaded boundary, and assemble the load
+vector.
 
 ````julia
 tipn = selectnode(fens; box=[L L 0 0  0 0], tolerance=L/n/1000)[1]
@@ -127,7 +149,9 @@ fi = ForceIntensity(Float64[-magn, 0, 0, 0, 0, 0]);
 F = CB.distribloads(lfemm, geom0, dchi, fi, 3);
 ````
 
-Solve for the displacement under the static load.
+Solve for the displacement under the static load. This convenience function
+solves the system by extracting the partitions based on the number of free
+degrees of freedom.
 
 ````julia
 solve_blocked!(dchi, K, F)
@@ -148,23 +172,20 @@ Rfield1 = deepcopy(Rfield0)
 update_rotation_field!(Rfield1, dchi)
 ````
 
-The static deflection is now used to compute the internal forces
-which in turn lead to the geometric stiffness.
+The static deflection defined by `u1` and `Rfield1` is now used to compute the
+internal forces which in turn lead to the geometric stiffness.
 
 ````julia
 Kg = CB.geostiffness(femm, geom0, u1, Rfield1, dchi);
 ````
 
-The matrix partitioning now must be enforced to accommodate the prescribed
-displacements and rotations.
+## Solve the eigenvalue problems for a range of loading factors
 
 ````julia
-K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
-M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
-Kg_ff = matrix_blocked(Kg, nfreedofs(dchi))[:ff]
+@info "Solving the free vibration problems"
 ````
 
-## Solution of the eigenvalue free-vibration problem
+Solution of the eigenvalue free-vibration problem is obtained with the Arnoldi method.
 
 ````julia
 using Arpack
@@ -176,6 +197,16 @@ list.
 
 ````julia
 neigvs = 4
+````
+
+The matrix partitioning now must be enforced to take into account the number
+of free degrees of freedom so that we can solve the eigenvalue
+(vibration) problem.
+
+````julia
+K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
+M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
+Kg_ff = matrix_blocked(Kg, nfreedofs(dchi))[:ff]
 ````
 
 First we will  sweep through the loading factors that are positive, meaning
@@ -218,7 +249,7 @@ fsm = let
 end
 ````
 
-## Plot of the fundamental frequency is it depends on the loading factor
+## Plot of the fundamental frequency as it depends on the loading factor
 
 ````julia
 using Gnuplot
@@ -245,10 +276,15 @@ one for the negative orientation.
 
 ## Visualize some fundamental mode shapes
 
+````julia
+@info "Visualizing the vibration modes"
+````
+
 Here we visualize the fundamental vibration modes for different values of the
 loading factor.
 
-using PlotlyJS
+The package `VisualStructures` specializes in the dynamic visualization of
+beam and shell structures.
 
 ````julia
 using VisualStructures: plot_space_box, plot_solid, render, react!, default_layout_3d, save_to_json
