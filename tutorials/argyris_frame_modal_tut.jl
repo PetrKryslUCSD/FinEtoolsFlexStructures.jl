@@ -2,6 +2,8 @@
 
 # Source code: [`argyris_frame_modal_tut.jl`](argyris_frame_modal_tut.jl)
 
+# Last updated: 12/23/23
+
 # ## Description
 
 # Vibration analysis of a L-shaped frame under a loading. 
@@ -27,18 +29,25 @@ using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield
 using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
 using FinEtoolsFlexStructures.FEMMCorotBeamModule
+
+# The co-rotational beam functionality is in the `FEMMCorotBeamModule` module.
+# We need to refer to it by the `module.function` notation. `CB` is a handy
+# abbreviation.
 CB = FEMMCorotBeamModule
 
-# Parameters:
+# Parameters: Young's modules and Poisson ratio. Note that we can supply inputs
+# in particular physical units.
 E = 71240.0 * phun("MPa")
-nu = 0.31; # Poisson ratio
+nu = 0.31;
 rho = 5000 * phun("kg/m^3");
-# cross-sectional dimensions and length of each leg in millimeters
+# Cross-sectional dimensions and length of each leg in millimeters:
 b = 0.6 * phun("mm"); h = 30.0 * phun("mm"); L = 240.0 * phun("mm"); 
-# Magnitude of the total applied force, Newton
+# Magnitude of the total applied force.
 magn = 1e-5 * phun("N");
 
-# Cross-sectional properties
+# Cross-sectional properties are represented by the object as a functions of the
+# distance along the curve (here those are returning constants). Dimensions of
+# the cross section and the orientation of the section are defined:
 cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 1.0, 0.0])
 
 # ## Generate the discrete model
@@ -51,14 +60,14 @@ push!(members, frame_member([L 0 L; L 0 0], n, cs))
 fens, fes = merge_members(members; tolerance = L / 10000)
 
 
-# Construct the requisite fields, geometry and displacement
-# Initialize configuration variables
+# Construct the requisite fields (geometry and displacement).
+# Initialize configuration variables.
 geom0 = NodalField(fens.xyz)
 u0 = NodalField(zeros(size(fens.xyz,1), 3))
 Rfield0 = initial_Rfield(fens)
 dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
-# Apply EBC's: one point is clamped.
+# Apply EBC's (supports): one leg is clamped.
 l1 = selectnode(fens; box = [0 0 0 0 L L], tolerance = L / 10000)
 for i in [1, 2, 3, 4, 5, 6]
     setebc!(dchi, l1, true, i)
@@ -67,23 +76,32 @@ applyebc!(dchi)
 numberdofs!(dchi);
 
 
-# Material properties
+# Material properties. This material object represents an isotropic material.
 material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+
+# ## Solve the static problem to find the internal forces
+
+@info "Solving the static problem"
 
 # Assemble the global discrete system. The stiffness and mass matrices are
 # computed and assembled.
 femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
 K = CB.stiffness(femm, geom0, u0, Rfield0, dchi);
 M = CB.mass(femm, geom0, u0, Rfield0, dchi);
+# These matrices have dimensions that correspond to the total number of degrees
+# of freedom, not just the free degrees of freedom (the actual unknowns).
 
-# Construct force intensity,  loaded boundary, and assemble the load.
+# Construct force intensity, select the loaded boundary, and assemble the load
+# vector.
 tipn = selectnode(fens; box=[L L 0 0  0 0], tolerance=L/n/1000)[1]
 loadbdry = FESetP1(reshape([tipn], 1, 1))
 lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
 fi = ForceIntensity(Float64[-magn, 0, 0, 0, 0, 0]);
 F = CB.distribloads(lfemm, geom0, dchi, fi, 3);
 
-# Solve for the displacement under the static load.
+# Solve for the displacement under the static load. This convenience function
+# solves the system by extracting the partitions based on the number of free
+# degrees of freedom.
 solve_blocked!(dchi, K, F)
 
 # Update deflections and rotations so that the initial stress can be computed.
@@ -94,18 +112,15 @@ u1.values .= dchi.values[:, 1:3]
 Rfield1 = deepcopy(Rfield0)
 update_rotation_field!(Rfield1, dchi)
 
-# The static deflection is now used to compute the internal forces
-# which in turn lead to the geometric stiffness.
+# The static deflection defined by `u1` and `Rfield1` is now used to compute the
+# internal forces which in turn lead to the geometric stiffness.
 Kg = CB.geostiffness(femm, geom0, u1, Rfield1, dchi);
 
-# The matrix partitioning now must be enforced to accommodate the prescribed
-# displacements and rotations.
+# ## Solve the eigenvalue problems for a range of loading factors
 
-K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
-M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
-Kg_ff = matrix_blocked(Kg, nfreedofs(dchi))[:ff]
+@info "Solving the free vibration problems"
 
-# ## Solution of the eigenvalue free-vibration problem
+# Solution of the eigenvalue free-vibration problem is obtained with the Arnoldi method.
 
 using Arpack
 
@@ -113,6 +128,14 @@ using Arpack
 # by magnitude, we will pick the fundamental by taking the first from the
 # list.
 neigvs = 4
+
+# The matrix partitioning now must be enforced to take into account the number
+# of free degrees of freedom so that we can solve the eigenvalue
+# (vibration) problem.
+
+K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
+M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
+Kg_ff = matrix_blocked(Kg, nfreedofs(dchi))[:ff]
 
 # First we will  sweep through the loading factors that are positive, meaning
 # the force points in the direction in which it was defined (towards the
@@ -149,7 +172,7 @@ fsm = let
     fsm
 end
 
-# ## Plot of the fundamental frequency is it depends on the loading factor
+# ## Plot of the fundamental frequency as it depends on the loading factor
 
 using Gnuplot
 
@@ -173,10 +196,13 @@ Gnuplot.gpexec("reset session")
 
 # ## Visualize some fundamental mode shapes
 
+@info "Visualizing the vibration modes"
+
 # Here we visualize the fundamental vibration modes for different values of the
 # loading factor.
 
-# using PlotlyJS
+# The package `VisualStructures` specializes in the dynamic visualization of
+# beam and shell structures.
 using VisualStructures: plot_space_box, plot_solid, render, react!, default_layout_3d, save_to_json
 scale = 0.005
 
