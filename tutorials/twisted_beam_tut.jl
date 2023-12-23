@@ -159,14 +159,19 @@ loadbdry = FESetP1(reshape(nl, 1, 1))
 # Since our boundary consists of a single point, we use a point rule.
 lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
 # Now we create a force intensity to represent the loading.
-v = FFlt[0, 0, 0, 0, 0, 0]
+v = float.([0, 0, 0, 0, 0, 0])
 v[params.dir] = params.force
 fi = ForceIntensity(v);
 # Finally we computed the load vector corresponding to the force intensity.
 F = distribloads(lfemm, geom0, dchi, fi, 3);
 
+# Extract the free-free block of the matrix. And the free block for the right
+# and side vector.
+K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
+F_f = vector_blocked(F, nfreedofs(dchi))[:f]
+
 # The system of linear algebraic equations of balance is solved for the displacements and rotations.
-U = K \ F
+U = K_ff \ F_f
 # The vector of unknowns is now distributed into a field.
 scattersysvec!(dchi, U[:])
 
@@ -179,7 +184,7 @@ tipdefl = dchi.values[nl, params.dir][1]
 # coordinate system by using the tangent directions to the surface to construct
 # the normal, and the vector along the global X axis will serve as the first
 # basis vector of the local cartesian coordinate system.
-function updatecsys!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+function updatecsys!(csmatout, XYZ, tangents, feid, qpid)
     # first the normal
     cross3!(view(csmatout, :, 3), view(tangents, :, 1), view(tangents, :, 2))
     csmatout[:, 3] ./= norm(view(csmatout, :, 3))
