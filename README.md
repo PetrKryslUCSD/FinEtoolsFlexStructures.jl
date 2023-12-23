@@ -59,7 +59,7 @@ using Pkg; Pkg.test();
 ## Tutorials
 
 There are a number of tutorials explaining the use of this package.
-Check out the [index](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.jl/blob/main/tutorials/index.md). They are tutorials themselves can be executed as
+Check out the [index](https://github.com/PetrKryslUCSD/FinEtoolsFlexStructures.jl/blob/main/tutorials/index.md). The are tutorials themselves can be executed as
 follows:
 
 - Download the package or clone it.
