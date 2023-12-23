@@ -2,6 +2,8 @@
 
 Source code: [`beam_modal_tut.jl`](beam_modal_tut.jl)
 
+Last updated: 12/23/23
+
 ## Description
 
 Vibration analysis of a beam simply supported in one plane, and clamped
@@ -85,7 +87,7 @@ analytical natural frequencies.
 neigvs = length(analyt_freq);
 ````
 
-## Cross-section
+## Cross-section definition
 
 Cross-sectional properties are incorporated in the cross-section object. The
 three arguments supplied are functions. All are returning "constants", as
@@ -93,7 +95,7 @@ appropriate for a uniform cross section beam. In particular the first two
 functions each return the dimension of the cross-section as a constant; the
 third function defines the orientation of the cross-section in the global
 Cartesian coordinates. `[1.0, 0.0, 0.0]` is the vector that together with the
-tangent to the midline curve of the beam spans the $x_1x_2$ plane of the
+tangent to the midline curve of the beam spans the $x_1-x_2$ plane of the
 local coordinates for the beam.
 
 ````julia
@@ -123,7 +125,9 @@ We will generate
 n = 4
 ````
 
-beam elements along the member.
+beam elements along the member. The frame member is subdivided into a given
+number of finite elements, which are given the cross section properties
+defined in `cs`.
 
 ````julia
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member
@@ -153,6 +157,8 @@ model of the `FinEtoolsDeforLinear` package is instantiated.
 using FinEtoolsDeforLinear
 material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
 ````
+
+Since we are interested in dynamics, the mass density must be supplied.
 
 ## Fields
 
@@ -192,7 +198,8 @@ rotation field per node.
 
 Finally, this is the displacement and rotation field for incremental changes,
 incremental displacements and incremental rotations. In total, 6 unknowns per
-node.
+node. All degrees of freedom are vector components (displacement vector and
+rotation vector).
 
 ````julia
 dchi = NodalField(zeros(size(fens.xyz, 1), 6))
@@ -245,19 +252,17 @@ for i in [1,2,3,5,6]
 end
 ````
 
-These boundary conditions now need to be "applied". This simply means that the
-prescribed values of the degrees of freedom are copied into the active
-degrees of freedom.
-
-````julia
-applyebc!(dchi)
-````
-
-The essential boundary conditions will also reduce the number of free
-(unknown) degrees of freedom.
+The essential boundary conditions will  reduce the number of free
+(unknown) degrees of freedom. All degrees of freedom are assigned numbers.
 
 ````julia
 numberdofs!(dchi);
+````
+
+The number of three degrees of freedom is
+
+````julia
+@show nfreedofs(dchi)
 ````
 
 Here we inspect the degrees of freedom in the incremental
@@ -273,12 +278,16 @@ degrees of freedom per node in the incremental displacement field.
 
 ## Assemble the global discrete system
 
+The integration domain of the beam is one-dimensional. The quantities in the
+co-rotational beam are really all evaluated analytically, so the numerical
+integration does have no effect.
+
 ````julia
 using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
 femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material);
 ````
 
-For disambiguation we will refer to the stiffness and mass functions by
+For disambiguation we will refer to the `stiffness` and `mass` functions by
 qualifying them with the corotational-beam module, `FEMMCorotBeamModule`.
 We will use the abbreviation `CB`.
 
@@ -287,11 +296,10 @@ using FinEtoolsFlexStructures.FEMMCorotBeamModule
 CB = FEMMCorotBeamModule
 ````
 
-Thus we can construct the stiffness and mass matrix as follows:
-Note that the finite element machine is the first argument. This provides
-access to the integration domain. The next argument is the geometry field,
-followed by the displacement, rotations, and incremental
-displacement/rotation fields.
+Thus we can construct the stiffness and mass matrix as follows: Note that the
+finite element machine (FEMM) is the first argument. This provides access to
+the integration domain. The next argument is the geometry field, followed by
+the displacement, rotations, and incremental displacement/rotation fields.
 
 ````julia
 K = CB.stiffness(femm, geom0, u0, Rfield0, dchi);
@@ -299,13 +307,16 @@ M = CB.mass(femm, geom0, u0, Rfield0, dchi);
 ````
 
 We can compare the size of the stiffness matrix with the number of degrees of
-freedom that are unknown (20).
+freedom that are unknown (`nfreedofs(dchi)`).
 
 ````julia
 @show size(K)
 ````
 
-The matrix partitioning now must be enforced to accommodate the prescribed
+We can see that the system matrices have a row and column for each degree of
+freedom in the system, whether known or unknown.
+
+The matrix partitioning now must be enforced to reflect the prescribed
 displacements and rotations.
 
 ````julia
@@ -370,7 +381,8 @@ println("Relative errors of frequencies: $errs [ND]")
 The animation will show one of the vibration modes overlaid on the undeformed
 geometry.
 
-The visualization utilities take advantage of the PlotlyJS library.
+The visualization utilities take advantage of the `PlotlyJS` library through
+the convenience package `VisualStructures`.
 
 ````julia
 using VisualStructures: plot_space_box, plot_solid, render, react!, default_layout_3d, save_to_json

@@ -4,8 +4,8 @@
 
 ## Beam Dynamics
 
-- [Beam vibration](beam_modal_tut.md)
-- [Aircraft frame test rig: Geometry](garteur_geometry_tut.md)
+- [Beam vibration](beam_modal_tut.md) A good place to start, it goes into the basics.
+- [Aircraft frame test rig: Geometry](garteur_geometry_tut.md) The next four tutorials develop a dynamic investigation of a test rig.
 - [Aircraft frame test rig: Visualization](garteur_geometry_vis_tut.md)
 - [Aircraft frame test rig: Modal analysis](garteur_modal_tut.md)
 - [Aircraft frame test rig: Harmonic Vibration Analysis](garteur_hva_tut.md)

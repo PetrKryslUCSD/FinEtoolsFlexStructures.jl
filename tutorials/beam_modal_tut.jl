@@ -2,6 +2,8 @@
 
 # Source code: [`beam_modal_tut.jl`](beam_modal_tut.jl)
 
+# Last updated: 12/23/23
+
 # ## Description
 
 # Vibration analysis of a beam simply supported in one plane, and clamped
@@ -33,6 +35,7 @@ nu = 0.0;
 
 # The mass density is expressed in customary units as
 rho = 0.28 * phun("lbm/in^3")
+
 # Here are the cross-sectional dimensions and the length of the beam between supports.
 b = 1.8 * phun("in"); h = 1.8 * phun("in"); L = 100 * phun("in");
 
@@ -60,7 +63,7 @@ I3 = b^3 * h / 12;
 neigvs = length(analyt_freq);
  
 
-# ## Cross-section
+# ## Cross-section definition
 
 # Cross-sectional properties are incorporated in the cross-section object. The
 # three arguments supplied are functions. All are returning "constants", as
@@ -68,7 +71,7 @@ neigvs = length(analyt_freq);
 # functions each return the dimension of the cross-section as a constant; the
 # third function defines the orientation of the cross-section in the global
 # Cartesian coordinates. `[1.0, 0.0, 0.0]` is the vector that together with the
-# tangent to the midline curve of the beam spans the $x_1x_2$ plane of the
+# tangent to the midline curve of the beam spans the $x_1-x_2$ plane of the
 # local coordinates for the beam.
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 cs = CrossSectionRectangle(s -> b, s -> h, s -> [1.0, 0.0, 0.0])
@@ -84,7 +87,9 @@ cs = CrossSectionRectangle(s -> b, s -> h, s -> [1.0, 0.0, 0.0])
 xyz = [[0 -L / 2 0]; [0 L / 2 0]]
 # We will generate
 n = 4
-# beam elements along the member.
+# beam elements along the member. The frame member is subdivided into a given
+# number of finite elements, which are given the cross section properties
+# defined in `cs`.
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member
 fens, fes = frame_member(xyz, n, cs);
 # The mesh definition consists of the nodes
@@ -99,7 +104,7 @@ fens, fes = frame_member(xyz, n, cs);
 # model of the `FinEtoolsDeforLinear` package is instantiated.
 using FinEtoolsDeforLinear
 material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
-
+# Since we are interested in dynamics, the mass density must be supplied.
 
 # ## Fields
 
@@ -124,7 +129,8 @@ Rfield0 = initial_Rfield(fens)
 
 # Finally, this is the displacement and rotation field for incremental changes,
 # incremental displacements and incremental rotations. In total, 6 unknowns per
-# node.
+# node. All degrees of freedom are vector components (displacement vector and
+# rotation vector).
 dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
 
@@ -155,13 +161,12 @@ l1 = selectnode(fens; box=[0 0 L / 2  L / 2 0 0], tolerance=L / n / 1000)
 for i in [1,2,3,5,6]
     setebc!(dchi, l1, true, i)
 end
-# These boundary conditions now need to be "applied". This simply means that the
-# prescribed values of the degrees of freedom are copied into the active
-# degrees of freedom.
-applyebc!(dchi)
-# The essential boundary conditions will also reduce the number of free
-# (unknown) degrees of freedom.
+
+# The essential boundary conditions will  reduce the number of free
+# (unknown) degrees of freedom. All degrees of freedom are assigned numbers.
 numberdofs!(dchi);
+# The number of three degrees of freedom is
+@show nfreedofs(dchi)
 # Here we inspect the degrees of freedom in the incremental
 # displacement/rotation field:
 @show dchi.dofnums
@@ -173,28 +178,31 @@ numberdofs!(dchi);
 
 # ## Assemble the global discrete system
 
+# The integration domain of the beam is one-dimensional. The quantities in the
+# co-rotational beam are really all evaluated analytically, so the numerical
+# integration does have no effect.
 using FinEtoolsFlexStructures.FEMMCorotBeamModule: FEMMCorotBeam
 femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material);
 
-# For disambiguation we will refer to the stiffness and mass functions by
+# For disambiguation we will refer to the `stiffness` and `mass` functions by
 # qualifying them with the corotational-beam module, `FEMMCorotBeamModule`.
 # We will use the abbreviation `CB`. 
 using FinEtoolsFlexStructures.FEMMCorotBeamModule
 CB = FEMMCorotBeamModule
 
-# Thus we can construct the stiffness and mass matrix as follows:
-# Note that the finite element machine is the first argument. This provides
-# access to the integration domain. The next argument is the geometry field,
-# followed by the displacement, rotations, and incremental
-# displacement/rotation fields. 
+# Thus we can construct the stiffness and mass matrix as follows: Note that the
+# finite element machine (FEMM) is the first argument. This provides access to
+# the integration domain. The next argument is the geometry field, followed by
+# the displacement, rotations, and incremental displacement/rotation fields.
 K = CB.stiffness(femm, geom0, u0, Rfield0, dchi);
 M = CB.mass(femm, geom0, u0, Rfield0, dchi);
 # We can compare the size of the stiffness matrix with the number of degrees of
-# freedom that are unknown (20).
+# freedom that are unknown (`nfreedofs(dchi)`).
 @show size(K)
+# We can see that the system matrices have a row and column for each degree of
+# freedom in the system, whether known or unknown.
 
-
-# The matrix partitioning now must be enforced to accommodate the prescribed
+# The matrix partitioning now must be enforced to reflect the prescribed
 # displacements and rotations.
 
 K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
@@ -242,7 +250,8 @@ println("Relative errors of frequencies: $errs [ND]")
 # The animation will show one of the vibration modes overlaid on the undeformed
 # geometry.
 
-# The visualization utilities take advantage of the PlotlyJS library.
+# The visualization utilities take advantage of the `PlotlyJS` library through
+# the convenience package `VisualStructures`.
 
 using VisualStructures: plot_space_box, plot_solid, render, react!, default_layout_3d, save_to_json
 
