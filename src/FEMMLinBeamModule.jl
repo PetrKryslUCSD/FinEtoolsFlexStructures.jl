@@ -3,7 +3,8 @@ module FEMMLinBeamModule
 using LinearAlgebra: norm, Transpose, mul!
 using LinearAlgebra
 using FinEtools
-using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
+using FinEtools.FTypesModule:
+    FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 using FinEtools.MatrixUtilityModule: complete_lt!
 using FinEtools.IntegDomainModule: IntegDomain
 import FinEtoolsDeforLinear.MatDeforElastIsoModule: MatDeforElastIso
@@ -21,8 +22,8 @@ implemented at the moment. The beam stiffness can be either shear-flexible
 (Timoshenko), or shear-rigid (Bernoulli-Euler). The local beam stiffness is
 expressed analytically: no numerical integration is involved.
 """
-mutable struct FEMMLinBeam{S<:FESetL2, F<:Function} <: AbstractFEMM
-    integdomain::IntegDomain{S, F} # integration domain data
+mutable struct FEMMLinBeam{S<:FESetL2,F<:Function} <: AbstractFEMM
+    integdomain::IntegDomain{S,F} # integration domain data
     material::MatDeforElastIso # material object
     eccentricities::FFltMat
     # The attributes below are buffers used in various operations.
@@ -54,39 +55,57 @@ Supply the integration domain, material, and the eccentricity parameters
 (given in the order: first node, f1 direction, second node, f1 direction, f2
 direction, f3 direction).
 """
-function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso,  uniform_eccentricity) where {S<:FESetL2, F<:Function}
-    typeof(delegateof(integdomain.fes)) <: FESetL2Beam || error("Expected to delegate to FESetL2Beam")
+function FEMMLinBeam(
+    integdomain::IntegDomain{S,F},
+    material::MatDeforElastIso,
+    uniform_eccentricity,
+) where {S<:FESetL2,F<:Function}
+    typeof(delegateof(integdomain.fes)) <: FESetL2Beam ||
+        error("Expected to delegate to FESetL2Beam")
     _eccentricities = fill(0.0, count(integdomain.fes), 4)
     _eccentricities[:, 1] .= uniform_eccentricity[1] # first node, f1 direction
     _eccentricities[:, 2] .= uniform_eccentricity[2] # second node, f1 direction
     _eccentricities[:, 3] .= uniform_eccentricity[3] # f2 direction
     _eccentricities[:, 4] .= uniform_eccentricity[4] # f3 direction
-    _ecoords0 = fill(0.0, 2, 3);
-    _dofnums = zeros(FInt, 1, 12);
-    _F0 = fill(0.0, 3, 3); 
-    _Ft = fill(0.0, 3, 3); 
-    _FtI = fill(0.0, 3, 3); 
+    _ecoords0 = fill(0.0, 2, 3)
+    _dofnums = zeros(FInt, 1, 12)
+    _F0 = fill(0.0, 3, 3)
+    _Ft = fill(0.0, 3, 3)
+    _FtI = fill(0.0, 3, 3)
     _FtJ = fill(0.0, 3, 3)
     _Te = fill(0.0, 12, 12)
-    _elmat = fill(0.0, 12, 12);
-    _elmatTe = fill(0.0, 12, 12);    
+    _elmat = fill(0.0, 12, 12)
+    _elmatTe = fill(0.0, 12, 12)
     _elmato = fill(0.0, 12, 12)
-    _elvec = fill(0.0, 12);    
+    _elvec = fill(0.0, 12)
     _elvecf = fill(0.0, 12)
     _aN = fill(0.0, 6, 12)
     _dN = fill(0.0, 6)
     _DN = fill(0.0, 6, 6)
     _PN = fill(0.0, 6)
     _LF = fill(0.0, 12)
-    return FEMMLinBeam(integdomain, material,
-     _eccentricities,
-     _ecoords0,
-     _dofnums, 
-     _F0, _Ft, _FtI, _FtJ, _Te,
-     _elmat, _elmatTe, _elmato,
-     _elvec, _elvecf, 
-     _aN, _dN, _DN, _PN, _LF
-     )
+    return FEMMLinBeam(
+        integdomain,
+        material,
+        _eccentricities,
+        _ecoords0,
+        _dofnums,
+        _F0,
+        _Ft,
+        _FtI,
+        _FtJ,
+        _Te,
+        _elmat,
+        _elmatTe,
+        _elmato,
+        _elvec,
+        _elvecf,
+        _aN,
+        _dN,
+        _DN,
+        _PN,
+        _LF,
+    )
 end
 
 """
@@ -96,7 +115,10 @@ Constructor.
 
 Supply the integration domain and the material. The eccentricities are assumed to be zero.
 """
-function FEMMLinBeam(integdomain::IntegDomain{S, F}, material::MatDeforElastIso) where {S<:FESetL2, F<:Function}
+function FEMMLinBeam(
+    integdomain::IntegDomain{S,F},
+    material::MatDeforElastIso,
+) where {S<:FESetL2,F<:Function}
     return FEMMLinBeam(integdomain, material, [0.0, 0.0, 0.0, 0.0])
 end
 
@@ -115,10 +137,10 @@ end
 """
     Type of the mass matrix formulation.
 """
-const MASS_TYPE_CONSISTENT_NO_ROTATION_INERTIA=0;
-const MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA=1;
-const MASS_TYPE_LUMPED_DIAGONAL_NO_ROTATION_INERTIA=2;
-const MASS_TYPE_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA=3;
+const MASS_TYPE_CONSISTENT_NO_ROTATION_INERTIA = 0
+const MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA = 1
+const MASS_TYPE_LUMPED_DIAGONAL_NO_ROTATION_INERTIA = 2
+const MASS_TYPE_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA = 3
 
 """
     local_cartesian_to_natural!(aN, L)
@@ -141,19 +163,29 @@ J.H.  ARGYRIS,   P.C.  DUNNE  and  D.W. SCHARPF
 """
 function local_cartesian_to_natural!(aN, L)
     fill!(aN, 0.0)
-    aN[1, 1] = -1; aN[1, 7] = +1
-    aN[2, 6] = +1; aN[2, 12] = -1
-    aN[3, 2] = 2/L; aN[3, 6] = +1; aN[3, 8] = -2/L; aN[3, 12] = +1
-    aN[4, 5] = -1; aN[4, 11] = +1
-    aN[5, 3] = 2/L; aN[5, 5] = -1; aN[5, 9] = -2/L; aN[5, 11] = -1
-    aN[6, 4] = -1; aN[6, 10] = +1
+    aN[1, 1] = -1
+    aN[1, 7] = +1
+    aN[2, 6] = +1
+    aN[2, 12] = -1
+    aN[3, 2] = 2 / L
+    aN[3, 6] = +1
+    aN[3, 8] = -2 / L
+    aN[3, 12] = +1
+    aN[4, 5] = -1
+    aN[4, 11] = +1
+    aN[5, 3] = 2 / L
+    aN[5, 5] = -1
+    aN[5, 9] = -2 / L
+    aN[5, 11] = -1
+    aN[6, 4] = -1
+    aN[6, 10] = +1
     # aN=[[ -1,   0,   0,  0,  0, 0, 1,    0,    0, 0,  0,  0]
     #     [  0,   0,   0,  0,  0, 1, 0,    0,    0, 0,  0, -1]
     #     [  0, 2/L,   0,  0,  0, 1, 0, -2/L,    0, 0,  0,  1]
     #     [  0,   0,   0,  0, -1, 0, 0,    0,    0, 0,  1,  0]
     #     [  0,   0, 2/L,  0, -1, 0, 0,    0, -2/L, 0, -1,  0]
     #     [  0,   0,   0, -1,  0, 0, 0,    0,    0, 1,  0,  0]];
-        return aN
+    return aN
 end
 
 function local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
@@ -161,33 +193,33 @@ function local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C  CONSISTENT MASS MATRIX including ROTATIONAL MASSES
     # C  Formulation of the (3.38), (3.39) equation from Dykstra's thesis
     fill!(MM, 0.0)
-    c1 = (rho*A*L)::Float64
-    MM[1, 1] = c1 * (1/3)
-    MM[1, 7] = c1 * (1/6)
-    MM[2, 2] = c1 * (13/35)
-    MM[2, 6] = c1 * (11*L/210)
-    MM[2, 8] = c1 * (9/70)
-    MM[2, 12] = c1 * (-13*L/420)
-    MM[3, 3] = c1 * (13/35)
-    MM[3, 5] = c1 * (-11*L/210)
-    MM[3, 9] = c1 * (9/70)
-    MM[3, 11] = c1 * (13*L/420)
-    MM[4, 4] = c1 * (I1/3/A)
-    MM[4, 10] = c1 * (I1/6/A)
-    MM[5, 5] = c1 * (L^2/105)
-    MM[5, 9] = c1 * (-13*L/420)
-    MM[5, 11] = c1 * (-L^2/140)
-    MM[6, 6] = c1 * (L^2/105)
-    MM[6, 8] = c1 * (13*L/420)
-    MM[6, 12] = c1 * (-L^2/140)
-    MM[7, 7] = c1 * (1/3)
-    MM[8, 8] = c1 * (13/35)
-    MM[8, 12] = c1 * (-11*L/210)
-    MM[9, 9] = c1 * (13/35)
-    MM[9, 11] = c1 * (11*L/210)
-    MM[10, 10] = c1 * (I1/3/A)
-    MM[11, 11] = c1 * (L^2/105)
-    MM[12, 12] = c1 * (L^2/105)
+    c1 = (rho * A * L)::Float64
+    MM[1, 1] = c1 * (1 / 3)
+    MM[1, 7] = c1 * (1 / 6)
+    MM[2, 2] = c1 * (13 / 35)
+    MM[2, 6] = c1 * (11 * L / 210)
+    MM[2, 8] = c1 * (9 / 70)
+    MM[2, 12] = c1 * (-13 * L / 420)
+    MM[3, 3] = c1 * (13 / 35)
+    MM[3, 5] = c1 * (-11 * L / 210)
+    MM[3, 9] = c1 * (9 / 70)
+    MM[3, 11] = c1 * (13 * L / 420)
+    MM[4, 4] = c1 * (I1 / 3 / A)
+    MM[4, 10] = c1 * (I1 / 6 / A)
+    MM[5, 5] = c1 * (L^2 / 105)
+    MM[5, 9] = c1 * (-13 * L / 420)
+    MM[5, 11] = c1 * (-L^2 / 140)
+    MM[6, 6] = c1 * (L^2 / 105)
+    MM[6, 8] = c1 * (13 * L / 420)
+    MM[6, 12] = c1 * (-L^2 / 140)
+    MM[7, 7] = c1 * (1 / 3)
+    MM[8, 8] = c1 * (13 / 35)
+    MM[8, 12] = c1 * (-11 * L / 210)
+    MM[9, 9] = c1 * (13 / 35)
+    MM[9, 11] = c1 * (11 * L / 210)
+    MM[10, 10] = c1 * (I1 / 3 / A)
+    MM[11, 11] = c1 * (L^2 / 105)
+    MM[12, 12] = c1 * (L^2 / 105)
     # 1       2        3        4       5         6       7        8       9       10      11       12
     complete_lt!(MM)
     return MM
@@ -198,54 +230,54 @@ function local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C  CONSISTENT MASS MATRIX including ROTATIONAL MASSES
     # C  Formulation of the (3.38), (3.39) equation from Dykstra's thesis
     fill!(MM, 0.0)
-    c1 = (rho*A*L)::Float64
-    MM[1, 1] = c1 * (1/3)
-    MM[1, 7] = c1 * (1/6)
-    MM[2, 2] = c1 * (13/35)
-    MM[2, 6] = c1 * (11*L/210)
-    MM[2, 8] = c1 * (9/70)
-    MM[2, 12] = c1 * (-13*L/420)
-    MM[3, 3] = c1 * (13/35)
-    MM[3, 5] = c1 * (-11*L/210)
-    MM[3, 9] = c1 * (9/70)
-    MM[3, 11] = c1 * (13*L/420)
-    MM[4, 4] = c1 * (I1/3/A)
-    MM[4, 10] = c1 * (I1/6/A)
-    MM[5, 5] = c1 * (L^2/105)
-    MM[5, 9] = c1 * (-13*L/420)
-    MM[5, 11] = c1 * (-L^2/140)
-    MM[6, 6] = c1 * (L^2/105)
-    MM[6, 8] = c1 * (13*L/420)
-    MM[6, 12] = c1 * (-L^2/140)
-    MM[7, 7] = c1 * (1/3)
-    MM[8, 8] = c1 * (13/35)
-    MM[8, 12] = c1 * (-11*L/210)
-    MM[9, 9] = c1 * (13/35)
-    MM[9, 11] = c1 * (11*L/210)
-    MM[10, 10] = c1 * (I1/3/A)
-    MM[11, 11] = c1 * (L^2/105)
-    MM[12, 12] = c1 * (L^2/105)
-    c2 = (rho/L)::Float64
-    MM[2, 2] += c2 * (6/5*I2)
-    MM[2, 6] += c2 * (L/10*I2)
-    MM[2, 8] += c2 * (-6/5*I2)
-    MM[2, 12] += c2 * (L/10*I2)
-    MM[3, 3] += c2 * (6/5*I3)
-    MM[3, 5] += c2 * (-L/10*I3)
-    MM[3, 9] += c2 * (-6/5*I3)
-    MM[3, 11] += c2 * (-L/10*I3)
-    MM[5, 5] += c2 * (2*L^2/15*I3)
-    MM[5, 9] += c2 * (L/10*I3)
-    MM[5, 11] += c2 * (-L^2/30*I3)
-    MM[6, 6] += c2 * (2*L^2/15*I2)
-    MM[6, 8] += c2 * (-L/10*I2)
-    MM[6, 12] += c2 * (-L^2/30*I2)
-    MM[8, 8] += c2 * (6/5*I2)
-    MM[8, 12] += c2 * (-L/10*I2)
-    MM[9, 9] += c2 * (6/5*I3)
-    MM[9, 11] += c2 * (L/10*I3)
-    MM[11, 11] += c2 * (2*L^2/15*I3)
-    MM[12, 12] += c2 * (2*L^2/15*I2)
+    c1 = (rho * A * L)::Float64
+    MM[1, 1] = c1 * (1 / 3)
+    MM[1, 7] = c1 * (1 / 6)
+    MM[2, 2] = c1 * (13 / 35)
+    MM[2, 6] = c1 * (11 * L / 210)
+    MM[2, 8] = c1 * (9 / 70)
+    MM[2, 12] = c1 * (-13 * L / 420)
+    MM[3, 3] = c1 * (13 / 35)
+    MM[3, 5] = c1 * (-11 * L / 210)
+    MM[3, 9] = c1 * (9 / 70)
+    MM[3, 11] = c1 * (13 * L / 420)
+    MM[4, 4] = c1 * (I1 / 3 / A)
+    MM[4, 10] = c1 * (I1 / 6 / A)
+    MM[5, 5] = c1 * (L^2 / 105)
+    MM[5, 9] = c1 * (-13 * L / 420)
+    MM[5, 11] = c1 * (-L^2 / 140)
+    MM[6, 6] = c1 * (L^2 / 105)
+    MM[6, 8] = c1 * (13 * L / 420)
+    MM[6, 12] = c1 * (-L^2 / 140)
+    MM[7, 7] = c1 * (1 / 3)
+    MM[8, 8] = c1 * (13 / 35)
+    MM[8, 12] = c1 * (-11 * L / 210)
+    MM[9, 9] = c1 * (13 / 35)
+    MM[9, 11] = c1 * (11 * L / 210)
+    MM[10, 10] = c1 * (I1 / 3 / A)
+    MM[11, 11] = c1 * (L^2 / 105)
+    MM[12, 12] = c1 * (L^2 / 105)
+    c2 = (rho / L)::Float64
+    MM[2, 2] += c2 * (6 / 5 * I2)
+    MM[2, 6] += c2 * (L / 10 * I2)
+    MM[2, 8] += c2 * (-6 / 5 * I2)
+    MM[2, 12] += c2 * (L / 10 * I2)
+    MM[3, 3] += c2 * (6 / 5 * I3)
+    MM[3, 5] += c2 * (-L / 10 * I3)
+    MM[3, 9] += c2 * (-6 / 5 * I3)
+    MM[3, 11] += c2 * (-L / 10 * I3)
+    MM[5, 5] += c2 * (2 * L^2 / 15 * I3)
+    MM[5, 9] += c2 * (L / 10 * I3)
+    MM[5, 11] += c2 * (-L^2 / 30 * I3)
+    MM[6, 6] += c2 * (2 * L^2 / 15 * I2)
+    MM[6, 8] += c2 * (-L / 10 * I2)
+    MM[6, 12] += c2 * (-L^2 / 30 * I2)
+    MM[8, 8] += c2 * (6 / 5 * I2)
+    MM[8, 12] += c2 * (-L / 10 * I2)
+    MM[9, 9] += c2 * (6 / 5 * I3)
+    MM[9, 11] += c2 * (L / 10 * I3)
+    MM[11, 11] += c2 * (2 * L^2 / 15 * I3)
+    MM[12, 12] += c2 * (2 * L^2 / 15 * I2)
     # 1       2        3        4       5         6       7        8       9       10      11       12
     complete_lt!(MM)
     return MM
@@ -255,27 +287,27 @@ function local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rh
     # C
     # C  LUMPED DIAGONAL MASS MATRIX WITH ROTATIONAL MASSES
     # C
-    HLM  = A*rho*L/2.;
-    HLI1 = rho*I1* L/2.;
-    HLI2 = rho*I2* L/2.;
-    HLI3 = rho*I3* L/2.;
-    CA = HLM;
-    CB = HLI1;
-    CC = HLI2;
-    CD = HLI3;
-    fill!(MM, 0.0);
-    MM[1,1]    = MM[1,1]    + CA;
-    MM[2,2]    = MM[2,2]    + CA;
-    MM[3,3]    = MM[3,3]    + CA;
-    MM[4,4]    = MM[4,4]    + CB;
-    MM[5,5]    = MM[5,5]    + CC;
-    MM[6,6]    = MM[6,6]    + CD;
-    MM[7,7]    = MM[7,7]    + CA;
-    MM[8,8]    = MM[8,8]    + CA;
-    MM[9,9]    = MM[9,9]    + CA;
-    MM[10,10]  = MM[10,10]  + CB;
-    MM[11,11]  = MM[11,11]  + CC;
-    MM[12,12]  = MM[12,12]  + CD;
+    HLM = A * rho * L / 2.0
+    HLI1 = rho * I1 * L / 2.0
+    HLI2 = rho * I2 * L / 2.0
+    HLI3 = rho * I3 * L / 2.0
+    CA = HLM
+    CB = HLI1
+    CC = HLI2
+    CD = HLI3
+    fill!(MM, 0.0)
+    MM[1, 1] = MM[1, 1] + CA
+    MM[2, 2] = MM[2, 2] + CA
+    MM[3, 3] = MM[3, 3] + CA
+    MM[4, 4] = MM[4, 4] + CB
+    MM[5, 5] = MM[5, 5] + CC
+    MM[6, 6] = MM[6, 6] + CD
+    MM[7, 7] = MM[7, 7] + CA
+    MM[8, 8] = MM[8, 8] + CA
+    MM[9, 9] = MM[9, 9] + CA
+    MM[10, 10] = MM[10, 10] + CB
+    MM[11, 11] = MM[11, 11] + CC
+    MM[12, 12] = MM[12, 12] + CD
     return MM
 end
 
@@ -283,18 +315,18 @@ function local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho,
     # C
     # C  LUMPED DIAGONAL ISOTROPIC MASS MATRIX WITHOUT ROTATIONAL MASSES
     # C
-    HLM  = A*rho*L/2.;
-    CA = HLM;
-    CB = 0.0;
-    CC = 0.0;
-    CD = 0.0;
-    fill!(MM, 0.0);
-    MM[1,1]    = MM[1,1]    + CA;
-    MM[2,2]    = MM[2,2]    + CA;
-    MM[3,3]    = MM[3,3]    + CA;
-    MM[7,7]    = MM[7,7]    + CA;
-    MM[8,8]    = MM[8,8]    + CA;
-    MM[9,9]    = MM[9,9]    + CA;
+    HLM = A * rho * L / 2.0
+    CA = HLM
+    CB = 0.0
+    CC = 0.0
+    CD = 0.0
+    fill!(MM, 0.0)
+    MM[1, 1] = MM[1, 1] + CA
+    MM[2, 2] = MM[2, 2] + CA
+    MM[3, 3] = MM[3, 3] + CA
+    MM[7, 7] = MM[7, 7] + CA
+    MM[8, 8] = MM[8, 8] + CA
+    MM[9, 9] = MM[9, 9] + CA
     return MM
 end
 
@@ -345,9 +377,9 @@ coordinate axis,
 `SM` = local stiffness matrix, 12 x 12
 """
 function local_stiffness!(SM, E, G, A, I2, I3, J, A2s, A3s, L, aN, DN)
-    local_cartesian_to_natural!(aN, L);
-    natural_stiffness!(DN, E, G, A, I2, I3, J, A2s, A3s, L);
-    SM .= aN'*DN*aN;
+    local_cartesian_to_natural!(aN, L)
+    natural_stiffness!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+    SM .= aN' * DN * aN
     return SM
 end
 
@@ -375,9 +407,9 @@ coordinate axis,
      `PN[6]`= axial torque.
 """
 function natural_forces!(PN, E, G, A, I2, I3, J, A2s, A3s, L, dN, DN)
-    natural_stiffness!(DN, E, G, A, I2, I3, J, A2s, A3s, L);
+    natural_stiffness!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     #     Natural forces
-    mul!(PN, DN, dN);
+    mul!(PN, DN, dN)
     # Note that the non-constitutive stiffness due to pre-existing internal forces is currently omitted
 end
 
@@ -403,12 +435,12 @@ function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 """
 function natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     fill!(DN, 0.0)
-    DN[1, 1] = E*A/L
-    DN[2, 2] = E*I3/L
-    DN[3, 3] = 3*E*I3/L
-    DN[4, 4] = E*I2/L
-    DN[5, 5] = 3*E*I2/L
-    DN[6, 6] = G*J/L
+    DN[1, 1] = E * A / L
+    DN[2, 2] = E * I3 / L
+    DN[3, 3] = 3 * E * I3 / L
+    DN[4, 4] = E * I2 / L
+    DN[5, 5] = 3 * E * I2 / L
+    DN[6, 6] = G * J / L
     return DN
 end
 
@@ -434,14 +466,14 @@ function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 """
 function natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     fill!(DN, 0.0)
-    DN[1, 1] = E*A/L
-    DN[2, 2] = E*I3/L
+    DN[1, 1] = E * A / L
+    DN[2, 2] = E * I3 / L
     Phi3 = 12 * E * I3 / (G * A2s * L^2)
-    DN[3, 3] = 3*E*I3/L/(1+Phi3)
-    DN[4, 4] = E*I2/L
+    DN[3, 3] = 3 * E * I3 / L / (1 + Phi3)
+    DN[4, 4] = E * I2 / L
     Phi2 = 12 * E * I2 / (G * A3s * L^2)
-    DN[5, 5] = 3*E*I2/L/(1+Phi2)
-    DN[6, 6] = G*J/L
+    DN[5, 5] = 3 * E * I2 / L / (1 + Phi2)
+    DN[6, 6] = G * J / L
     return DN
 end
 
@@ -470,12 +502,18 @@ local coordinate system.
 FL = vector of forces acting on the nodes in the local coordinate system
 """
 function local_forces!(FL, PN, L, aN)
-    local_cartesian_to_natural!(aN, L);
-    mul!(FL, Transpose(aN), PN);
+    local_cartesian_to_natural!(aN, L)
+    mul!(FL, Transpose(aN), PN)
     return FL
 end
 
-function _eccentricitytransformation(Te, eccentricity_f1_1, eccentricity_f1_2, eccentricity_f2, eccentricity_f3)
+function _eccentricitytransformation(
+    Te,
+    eccentricity_f1_1,
+    eccentricity_f1_2,
+    eccentricity_f2,
+    eccentricity_f3,
+)
     Te .= zero(eltype(Te))
     Te[1:3, 1:3] = Te[4:6, 4:6] = Te[7:9, 7:9] = Te[10:12, 10:12] = LinearAlgebra.I(3)
     Te[1, 4:6] .= (0.0, eccentricity_f3, -eccentricity_f2)
@@ -496,7 +534,15 @@ Compute the consistent mass matrix
 
 This is a general routine for the abstract linear-deformation  FEMM.
 """
-function mass(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function mass(
+    self::FEMMLinBeam,
+    assembler::ASS,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI};
+    mass_type = MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA,
+) where {ASS<:AbstractSysmatAssembler,T<:Number,TI<:Number}
     fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -505,30 +551,42 @@ function mass(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::No
     dN = self._dN
     rho = massdensity(self.material)
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
-    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
+    startassembly!(
+        assembler,
+        prod(size(elmat)) * count(fes),
+        nalldofs(dchi),
+        nalldofs(dchi),
+    )
     for i = 1:count(fes) # Loop over elements
-        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        fill!(elmat,  0.0); # Initialize element matrix
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
+        fill!(elmat, 0.0) # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _transfmat!(Te, F0)
-        L0 = norm(ecoords0[2,:]-ecoords0[1,:]); 
+        L0 = norm(ecoords0[2, :] - ecoords0[1, :])
         _eccentricitytransformation(Secc, eccentricities[i, :]...)
-        local_mass!(elmat, A[i], I1[i], I2[i], I3[i], rho, L0, mass_type);
+        local_mass!(elmat, A[i], I1[i], I2[i], I3[i], rho, L0, mass_type)
         # First transform from slave to master (U_s = Secc * U_m)
         mul!(elmattemp, elmat, Secc)
         mul!(elmat, Transpose(Secc), elmattemp)
         # Then transform from the master local coordinates into global coordinates
         mul!(elmattemp, elmat, Transpose(Te))
         mul!(elmat, Te, elmattemp)
-        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
-        assemble!(assembler, elmat, dofnums, dofnums); 
+        gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
+        assemble!(assembler, elmat, dofnums, dofnums)
     end # Loop over elements
-    return makematrix!(assembler);
+    return makematrix!(assembler)
 end
 
-function mass(self::FEMMLinBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}; mass_type=MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA) where {T<:Number, TI<:Number}
-    assembler = SysmatAssemblerSparseSymm();
-    return mass(self, assembler, geom0, u1, Rfield1, dchi; mass_type = mass_type);
+function mass(
+    self::FEMMLinBeam,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI};
+    mass_type = MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA,
+) where {T<:Number,TI<:Number}
+    assembler = SysmatAssemblerSparseSymm()
+    return mass(self, assembler, geom0, u1, Rfield1, dchi; mass_type = mass_type)
 end
 
 """
@@ -536,7 +594,14 @@ end
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, T<:Number, TI<:Number}
+function stiffness(
+    self::FEMMLinBeam,
+    assembler::ASS,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI},
+) where {ASS<:AbstractSysmatAssembler,T<:Number,TI<:Number}
     fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -546,29 +611,40 @@ function stiffness(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
-    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi))
+    startassembly!(
+        assembler,
+        prod(size(elmat)) * count(fes),
+        nalldofs(dchi),
+        nalldofs(dchi),
+    )
     for i in eachindex(fes) # Loop over elements
-        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        fill!(elmat,  0.0); # Initialize element matrix
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
+        fill!(elmat, 0.0) # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _transfmat!(Te, F0)
         _eccentricitytransformation(Secc, eccentricities[i, :]...)
-        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
+        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN)
         # First transform from slave to master (U_s = Secc * U_m)
         mul!(elmattemp, elmat, Secc)
         mul!(elmat, Transpose(Secc), elmattemp)
         # Then transform from the master local coordinates into global coordinates
         mul!(elmattemp, elmat, Transpose(Te))
         mul!(elmat, Te, elmattemp)
-        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
-        assemble!(assembler, elmat, dofnums, dofnums); 
+        gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
+        assemble!(assembler, elmat, dofnums, dofnums)
     end # Loop over elements
-    return makematrix!(assembler);
+    return makematrix!(assembler)
 end
 
-function stiffness(self::FEMMLinBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}) where {T<:Number, TI<:Number}
-    assembler = SysmatAssemblerSparseSymm();
-    return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
+function stiffness(
+    self::FEMMLinBeam,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI},
+) where {T<:Number,TI<:Number}
+    assembler = SysmatAssemblerSparseSymm()
+    return stiffness(self, assembler, geom0, u1, Rfield1, dchi)
 end
 
 
@@ -586,7 +662,15 @@ in the configuration u1, Rfield1. These are only forces, not moments.
     The force intensity must be uniform across the entire element. The
     force intensity is given in the global coordinates.
 """
-function distribloads_global(self::FEMMLinBeam, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {ASS<:AbstractSysvecAssembler, T<:Number, TI<:Number}
+function distribloads_global(
+    self::FEMMLinBeam,
+    assembler::ASS,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI},
+    fi,
+) where {ASS<:AbstractSysvecAssembler,T<:Number,TI<:Number}
     fes = self.integdomain.fes
     ecoords0, dofnums = self._ecoords0, self._dofnums
     F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
@@ -597,41 +681,48 @@ function distribloads_global(self::FEMMLinBeam, assembler::ASS, geom0::NodalFiel
     forc_f_s = deepcopy(forc_f_m)
     forc_g = deepcopy(forc_f_m)
     Lforce = fill(0.0, 3)
-    ignore = fill(0.0 , 0, 0)
+    ignore = fill(0.0, 0, 0)
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(assembler, nalldofs(dchi))
     for i in eachindex(fes) # Loop over elements
-        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _transfmat!(Te, F0)
         _eccentricitytransformation(Secc, eccentricities[i, :]...)
-        force = updateforce!(fi, ignore, ignore, i, 0); # retrieve the applied load
+        force = updateforce!(fi, ignore, ignore, i, 0) # retrieve the applied load
         Lforce = F0' * force # local distributed load components
-        forc_f_s[1] = Lforce[1]*L0/2;
-        forc_f_s[2] = Lforce[2]*L0/2;
-        forc_f_s[3] = Lforce[3]*L0/2;
-        forc_f_s[4] = 0;
-        forc_f_s[5] = -Lforce[3]*L0^2/12;
-        forc_f_s[6] = +Lforce[2]*L0^2/12;
-        forc_f_s[7] = Lforce[1]*L0/2;
-        forc_f_s[8] = Lforce[2]*L0/2;
-        forc_f_s[9] = Lforce[3]*L0/2;
-        forc_f_s[10] = 0;
-        forc_f_s[11] = +Lforce[3]*L0^2/12;
-        forc_f_s[12] = -Lforce[2]*L0^2/12;
+        forc_f_s[1] = Lforce[1] * L0 / 2
+        forc_f_s[2] = Lforce[2] * L0 / 2
+        forc_f_s[3] = Lforce[3] * L0 / 2
+        forc_f_s[4] = 0
+        forc_f_s[5] = -Lforce[3] * L0^2 / 12
+        forc_f_s[6] = +Lforce[2] * L0^2 / 12
+        forc_f_s[7] = Lforce[1] * L0 / 2
+        forc_f_s[8] = Lforce[2] * L0 / 2
+        forc_f_s[9] = Lforce[3] * L0 / 2
+        forc_f_s[10] = 0
+        forc_f_s[11] = +Lforce[3] * L0^2 / 12
+        forc_f_s[12] = -Lforce[2] * L0^2 / 12
         mul!(forc_f_m, Transpose(Secc), forc_f_s)
         mul!(forc_g, Te, forc_f_m)
-        gatherdofnums!(dchi, dofnums, fes.conn[i]); # degrees of freedom
-        assemble!(assembler, forc_g, dofnums);
+        gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
+        assemble!(assembler, forc_g, dofnums)
     end # Loop over elements
-    return makevector!(assembler);
+    return makevector!(assembler)
 end
 
-function distribloads_global(self::FEMMLinBeam, geom0::NodalField{FFlt}, u1::NodalField{T}, Rfield1::NodalField{T}, dchi::NodalField{TI}, fi) where {T<:Number, TI<:Number}
-    assembler = SysvecAssembler();
-    return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi);
+function distribloads_global(
+    self::FEMMLinBeam,
+    geom0::NodalField{FFlt},
+    u1::NodalField{T},
+    Rfield1::NodalField{T},
+    dchi::NodalField{TI},
+    fi,
+) where {T<:Number,TI<:Number}
+    assembler = SysvecAssembler()
+    return distribloads_global(self, assembler, geom0, u1, Rfield1, dchi, fi)
 end
 
 
@@ -672,24 +763,24 @@ function inspectintegpoints(
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     # Loop over  all the elements and all the quadrature points within them
-    for ilist  in  1:length(felist) # Loop over elements
-        i = felist[ilist];
-        gathervalues_asmat!(geom0, ecoords0, fes.conn[i]);
-        gathervalues_asvec!(dchi, disp_g, fes.conn[i]);
+    for ilist = 1:length(felist) # Loop over elements
+        i = felist[ilist]
+        gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
+        gathervalues_asvec!(dchi, disp_g, fes.conn[i])
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
         _eccentricitytransformation(Secc, eccentricities[i, :]...)
         _transfmat!(Te, F0)
         elmat .= zero(eltype(elmat))
-        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN);
+        local_stiffness!(elmat, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L0, aN, DN)
         # First transform from the global coordinates into master local coordinates
         mul!(disp_f_m, Transpose(Te), disp_g) # master displ in f-frame
         # Then transform from master to slave (U_s = Secc * U_m)
         mul!(disp_f_s, Secc, disp_f_m) # slave displ in f-frame
         # Finally compute the forces acting on the slave nodes
         mul!(forces, elmat, disp_f_s)
-        idat = inspector(idat, i, fes.conn[i], ecoords0, forces, nothing);
+        idat = inspector(idat, i, fes.conn[i], ecoords0, forces, nothing)
     end # Loop over elements
-    return idat; # return the updated inspector data
+    return idat # return the updated inspector data
 end
 
 end # module

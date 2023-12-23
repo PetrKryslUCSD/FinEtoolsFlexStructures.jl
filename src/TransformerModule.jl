@@ -2,7 +2,8 @@ module TransformerModule
 
 using LinearAlgebra: norm, Transpose, mul!
 using FinEtools
-using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
+using FinEtools.FTypesModule:
+    FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 
 """
     TransformerQtEQ
@@ -17,7 +18,7 @@ Buffers the intermediate result. Hence no allocation is incurred.
 struct TransformerQtEQ{T}
     _buff::Matrix{T}
     function TransformerQtEQ(Q::Matrix{T}) where {T}
-        _buff = fill(zero(eltype(Q)), size(Q)...);
+        _buff = fill(zero(eltype(Q)), size(Q)...)
         return new{T}(_buff)
     end
 end
@@ -28,13 +29,14 @@ end
 Perform the transformation on the matrix `E` with the transformation matrix
 `Q`: `Ebar = Q^T * E * Q`.
 """
-(o::TransformerQtEQ)(E, Q) = let
-    @assert size(o._buff) == size(Q)
-    @assert size(E) == size(Q)
-    mul!(o._buff, E, Q)
-    mul!(E, Transpose(Q), o._buff)
-    return E
-end
+(o::TransformerQtEQ)(E, Q) =
+    let
+        @assert size(o._buff) == size(Q)
+        @assert size(E) == size(Q)
+        mul!(o._buff, E, Q)
+        mul!(E, Transpose(Q), o._buff)
+        return E
+    end
 
 
 """

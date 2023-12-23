@@ -17,17 +17,17 @@ using Test
 
 function test_homogeneous()
     formul = FEMMShellT3FFModule
-    
-    ax = ay = 1000*phun("mm")
+
+    ax = ay = 1000 * phun("mm")
     nx = ny = 8
-    E = 1000.0*phun("MPa")
+    E = 1000.0 * phun("MPa")
     nu = 0.396
-    rho = 2.0*phun("kg/m^3")
-    thickness = ax/1000;
-    tolerance = ax/nx/100
-    D = E*thickness^3/12/(1-nu^2)
-    
-    fens, fes = T3block(ax,ay,nx,ny);
+    rho = 2.0 * phun("kg/m^3")
+    thickness = ax / 1000
+    tolerance = ax / nx / 100
+    D = E * thickness^3 / 12 / (1 - nu^2)
+
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -39,9 +39,9 @@ function test_homogeneous()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # No in plane displacements
@@ -55,19 +55,25 @@ function test_homogeneous()
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
 
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 8
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
     # @show nconv
     fs = real(sqrt.(complex(d))) / (2 * pi)
     # From Blevins, Table 5.3, square plate SSSS
@@ -76,7 +82,7 @@ function test_homogeneous()
     #         @show pi^2 * (m^2 + n^2) * sqrt(D/rho/thickness) / (2 * pi * ax^2)
     #     end
     # end
-        
+
     # vectors = []
     # for i in 1:neigvs
     #     scattersysvec!(dchi, v[:, i])
@@ -84,7 +90,18 @@ function test_homogeneous()
     # end
     # vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
     # @test maximum(dchi.values[:, 3]) ./phun("mm") ≈ 0.22004349767718365
-    @test norm(fs - [21.822774909379287, 54.52203720717488, 54.60475772077202, 86.5480437899711, 108.65349048567792, 108.78050954575491, 138.29506871044424, 140.89370172063866]) < 1.0e-3 * norm(fs)
+    @test norm(
+        fs - [
+            21.822774909379287,
+            54.52203720717488,
+            54.60475772077202,
+            86.5480437899711,
+            108.65349048567792,
+            108.78050954575491,
+            138.29506871044424,
+            140.89370172063866,
+        ],
+    ) < 1.0e-3 * norm(fs)
     true
 end
 
@@ -92,28 +109,28 @@ end
 function test_composite()
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    ax = ay = 1000*phun("mm")
+
+    ax = ay = 1000 * phun("mm")
     nx = ny = 8
-    E = 1000.0*phun("MPa")
+    E = 1000.0 * phun("MPa")
     nu = 0.396
-    rho = 2.0*phun("kg/m^3")
-    thickness = ax/1000;
-    tolerance = ax/nx/100
-    D = E*thickness^3/12/(1-nu^2)
+    rho = 2.0 * phun("kg/m^3")
+    thickness = ax / 1000
+    tolerance = ax / nx / 100
+    D = E * thickness^3 / 12 / (1 - nu^2)
 
     mater = CM.lamina_material(rho, E, nu)
     # Note that we model the isotropic homogeneous plate with multiple plies.
     plies = CM.Ply[]
-    push!(plies, CM.Ply("ply_1", mater, thickness/4, 45))
-    push!(plies, CM.Ply("ply_2", mater, thickness/4, -45))
-    push!(plies, CM.Ply("ply_3", mater, thickness/4, 45))
-    push!(plies, CM.Ply("ply_4", mater, thickness/4, -45))
+    push!(plies, CM.Ply("ply_1", mater, thickness / 4, 45))
+    push!(plies, CM.Ply("ply_2", mater, thickness / 4, -45))
+    push!(plies, CM.Ply("ply_3", mater, thickness / 4, 45))
+    push!(plies, CM.Ply("ply_4", mater, thickness / 4, -45))
 
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("petyt_9.2", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -123,19 +140,19 @@ function test_composite()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Pin one of the corners
     l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2, 3,]
+    for i in [1, 2, 3]
         setebc!(dchi, l1, true, i)
     end
     # Roller at the other
     l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,]
+    for i in [2]
         setebc!(dchi, l1, true, i)
     end
     # Simple support
@@ -144,18 +161,24 @@ function test_composite()
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 8
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
     # @show nconv
     fs = real(sqrt.(complex(d))) / (2 * pi)
     # oms = real(sqrt.(complex(d)))
@@ -166,7 +189,18 @@ function test_composite()
     #     push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
     # end
     # vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
-    @test norm(fs - [21.822774909379287, 54.52203720717488, 54.60475772077202, 86.5480437899711, 108.65349048567792, 108.78050954575491, 138.29506871044424, 140.89370172063866]) < 1.0e-3 * norm(fs)
+    @test norm(
+        fs - [
+            21.822774909379287,
+            54.52203720717488,
+            54.60475772077202,
+            86.5480437899711,
+            108.65349048567792,
+            108.78050954575491,
+            138.29506871044424,
+            140.89370172063866,
+        ],
+    ) < 1.0e-3 * norm(fs)
     true
 end
 end
@@ -203,7 +237,7 @@ mcompshelldyn0.test_composite()
 # function test()
 #     formul = FEMMShellT3FFCompModule
 #     CM = CompositeLayupModule
-    
+
 #     ax = ay = 1000*phun("mm")
 #     nx = ny = 50
 #     E1 = 1000.0*phun("MPa")
@@ -320,30 +354,30 @@ using Test
 function test(nplies = 10, axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    ax = ay = 100*phun("mm")
+
+    ax = ay = 100 * phun("mm")
     nx = ny = 9
     # aragonite crystals
-    E1 = 143.52*phun("GPa")
-    E2 = 75.38*phun("GPa")
-    G12 = 42.03*phun("GPa")
-    G13 = 25.56*phun("GPa")
-    nu12 = 0.44;
+    E1 = 143.52 * phun("GPa")
+    E2 = 75.38 * phun("GPa")
+    G12 = 42.03 * phun("GPa")
+    G13 = 25.56 * phun("GPa")
+    nu12 = 0.44
     nu23 = 0.23
-    G23 = 42.65*phun("GPa")
-    rho = 1500.0*phun("kg/m^3") # only a guess
-    C11 = 159.85*phun("GPa")
-    thickness = ax/10;
-    tolerance = ax/nx/100
+    G23 = 42.65 * phun("GPa")
+    rho = 1500.0 * phun("kg/m^3") # only a guess
+    C11 = 159.85 * phun("GPa")
+    thickness = ax / 10
+    tolerance = ax / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
-    plies = [CM.Ply("ply_$i", mater, thickness/nplies, 0) for i in 1:nplies]
+    plies = [CM.Ply("ply_$i", mater, thickness / nplies, 0) for i = 1:nplies]
 
     mcsys = CM.cartesian_csys(axes)
     layup = CM.CompositeLayup("Nayak 4.3", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -353,19 +387,19 @@ function test(nplies = 10, axes = (1, 2, 3))
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Pin one of the corners
     l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2, 3,]
+    for i in [1, 2, 3]
         setebc!(dchi, l1, true, i)
     end
     # Roller at the other
     l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,]
+    for i in [2]
         setebc!(dchi, l1, true, i)
     end
     # Simple support
@@ -374,30 +408,48 @@ function test(nplies = 10, axes = (1, 2, 3))
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
-    @test nconv == neigvs   
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
+    @test nconv == neigvs
     fs = real(sqrt.(complex(d))) / (2 * pi)
-    
-    @test norm([0.04571652264814249, 0.10096323319412286, 0.11467782865238098, 0.16264669289730896, 0.18683613787902217, 0.20655080934826295, 0.23954509827380233, 0.2476225295798577, 0.2718218525817157] - thickness * sqrt(rho/C11) .* (2 * pi * fs)) < 1.0e-13
-    
+
+    @test norm(
+        [
+            0.04571652264814249,
+            0.10096323319412286,
+            0.11467782865238098,
+            0.16264669289730896,
+            0.18683613787902217,
+            0.20655080934826295,
+            0.23954509827380233,
+            0.2476225295798577,
+            0.2718218525817157,
+        ] - thickness * sqrt(rho / C11) .* (2 * pi * fs),
+    ) < 1.0e-13
+
     vectors = []
-    for i in 1:neigvs
+    for i = 1:neigvs
         scattersysvec!(dchi, v[:, i])
         push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
     end
     vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
-    
+
     true
 end
 end
@@ -436,38 +488,39 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using Test
 
-function test(tL_ratio = 1/100, axes = (1, 2, 3))
+function test(tL_ratio = 1 / 100, axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    ax = ay = 100*phun("mm")
+
+    ax = ay = 100 * phun("mm")
     nx = ny = 32
     # aragonite crystals
-    E1 = 143.52*phun("GPa")
-    E2 = E1/40
-    G12 = E2*0.6
-    G13 = E2*0.6
-    nu12 = 0.25;
-    G23 = E2*0.5
-    rho = 1500.0*phun("kg/m^3") # only a guess
-    thickness = ax*tL_ratio;
-    nd_fundamental = Dict(1/5 => 10.989, 1/10 => 15.270, 1/100 => 18.755)
-    tolerance = ax/nx/100
+    E1 = 143.52 * phun("GPa")
+    E2 = E1 / 40
+    G12 = E2 * 0.6
+    G13 = E2 * 0.6
+    nu12 = 0.25
+    G23 = E2 * 0.5
+    rho = 1500.0 * phun("kg/m^3") # only a guess
+    thickness = ax * tL_ratio
+    nd_fundamental = Dict(1 / 5 => 10.989, 1 / 10 => 15.270, 1 / 100 => 18.755)
+    tolerance = ax / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
     nplies = 4
     plies = [
-    CM.Ply("ply_1", mater, thickness/nplies, 0), 
-    CM.Ply("ply_2", mater, thickness/nplies, 90), 
-    CM.Ply("ply_3", mater, thickness/nplies, 90), 
-    CM.Ply("ply_4", mater, thickness/nplies, 0), ]
+        CM.Ply("ply_1", mater, thickness / nplies, 0),
+        CM.Ply("ply_2", mater, thickness / nplies, 90),
+        CM.Ply("ply_3", mater, thickness / nplies, 90),
+        CM.Ply("ply_4", mater, thickness / nplies, 0),
+    ]
 
 
     mcsys = CM.cartesian_csys(axes)
     layup = CM.CompositeLayup("Nayak 4.4", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -477,19 +530,19 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Pin one of the corners
     l1 = selectnode(fens; box = Float64[ax ax 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,2, 3,]
+    for i in [1, 2, 3]
         setebc!(dchi, l1, true, i)
     end
     # Roller at the other
     l1 = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], inflate = tolerance)
-    for i in [2,]
+    for i in [2]
         setebc!(dchi, l1, true, i)
     end
     # Simple support
@@ -498,40 +551,48 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
-    @test nconv == neigvs   
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
+    @test nconv == neigvs
     fs = real(sqrt.(complex(d))) / (2 * pi)
-    
+
     # @show nd_fundamental[tL_ratio]
     # @show 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)
-    @test abs(nd_fundamental[tL_ratio] - 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)) / nd_fundamental[tL_ratio] < 3.0e-2
+    @test abs(
+        nd_fundamental[tL_ratio] - 2 * pi * fs[1] * ax^2 / thickness * sqrt(rho / E2),
+    ) / nd_fundamental[tL_ratio] < 3.0e-2
     # vectors = []
     # for i in 1:neigvs
     #     scattersysvec!(dchi, v[:, i])
     #     push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
     # end
     # vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
-    
+
     true
 end
 end
 using .mcompshelldyn3
-mcompshelldyn3.test(1/5, (1, 2, 3))
-mcompshelldyn3.test(1/10, (1, 2, 3))
-mcompshelldyn3.test(1/100, (1, 2, 3))
-mcompshelldyn3.test(1/100, (2, -1, 3))
-mcompshelldyn3.test(1/100, (-2, 1, 3))
+mcompshelldyn3.test(1 / 5, (1, 2, 3))
+mcompshelldyn3.test(1 / 10, (1, 2, 3))
+mcompshelldyn3.test(1 / 100, (1, 2, 3))
+mcompshelldyn3.test(1 / 100, (2, -1, 3))
+mcompshelldyn3.test(1 / 100, (-2, 1, 3))
 
 
 module mcompshelldyn4
@@ -556,36 +617,41 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using Test
 
-function test(tL_ratio = 1/100, axes = (1, 2, 3))
+function test(tL_ratio = 1 / 100, axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    a = 100*phun("mm")
+
+    a = 100 * phun("mm")
     nx = ny = 8
     # aragonite crystals
-    E1 = 143.52*phun("GPa")
-    E2 = E1/40
-    G12 = E2*0.6
-    G13 = E2*0.6
-    nu12 = 0.25;
-    G23 = E2*0.5
-    rho = 1500.0*phun("kg/m^3") # only a guess
-    thickness = a*tL_ratio;
-    nd_fundamental = Dict(1/5 => 9.01, 1/10 => 10.449, 1/100 => 11.156)
-    approx_nd_fundamental = Dict(1/5 => 8.754289808606417, 1/10 => 10.35796013315713, 1/100 => 11.160996567154124)
-    tolerance = a/nx/100
+    E1 = 143.52 * phun("GPa")
+    E2 = E1 / 40
+    G12 = E2 * 0.6
+    G13 = E2 * 0.6
+    nu12 = 0.25
+    G23 = E2 * 0.5
+    rho = 1500.0 * phun("kg/m^3") # only a guess
+    thickness = a * tL_ratio
+    nd_fundamental = Dict(1 / 5 => 9.01, 1 / 10 => 10.449, 1 / 100 => 11.156)
+    approx_nd_fundamental = Dict(
+        1 / 5 => 8.754289808606417,
+        1 / 10 => 10.35796013315713,
+        1 / 100 => 11.160996567154124,
+    )
+    tolerance = a / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
     nplies = 2
     plies = [
-    CM.Ply("ply_1", mater, thickness/nplies, 0), 
-    CM.Ply("ply_2", mater, thickness/nplies, 90),  ]
+        CM.Ply("ply_1", mater, thickness / nplies, 0),
+        CM.Ply("ply_2", mater, thickness / nplies, 90),
+    ]
 
     mcsys = CM.cartesian_csys(axes)
     layup = CM.CompositeLayup("Nayak 4.4", plies, mcsys)
 
-    fens, fes = T3block(a,a,nx,ny);
+    fens, fes = T3block(a, a, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -595,53 +661,60 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Simple support
-        # The boundary conditions are a bit peculiar: refer to the paper
-        l1 = selectnode(fens; box = Float64[0 0 -Inf Inf 0 0], inflate = tolerance)
-        for i in [2, 4]
-            setebc!(dchi, l1, true, i)
-        end
-        l1 = selectnode(fens; box = Float64[a a -Inf Inf 0 0], inflate = tolerance)
-        for i in [2, 4]
-            setebc!(dchi, l1, true, i)
-        end
-        l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 0 0], inflate = tolerance)
-        for i in [1, 5]
-            setebc!(dchi, l1, true, i)
-        end
-        l1 = selectnode(fens; box = Float64[-Inf Inf a a 0 0], inflate = tolerance)
-        for i in [1, 5]
-            setebc!(dchi, l1, true, i)
-        end
-        # Simple support
-        l1 = connectednodes(meshboundary(fes))
-        for i in [3]
-            setebc!(dchi, l1, true, i)
-        end
+    # The boundary conditions are a bit peculiar: refer to the paper
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf 0 0], inflate = tolerance)
+    for i in [2, 4]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[a a -Inf Inf 0 0], inflate = tolerance)
+    for i in [2, 4]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 0 0], inflate = tolerance)
+    for i in [1, 5]
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens; box = Float64[-Inf Inf a a 0 0], inflate = tolerance)
+    for i in [1, 5]
+        setebc!(dchi, l1, true, i)
+    end
+    # Simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in [3]
+        setebc!(dchi, l1, true, i)
+    end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
-    @test nconv == neigvs   
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
+    @test nconv == neigvs
     fs = real(sqrt.(complex(d))) / (2 * pi)
-    
+
     # @show nd_fundamental[tL_ratio]
     # @show 2*pi*fs[1]*a^2/thickness*sqrt(rho/E2)
-    @test 2*pi*fs[1]*a^2/thickness*sqrt(rho/E2) ≈ approx_nd_fundamental[tL_ratio]
+    @test 2 * pi * fs[1] * a^2 / thickness * sqrt(rho / E2) ≈
+          approx_nd_fundamental[tL_ratio]
     # @test abs(nd_fundamental[tL_ratio] - 2*pi*fs[1]*ax^2/thickness*sqrt(rho/E2)) / nd_fundamental[tL_ratio] < 3.0e-2
     # vectors = []
     # for i in 1:neigvs
@@ -649,16 +722,16 @@ function test(tL_ratio = 1/100, axes = (1, 2, 3))
     #     push!(vectors, ("mode_$i", deepcopy(dchi.values[:, 1:3])))
     # end
     # vtkwrite("plate-modes.vtu", fens, fes; vectors = vectors)
-    
+
     true
 end
 end
 using .mcompshelldyn4
-mcompshelldyn4.test(1/5, (1, 2, 3))
-mcompshelldyn4.test(1/10, (1, 2, 3))
-mcompshelldyn4.test(1/100, (1, 2, 3))
-mcompshelldyn4.test(1/100, (2, -1, 3))
-mcompshelldyn4.test(1/100, (-2, 1, 3))
+mcompshelldyn4.test(1 / 5, (1, 2, 3))
+mcompshelldyn4.test(1 / 10, (1, 2, 3))
+mcompshelldyn4.test(1 / 100, (1, 2, 3))
+mcompshelldyn4.test(1 / 100, (2, -1, 3))
+mcompshelldyn4.test(1 / 100, (-2, 1, 3))
 
 module mcompshelldyn6
 # Similar definition of the plate as in:
@@ -679,36 +752,36 @@ using Test
 function test()
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    ax = ay = 1000*phun("mm") # note the changed dimension
+
+    ax = ay = 1000 * phun("mm") # note the changed dimension
     nx = ny = 50
     # ASFD/9310
-    rho = 1500*phun("kg/m^3")
-    E1 = 133860*phun("MPa")
-    E2 = 7706*phun("MPa")
-    G12 = 4306*phun("MPa")
+    rho = 1500 * phun("kg/m^3")
+    E1 = 133860 * phun("MPa")
+    E2 = 7706 * phun("MPa")
+    G12 = 4306 * phun("MPa")
     G13 = G12
-    nu12 = 0.301;
+    nu12 = 0.301
     nu23 = 0.396
-    G23 = 2760*phun("MPa")
-    
+    G23 = 2760 * phun("MPa")
+
     npairs = 1
-    thickness = 10*phun("mm");
+    thickness = 10 * phun("mm")
     # With these inputs, the Abaqus-verified solution is 42.656 Hz
 
-    tolerance = ax/nx/100
+    tolerance = ax / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
     plies = CM.Ply[]
-    for p in 1:npairs
-        push!(plies, CM.Ply("ply_0_$p", mater, thickness/npairs/2, 0))
-        push!(plies, CM.Ply("ply_90_$p", mater, thickness/npairs/2, 90))
+    for p = 1:npairs
+        push!(plies, CM.Ply("ply_0_$p", mater, thickness / npairs / 2, 0))
+        push!(plies, CM.Ply("ply_90_$p", mater, thickness / npairs / 2, 90))
     end
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("example_3.1", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -718,9 +791,9 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Simple support
@@ -729,19 +802,25 @@ function test()
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
-        # Solve
+    # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
-    @test nconv == neigvs   
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
+    @test nconv == neigvs
     fs = real(sqrt.(complex(d))) / (2 * pi)
     @test abs(fs[1] - 42.62) / 42.62 < 1.0e-2
     # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])
@@ -772,36 +851,36 @@ using Test
 function test(axes = (1, 2, 3))
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    
-    ax = ay = 1000*phun("mm") # note the changed dimension
+
+    ax = ay = 1000 * phun("mm") # note the changed dimension
     nx = ny = 50
     # ASFD/9310
-    rho = 1500*phun("kg/m^3")
-    E1 = 133860*phun("MPa")
-    E2 = 7706*phun("MPa")
-    G12 = 4306*phun("MPa")
+    rho = 1500 * phun("kg/m^3")
+    E1 = 133860 * phun("MPa")
+    E2 = 7706 * phun("MPa")
+    G12 = 4306 * phun("MPa")
     G13 = G12
-    nu12 = 0.301;
+    nu12 = 0.301
     nu23 = 0.396
-    G23 = 2760*phun("MPa")
-    
+    G23 = 2760 * phun("MPa")
+
     npairs = 1
-    thickness = 10*phun("mm");
+    thickness = 10 * phun("mm")
     # With these inputs, the Abaqus-verified solution is 47.03 Hz
 
-    tolerance = ax/nx/100
+    tolerance = ax / nx / 100
     CM = CompositeLayupModule
 
     mater = CM.lamina_material(rho, E1, E2, nu12, G12, G13, G23)
     plies = CM.Ply[]
-    for p in 1:npairs
-        push!(plies, CM.Ply("ply_-45_$p", mater, thickness/npairs/2, -45))
-        push!(plies, CM.Ply("ply_+45_$p", mater, thickness/npairs/2, +45))
+    for p = 1:npairs
+        push!(plies, CM.Ply("ply_-45_$p", mater, thickness / npairs / 2, -45))
+        push!(plies, CM.Ply("ply_+45_$p", mater, thickness / npairs / 2, +45))
     end
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("example_3.1", plies, mcsys)
 
-    fens, fes = T3block(ax,ay,nx,ny);
+    fens, fes = T3block(ax, ay, nx, ny)
     fens.xyz = xyz3(fens)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -811,9 +890,9 @@ function test(axes = (1, 2, 3))
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
     # Simple support
@@ -822,19 +901,25 @@ function test(axes = (1, 2, 3))
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = formul.mass(femm, geom0, dchi);
+    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    M = formul.mass(femm, geom0, dchi)
     K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
-        # Solve
+    # Solve
     neigvs = 9
-    d, v, nconv = eigs(Symmetric(K_ff), Symmetric(M_ff); nev=neigvs, which=:SM, explicittransform=:none)
-    @test nconv == neigvs   
+    d, v, nconv = eigs(
+        Symmetric(K_ff),
+        Symmetric(M_ff);
+        nev = neigvs,
+        which = :SM,
+        explicittransform = :none,
+    )
+    @test nconv == neigvs
     fs = real(sqrt.(complex(d))) / (2 * pi)
     @test abs(fs[1] - 47.86476186783638) / 47.86476186783638 < 1.0e-2
     # vtkwrite("plate-$npairs-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3])])

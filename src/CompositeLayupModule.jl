@@ -1,7 +1,8 @@
 module CompositeLayupModule
 
 using FinEtools
-using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
+using FinEtools.FTypesModule:
+    FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
 using FinEtoolsDeforLinear
@@ -20,17 +21,24 @@ Create a material Cartesian coordinate system.
   vector is opposite to the third global basis vector.
 """
 function cartesian_csys(axes)
-    function cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
+    function cartesian!(
+        csmatout::FFltMat,
+        XYZ::FFltMat,
+        tangents::FFltMat,
+        feid::FInt,
+        qpid::FInt,
+    )
         csmatout[:] .= 0.0
-        for j in 1:3
-            aj = abs(axes[j]); sj = sign(axes[j])
+        for j = 1:3
+            aj = abs(axes[j])
+            sj = sign(axes[j])
             csmatout[aj, j] = sj * 1.0
         end
         return csmatout
     end
-    return  CSys(3, 3, cartesian!)
+    return CSys(3, 3, cartesian!)
 end
-     
+
 abstract type AbstractPly end
 
 """
@@ -63,22 +71,23 @@ function Ply(name, material::M, thickness, angle) where {M}
     # What if the material changes composition from point to point? What do we
     # do now?
     t::FFlt, dt::FFlt, loc::FFltMat, label::FInt = 0.0, 0.0, [0.0 0.0 0.0], 0
-    tangentmoduli!(material,  D,  t, dt, loc, label)
+    tangentmoduli!(material, D, t, dt, loc, label)
     # Next we reduce the 3d stiffness to plane stress
     # Both stiffness matrices are expressed on the reference coordinate system
     # for the ply: direction 1 = fiber direction, direction 3 = normal to the
     # ply
     Dps = fill(0.0, 3, 3)
-    Dps[1:2, 1:2] = D[1:2, 1:2] -  (reshape(D[1:2,3], 2, 1) * reshape(D[3,1:2], 1, 2))/D[3, 3]
-    ix = [1, 2, 4];
+    Dps[1:2, 1:2] =
+        D[1:2, 1:2] - (reshape(D[1:2, 3], 2, 1) * reshape(D[3, 1:2], 1, 2)) / D[3, 3]
+    ix = [1, 2, 4]
     for i = 1:3
-        Dps[3,i] = Dps[i,3] = D[4, ix[i]];
+        Dps[3, i] = Dps[i, 3] = D[4, ix[i]]
     end
     # And we also extract the transverse shear matrix
     Dts = fill(0.0, 2, 2)
-    ix = [5, 6];
+    ix = [5, 6]
     for i = 1:2
-        Dts[i,i] = D[ix[i], ix[i]];
+        Dts[i, i] = D[ix[i], ix[i]]
     end
     return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
 end
@@ -91,7 +100,22 @@ density.
 """
 function lamina_material(E1, E2, nu12, G12, G13, G23)
     rho = 0.0
-    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, nu12, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
+    return MatDeforElastOrtho(
+        DeforModelRed3D,
+        rho,
+        E1,
+        E2,
+        E2,
+        nu12,
+        nu12,
+        0.0,
+        G12,
+        G13,
+        G23,
+        0.0,
+        0.0,
+        0.0,
+    )
 end
 
 """
@@ -100,7 +124,22 @@ end
 Create a transversely isotropic lamina material.
 """
 function lamina_material(rho, E1, E2, nu12, G12, G13, G23)
-    return MatDeforElastOrtho(DeforModelRed3D, rho, E1, E2, E2, nu12, nu12, 0.0, G12, G13, G23, 0.0, 0.0, 0.0)
+    return MatDeforElastOrtho(
+        DeforModelRed3D,
+        rho,
+        E1,
+        E2,
+        E2,
+        nu12,
+        nu12,
+        0.0,
+        G12,
+        G13,
+        G23,
+        0.0,
+        0.0,
+        0.0,
+    )
 end
 
 """
@@ -177,19 +216,19 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
     tf = TransformerQtEQ(Dps)
     # Transform into the composite layup coordinate system.
     layup_thickness = thickness(cl)
-    zs = -layup_thickness/2 - cl.offset
+    zs = -layup_thickness / 2 - cl.offset
     for p in cl.plies
         ze = zs + p.thickness
-        plane_stress_Tbar_matrix!(Tbar, p.angle/180*pi)
+        plane_stress_Tbar_matrix!(Tbar, p.angle / 180 * pi)
         # Transform the plane stress matrix into the layup coordinates
         @. Dps = p._Dps
         Dps = tf(Dps, Tbar)
         # Compute the in-plane stiffness
         @. A += (ze - zs) * Dps
         # Compute the extension-bending coupling stiffness
-        @. B += (ze^2 - zs^2)/2 * Dps
+        @. B += (ze^2 - zs^2) / 2 * Dps
         # Compute the bending stiffness
-        @. D += (ze^3 - zs^3)/3 * Dps
+        @. D += (ze^3 - zs^3) / 3 * Dps
         zs += p.thickness
     end
     return A, B, D
@@ -209,10 +248,10 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
     tf = TransformerQtEQ(Dts)
     # Transform into the composite layup coordinate system.
     layup_thickness = sum(p.thickness for p in cl.plies)
-    zs = -layup_thickness/2 - cl.offset
+    zs = -layup_thickness / 2 - cl.offset
     for p in cl.plies
         ze = zs + p.thickness
-        transverse_shear_T_matrix!(T, p.angle/180*pi)
+        transverse_shear_T_matrix!(T, p.angle / 180 * pi)
         # Transform the plane stress matrix into the layup coordinates
         @. Dts = p._Dts
         Dts = tf(Dts, T)
@@ -220,7 +259,7 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
         # accounting for the parabolic distribution of the shear stress is due to
         # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
         # Materials, 2008
-        @. H += 5/4*(ze - zs - 4/3*(ze^3-zs^3)/layup_thickness^2) * Dts
+        @. H += 5 / 4 * (ze - zs - 4 / 3 * (ze^3 - zs^3) / layup_thickness^2) * Dts
         zs += p.thickness
     end
     return H
@@ -233,11 +272,11 @@ Compute the laminate inertia.
 """
 function laminate_inertia!(cl::CompositeLayup)
     layup_thickness = sum(p.thickness for p in cl.plies)
-    zs = -layup_thickness/2 - cl.offset
+    zs = -layup_thickness / 2 - cl.offset
     mass_density = 0.0
     moment_of_inertia_density = 0.0
     for p in cl.plies
-        rho = massdensity(p.material); # mass density
+        rho = massdensity(p.material) # mass density
         ze = zs + p.thickness
         mass_density += (ze - zs) * rho
         moment_of_inertia_density += (ze^3 - zs^3) * rho / 3
@@ -260,20 +299,26 @@ LAYUP coordinate system TO the PLY coordinate system.
 The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
 """
-function plane_stress_Tbar_matrix!(Tbarm::Array{T, 2}, angle) where {T}
+function plane_stress_Tbar_matrix!(Tbarm::Array{T,2}, angle) where {T}
     # We are using here the relation between Tbar and T: Tbar = T^-T
-    m=cos(angle); 
-    n=sin(angle); 
+    m = cos(angle)
+    n = sin(angle)
     return plane_stress_Tbar_matrix!(Tbarm, m, n)
 end
 
-function plane_stress_Tbar_matrix!(Tbarm::Array{T, 2}, m, n) where {T}
+function plane_stress_Tbar_matrix!(Tbarm::Array{T,2}, m, n) where {T}
     # We are using here the relation between Tbar and T: Tbar = T^-T
     plane_stress_Tinv_matrix!(Tbarm, m, n)
     # Transpose in place
-    temp = Tbarm[2, 1]; Tbarm[2, 1] = Tbarm[1, 2]; Tbarm[1, 2] = temp
-    temp = Tbarm[3, 1]; Tbarm[3, 1] = Tbarm[1, 3]; Tbarm[1, 3] = temp
-    temp = Tbarm[3, 2]; Tbarm[3, 2] = Tbarm[2, 3]; Tbarm[2, 3] = temp
+    temp = Tbarm[2, 1]
+    Tbarm[2, 1] = Tbarm[1, 2]
+    Tbarm[1, 2] = temp
+    temp = Tbarm[3, 1]
+    Tbarm[3, 1] = Tbarm[1, 3]
+    Tbarm[1, 3] = temp
+    temp = Tbarm[3, 2]
+    Tbarm[3, 2] = Tbarm[2, 3]
+    Tbarm[2, 3] = temp
     return Tbarm
 end
 
@@ -291,16 +336,22 @@ LAYOUT coordinate system TO the PLY coordinate system.
 The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
 """
-function plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
-    m=cos(angle);
-    n=sin(angle);
+function plane_stress_Tinv_matrix!(Tinvm::Array{T,2}, angle) where {T}
+    m = cos(angle)
+    n = sin(angle)
     return plane_stress_Tinv_matrix!(Tinvm, m, n)
 end
 
 function plane_stress_Tinv_matrix!(Tinvm, m, n)
-    Tinvm[1, 1] =  (m^2);  Tinvm[1, 2] = (n^2);   Tinvm[1, 3] = -2*(m*n)
-    Tinvm[2, 1] = (n^2);   Tinvm[2, 2] = (m^2);   Tinvm[2, 3] = 2*(m*n)
-    Tinvm[3, 1] = (m*n);  Tinvm[3, 2] = -(m*n);   Tinvm[3, 3] = (m^2-n^2)
+    Tinvm[1, 1] = (m^2)
+    Tinvm[1, 2] = (n^2)
+    Tinvm[1, 3] = -2 * (m * n)
+    Tinvm[2, 1] = (n^2)
+    Tinvm[2, 2] = (m^2)
+    Tinvm[2, 3] = 2 * (m * n)
+    Tinvm[3, 1] = (m * n)
+    Tinvm[3, 2] = -(m * n)
+    Tinvm[3, 3] = (m^2 - n^2)
     return Tinvm
 end
 
@@ -317,11 +368,11 @@ coordinate system TO the LAYOUT coordinate system.
 The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
 """
-function plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
+function plane_stress_T_matrix!(Tm::Array{T,2}, angle) where {T}
     # We are using here the fact that the inverse rotation is given by the
     # negative of the angle
-    m=cos(-angle);
-    n=sin(-angle);
+    m = cos(-angle)
+    n = sin(-angle)
     return plane_stress_Tinv_matrix!(Tm, m, n)
 end
 
@@ -336,16 +387,18 @@ LAYOUT coordinate system TO the PLY coordinate system.
     coordinate system and the first basis vector of the ply coordinate system
 `m`, `n` = cosine and sine of the angle
 """
-function  transverse_shear_T_matrix!(Tm::Array{T, 2}, angle) where {T}
-    m=cos(angle); 
-    n=sin(angle); 
+function transverse_shear_T_matrix!(Tm::Array{T,2}, angle) where {T}
+    m = cos(angle)
+    n = sin(angle)
     return transverse_shear_T_matrix!(Tm, m, n)
 end
 
-function  transverse_shear_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
+function transverse_shear_T_matrix!(Tm::Array{T,2}, m, n) where {T}
     # Barbero, Introduction, a^T in equation 5.26
-    Tm[1, 1] =  m;  Tm[1, 2] = -n;
-    Tm[2, 1] = +n;  Tm[2, 2] = m;
+    Tm[1, 1] = m
+    Tm[1, 2] = -n
+    Tm[2, 1] = +n
+    Tm[2, 2] = m
     return Tm
 end
 

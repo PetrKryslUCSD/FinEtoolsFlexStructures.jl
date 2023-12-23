@@ -18,31 +18,31 @@ using SparseArrays
 using Test
 
 function test()
-    E=30002*1000.0;#30002ksi
-    b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1;# 1200 lbf/ft
+    E = 30002 * 1000.0#30002ksi
+    b = 2#in
+    h = 18#in
+    L = 240# in
+    q = 1# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=5*norm(q)*L^4/(384*E*I3);
+    deflex = 5 * norm(q) * L^4 / (384 * E * I3)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 4;
+    n = 4
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -50,29 +50,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5] # cylindrical joint
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5] # cylindrical joint
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([q, 0, 0]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([q, 0, 0])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -105,31 +105,31 @@ using SparseArrays
 using Test
 
 function test()
-    E=30002*1000.0;#30002ksi
-    b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1;# 1200 lbf/ft
+    E = 30002 * 1000.0#30002ksi
+    b = 2#in
+    h = 18#in
+    L = 240# in
+    q = 1# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=5*norm(q)*L^4/(384*E*I2);
+    deflex = 5 * norm(q) * L^4 / (384 * E * I2)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 4;
+    n = 4
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -137,29 +137,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,5,6] # cylindrical joint
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 5, 6] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,5,6] # cylindrical joint
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 5, 6] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([0, 0, q]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([0, 0, q])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -191,31 +191,31 @@ using SparseArrays
 using Test
 
 function test()
-    E=30002*1000.0;#30002ksi
-    b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1;# 1200 lbf/ft
+    E = 30002 * 1000.0#30002ksi
+    b = 2#in
+    h = 18#in
+    L = 240# in
+    q = 1# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=norm(q)*L^4/(384*E*I3);
+    deflex = norm(q) * L^4 / (384 * E * I3)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 4;
+    n = 4
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -223,29 +223,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([q, 0, 0]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([q, 0, 0])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -278,31 +278,31 @@ using SparseArrays
 using Test
 
 function test()
-    E=30002*1000.0;#30002ksi
-    b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1;# 1200 lbf/ft
+    E = 30002 * 1000.0#30002ksi
+    b = 2#in
+    h = 18#in
+    L = 240# in
+    q = 1# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=norm(q)*L^4/(384*E*I2);
+    deflex = norm(q) * L^4 / (384 * E * I2)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 4;
+    n = 4
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -310,29 +310,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([0, 0, q]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([0, 0, q])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -384,21 +384,23 @@ using SparseArrays
 using Test
 
 function test()
-    E=71240.0;# MPa
-    nu=0.31;# Poisson ratio
-    b=0.6; h=30; L=240;# cross-sectional dimensions and length of each leg in millimeters
-    magn=+1e-5;# Magnitude of the total applied force, Newton
-    deflex =  [-1.91840e-06 0.00000e+00 -7.18697e-07]
+    E = 71240.0# MPa
+    nu = 0.31# Poisson ratio
+    b = 0.6
+    h = 30
+    L = 240# cross-sectional dimensions and length of each leg in millimeters
+    magn = +1e-5# Magnitude of the total applied force, Newton
+    deflex = [-1.91840e-06 0.00000e+00 -7.18697e-07]
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 1.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 8;
+    n = 8
     members = []
     push!(members, frame_member([0 0 L; L 0 L], n, cs))
     push!(members, frame_member([L 0 L; L 0 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -406,27 +408,27 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    clampedn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L/10000)
-    tipn = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    clampedn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L / 10000)
+    tipn = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, clampedn, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity([-magn, 0, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity([-magn, 0, 0, 0, 0, 0])
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -478,21 +480,23 @@ using SparseArrays
 using Test
 
 function test()
-    E=71240.0;# MPa
-    nu=0.31;# Poisson ratio
-    b=0.6; h=30; L=240;# cross-sectional dimensions and length of each leg in millimeters
-    magn=+1e-5;# Magnitude of the total applied force, Newton
-    deflex =  [0 4.78846e-03 0]
+    E = 71240.0# MPa
+    nu = 0.31# Poisson ratio
+    b = 0.6
+    h = 30
+    L = 240# cross-sectional dimensions and length of each leg in millimeters
+    magn = +1e-5# Magnitude of the total applied force, Newton
+    deflex = [0 4.78846e-03 0]
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 1.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 8;
+    n = 8
     members = []
     push!(members, frame_member([0 0 L; L 0 L], n, cs))
     push!(members, frame_member([L 0 L; L 0 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -500,27 +504,27 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    clampedn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L/10000)
-    tipn = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    clampedn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L / 10000)
+    tipn = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, clampedn, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity([0, magn, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity([0, magn, 0, 0, 0, 0])
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -583,7 +587,7 @@ function test()
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
@@ -595,15 +599,23 @@ function test()
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -611,28 +623,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMRITBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -701,7 +714,7 @@ function test()
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
@@ -713,15 +726,23 @@ function test()
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -729,28 +750,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMRITBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -818,7 +840,7 @@ function test()
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
@@ -830,15 +852,23 @@ function test()
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -846,28 +876,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -935,7 +966,7 @@ function test()
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
@@ -947,15 +978,23 @@ function test()
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -963,28 +1002,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -1029,32 +1069,32 @@ using Test
 # # using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
 function test(b = 2)
-    E=30002*1000.0;#30002ksi
+    E = 30002 * 1000.0#30002ksi
     # b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1/b;# 1200 lbf/ft
+    h = 18#in
+    L = 240# in
+    q = 1 / b# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    k_s = 5/6
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    k_s = 5 / 6
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=norm(q)*L^4/(384*E*I3);
+    deflex = norm(q) * L^4 / (384 * E * I3)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0], k_s)
 
     # Select the number of elements per leg.
-    n = 16;
+    n = 16
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -1062,33 +1102,33 @@ function test(b = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], inflate = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], inflate = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], inflate = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], inflate = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], inflate = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], inflate = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMRITBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([q, 0, 0]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([q, 0, 0])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-    return dchi.values[tipl, 1][1] / deflex * 100, b/L
+    return dchi.values[tipl, 1][1] / deflex * 100, b / L
     # @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
 
@@ -1101,7 +1141,7 @@ function test(b = 2)
     # pl = render(plots)
     # true
 end
-for b in [2  0.02 0.0002  ]
+for b in [2 0.02 0.0002]
     @test abs(test(b)[1] - 98.44) / 100 <= 1e-2
 end
 end # module
@@ -1128,32 +1168,32 @@ using Test
 # # using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
 function test(b = 2)
-    E=30002*1000.0;#30002ksi
+    E = 30002 * 1000.0#30002ksi
     # b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1/b;# 1200 lbf/ft
+    h = 18#in
+    L = 240# in
+    q = 1 / b# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    k_s = 5/6
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    k_s = 5 / 6
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=norm(q)*L^4/(384*E*I3);
+    deflex = norm(q) * L^4 / (384 * E * I3)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0], k_s)
 
     # Select the number of elements per leg.
-    n = 16;
+    n = 16
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -1161,33 +1201,33 @@ function test(b = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], inflate = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], inflate = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], inflate = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], inflate = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], inflate = L/10000)
-    for i in [1,2,3,4,5,6] # clamped
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], inflate = L / 10000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([q, 0, 0]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([q, 0, 0])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-    return dchi.values[tipl, 1][1] / deflex * 100, b/L
+    return dchi.values[tipl, 1][1] / deflex * 100, b / L
     # @test norm(dchi.values[tipl, 1] .- deflex) / deflex < 1.0e-5
 
 
@@ -1200,7 +1240,7 @@ function test(b = 2)
     # pl = render(plots)
     # true
 end
-for b in [2  0.02 0.0002  ]
+for b in [2 0.02 0.0002]
     # @show test(b)
     @test abs(test(b)[1] - 100) / 100 <= 1e-2
 end
@@ -1258,29 +1298,37 @@ function test(direction = 2)
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
     if direction == 2
         deflex = 0.0886
     else
-    # direction = 3
+        # direction = 3
         deflex = 0.5
     end
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -1288,28 +1336,29 @@ function test(direction = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -1382,11 +1431,11 @@ function test(direction = 2)
     b = Thickness = 0.1 # in
     h = Depth = 0.2 # in
     radius = (4.32 + 4.12) / 2 # in
-    k_s = 5/6 # shear correction factor
+    k_s = 5 / 6 # shear correction factor
     force = 1.0 # lb
     # Select the number of elements per leg.
     nel = 4
-        if direction == 2
+    if direction == 2
         deflex = 0.0886
     else
         # direction = 3
@@ -1396,15 +1445,23 @@ function test(direction = 2)
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s)
 
-    ang=90
+    ang = 90
     members = []
-    xyz=fill(0.0, 2, 3)
-    for i in 1:nel
-        xyz[1, :] .= (radius*cos((i-1)/nel*ang/360*2*pi), radius*sin((i-1)/nel*ang/360*2*pi), 0)
-        xyz[2, :] .= (radius*cos((i)/nel*ang/360*2*pi), radius*sin((i)/nel*ang/360*2*pi), 0)
+    xyz = fill(0.0, 2, 3)
+    for i = 1:nel
+        xyz[1, :] .= (
+            radius * cos((i - 1) / nel * ang / 360 * 2 * pi),
+            radius * sin((i - 1) / nel * ang / 360 * 2 * pi),
+            0,
+        )
+        xyz[2, :] .= (
+            radius * cos((i) / nel * ang / 360 * 2 * pi),
+            radius * sin((i) / nel * ang / 360 * 2 * pi),
+            0,
+        )
         push!(members, frame_member(xyz, 1, cs))
     end
-    fens, fes = merge_members(members; tolerance = radius / 1000);
+    fens, fes = merge_members(members; tolerance = radius / 1000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -1412,28 +1469,29 @@ function test(direction = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius/1000)
-    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius/1000)
-    for i in [1,2,3,4,5,6] # clamped
+    tipl = selectnode(fens; box = Float64[0 0 radius radius 0 0], inflate = radius / 1000)
+    basel = selectnode(fens; box = Float64[radius radius 0 0 0 0], inflate = radius / 1000)
+    for i in [1, 2, 3, 4, 5, 6] # clamped
         setebc!(dchi, basel, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 1)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     loadbdry = FESetP1(reshape(tipl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    q = fill(0.0, 6); q[direction] = force
+    q = fill(0.0, 6)
+    q[direction] = force
     fi = ForceIntensity(q)
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
@@ -1479,16 +1537,16 @@ using Test
 # using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
 function test(nel = 2)
-    E = 12.0*phun("GPa")
+    E = 12.0 * phun("GPa")
     nu = 0.3
     # Section Properties
-    b = Thickness = 0.2*phun("m")
-    h = Depth = 0.4*phun("m")
+    b = Thickness = 0.2 * phun("m")
+    h = Depth = 0.4 * phun("m")
     I = b * h^3 / 12
-    ecc = 0.10*phun("m")
-    L = 10.0*phun("m")
-    k_s = 5/6 # shear correction factor
-    w = 2000.0*phun("kg/m^3") * 10.0*phun("m/sec^2")
+    ecc = 0.10 * phun("m")
+    L = 10.0 * phun("m")
+    k_s = 5 / 6 # shear correction factor
+    w = 2000.0 * phun("kg/m^3") * 10.0 * phun("m/sec^2")
     uniform_eccentricity = [0.0, 0.0, 0.0, ecc]
     # uniform_eccentricity = [0.0, 0.0, 0.0*phun("m"), 0.0]
 
@@ -1496,7 +1554,7 @@ function test(nel = 2)
     # cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s) # Timoshenko
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0]) # Bernoulli
 
-    xyz = [[L/2 0 0]; [-L/2 0 0]]
+    xyz = [[L / 2 0 0]; [-L / 2 0 0]]
     fens, fes = frame_member(xyz, nel, cs)
     # @show count(fes)
 
@@ -1506,36 +1564,41 @@ function test(nel = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    leftl = selectnode(fens; box = initbox!([], xyz[1, :]), inflate = L/1000)
-    rightl = selectnode(fens; box = initbox!([], xyz[2, :]), inflate = L/1000)
-    for i in [1,2,3,4,5] # pin
+    leftl = selectnode(fens; box = initbox!([], xyz[1, :]), inflate = L / 1000)
+    rightl = selectnode(fens; box = initbox!([], xyz[2, :]), inflate = L / 1000)
+    for i in [1, 2, 3, 4, 5] # pin
         setebc!(dchi, leftl, true, i)
         setebc!(dchi, rightl, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
-    femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1), b * h), material, uniform_eccentricity)
+    femm = FEMMLinBeam(
+        IntegDomain(fes, GaussRule(1, 1), b * h),
+        material,
+        uniform_eccentricity,
+    )
 
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    q = fill(0.0, 6); q[2] = w
+    q = fill(0.0, 6)
+    q[2] = w
     fi = ForceIntensity(q)
-    F = distribloads(femm, geom0, dchi, fi, 3);
+    F = distribloads(femm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-# @show dchi.values
+    # @show dchi.values
 
     K_df = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:df]
-    F_d =  K_df * gathersysvec(dchi, :f)
-    H =  F_d[dchi.dofnums[leftl[1], 1]-nfreedofs(dchi)]
+    F_d = K_df * gathersysvec(dchi, :f)
+    H = F_d[dchi.dofnums[leftl[1], 1]-nfreedofs(dchi)]
     M0 = H * ecc
     deflw = (5 * w * b * h * L^4) / (384 * E * I)
     deflH = (M0 * L^2) / (8 * E * I)
@@ -1550,7 +1613,15 @@ function test(nel = 2)
         end
     end
 
-    inspectintegpoints(femm, geom0, dchi, NodalField([1.0]), 1:count(fes), inspector, nothing)
+    inspectintegpoints(
+        femm,
+        geom0,
+        dchi,
+        NodalField([1.0]),
+        1:count(fes),
+        inspector,
+        nothing,
+    )
 
     # scaling = 2e2
     # dchi.values .*= scaling
@@ -1594,16 +1665,16 @@ using Test
 # using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
 function test(nel = 2)
-    E = 12.0*phun("GPa")
+    E = 12.0 * phun("GPa")
     nu = 0.3
     # Section Properties: The beam is being bent in the f1-f3 plane
-    b = 0.4*phun("m")
-    h = 0.2*phun("m")
+    b = 0.4 * phun("m")
+    h = 0.2 * phun("m")
     I = b^3 * h / 12
-    ecc = 0.10*phun("m")
-    L = 10.0*phun("m")
-    k_s = 5/6 # shear correction factor
-    w = 2000.0*phun("kg/m^3") * 10.0*phun("m/sec^2")
+    ecc = 0.10 * phun("m")
+    L = 10.0 * phun("m")
+    k_s = 5 / 6 # shear correction factor
+    w = 2000.0 * phun("kg/m^3") * 10.0 * phun("m/sec^2")
     uniform_eccentricity = [0.0, 0.0, ecc, 0.0]
     # uniform_eccentricity = [0.0, 0.0, 0.0*phun("m"), 0.0]
 
@@ -1611,7 +1682,7 @@ function test(nel = 2)
     # cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 0.0, 1.0], k_s) # Timoshenko
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, 1.0, 0.0]) # Bernoulli
 
-    xyz = [[L/2 0 0]; [-L/2 0 0]]
+    xyz = [[L / 2 0 0]; [-L / 2 0 0]]
     fens, fes = frame_member(xyz, nel, cs)
     # @show count(fes)
 
@@ -1621,36 +1692,41 @@ function test(nel = 2)
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    leftl = selectnode(fens; box = initbox!([], xyz[1, :]), inflate = L/1000)
-    rightl = selectnode(fens; box = initbox!([], xyz[2, :]), inflate = L/1000)
-    for i in [1,2,3,4,5] # pin
+    leftl = selectnode(fens; box = initbox!([], xyz[1, :]), inflate = L / 1000)
+    rightl = selectnode(fens; box = initbox!([], xyz[2, :]), inflate = L / 1000)
+    for i in [1, 2, 3, 4, 5] # pin
         setebc!(dchi, leftl, true, i)
         setebc!(dchi, rightl, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
-    femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 1), b * h), material, uniform_eccentricity)
+    femm = FEMMLinBeam(
+        IntegDomain(fes, GaussRule(1, 1), b * h),
+        material,
+        uniform_eccentricity,
+    )
 
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    q = fill(0.0, 6); q[2] = w
+    q = fill(0.0, 6)
+    q[2] = w
     fi = ForceIntensity(q)
-    F = distribloads(femm, geom0, dchi, fi, 3);
+    F = distribloads(femm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-# @show dchi.values
+    # @show dchi.values
 
     K_df = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:df]
-    F_d =  K_df * gathersysvec(dchi, :f)
-    H =  F_d[dchi.dofnums[leftl[1], 1]-nfreedofs(dchi)]
+    F_d = K_df * gathersysvec(dchi, :f)
+    H = F_d[dchi.dofnums[leftl[1], 1]-nfreedofs(dchi)]
     M0 = H * ecc
     deflw = (5 * w * b * h * L^4) / (384 * E * I)
     deflH = (M0 * L^2) / (8 * E * I)
@@ -1664,7 +1740,15 @@ function test(nel = 2)
         end
     end
 
-    inspectintegpoints(femm, geom0, dchi, NodalField([1.0]), 1:count(fes), inspector, nothing)
+    inspectintegpoints(
+        femm,
+        geom0,
+        dchi,
+        NodalField([1.0]),
+        1:count(fes),
+        inspector,
+        nothing,
+    )
 
     # scaling = 2e2
     # dchi.values .*= scaling
@@ -1700,31 +1784,31 @@ using SparseArrays
 using Test
 
 function test()
-    E=30002*1000.0;#30002ksi
-    b=2;#in
-    h=18;#in
-    L=240;# in
-    q=1;# 1200 lbf/ft
+    E = 30002 * 1000.0#30002ksi
+    b = 2#in
+    h = 18#in
+    L = 240# in
+    q = 1# 1200 lbf/ft
 
     # Cross-sectional properties
-    A=b*h;#in^2
-    I2=b*h^3/12;#cm^4
-    I3=b^3*h/12;#cm^4
-    nu=0.0;
+    A = b * h#in^2
+    I2 = b * h^3 / 12#cm^4
+    I3 = b^3 * h / 12#cm^4
+    nu = 0.0
 
     ##
     # Exact deformation under the load
 
-    deflex=5*norm(q)*L^4/(384*E*I3);
+    deflex = 5 * norm(q) * L^4 / (384 * E * I3)
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [-1.0, 0.0, 0.0])
 
     # Select the number of elements per leg.
-    n = 4;
+    n = 4
     members = []
     push!(members, frame_member([0 -L/2 0; 0 L/2 0], n, cs))
-    fens, fes = merge_members(members; tolerance = L / 10000);
+    fens, fes = merge_members(members; tolerance = L / 10000)
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -1732,29 +1816,29 @@ function test()
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
-    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
-    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+    dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
-    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L/10000)
-    l1 = selectnode(fens; box = Float64[0 0 -L/2 -L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5] # cylindrical joint
+    tipl = selectnode(fens; box = Float64[0 0 0 0 0 0], tolerance = L / 10000)
+    l1 = selectnode(fens; box = Float64[0 0 -L / 2 -L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens; box = Float64[0 0 +L/2 +L/2 0 0], tolerance = L/10000)
-    for i in [1,2,3,4,5] # cylindrical joint
+    l1 = selectnode(fens; box = Float64[0 0 +L / 2 +L / 2 0 0], tolerance = L / 10000)
+    for i in [1, 2, 3, 4, 5] # cylindrical joint
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
-    numberdofs!(dchi);
+    numberdofs!(dchi)
 
     # Assemble the global discrete system
     femm = FEMMLinBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
-    fi = ForceIntensity([q, 0, 0]);
-    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi);
+    fi = ForceIntensity([q, 0, 0])
+    F = distribloads_global(femm, geom0, u0, Rfield0, dchi, fi)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)

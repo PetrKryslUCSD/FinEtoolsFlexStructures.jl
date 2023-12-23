@@ -7,7 +7,6 @@ using FinEtools
 
 Type of a finite element set for the three-node shell.
 """
-struct FESetShellT3 <: AbstractFESet2Manifold{3} 
-end
+struct FESetShellT3 <: AbstractFESet2Manifold{3} end
 
 end # module

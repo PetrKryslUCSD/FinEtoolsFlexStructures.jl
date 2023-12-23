@@ -3,16 +3,26 @@ module FEMMShellT3FFCompModule
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
 using FinEtools
-using FinEtools.FTypesModule: FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
+using FinEtools.FTypesModule:
+    FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
 using FinEtools.IntegDomainModule: IntegDomain, integrationdata, Jacobianvolume
 import FinEtools.FEMMBaseModule: associategeometry!
 import FinEtools.FEMMBaseModule: inspectintegpoints
-using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!, update!, thermalstrain!
-using FinEtools.MatrixUtilityModule: add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
+using FinEtoolsDeforLinear.MatDeforLinearElasticModule:
+    tangentmoduli!, update!, thermalstrain!
+using FinEtools.MatrixUtilityModule:
+    add_btdb_ut_only!, complete_lt!, locjac!, add_nnt_ut_only!, add_btsigma!, add_b1tdb2!
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
-using ..CompositeLayupModule: CompositeLayup, thickness, laminate_stiffnesses!, laminate_transverse_stiffness!, plane_stress_Tbar_matrix!, transverse_shear_T_matrix!, laminate_inertia!
+using ..CompositeLayupModule:
+    CompositeLayup,
+    thickness,
+    laminate_stiffnesses!,
+    laminate_transverse_stiffness!,
+    plane_stress_Tbar_matrix!,
+    transverse_shear_T_matrix!,
+    laminate_inertia!
 
 
 const __nn = 3 # number of nodes
@@ -35,10 +45,10 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{S<:FESetT3, F<:Function} <: AbstractFEMM
-    integdomain::IntegDomain{S, F} # integration domain data
+mutable struct FEMMShellT3FFComp{S<:FESetT3,F<:Function} <: AbstractFEMM
+    integdomain::IntegDomain{S,F} # integration domain data
     # Definitions of layups
-    layup_groups::Vector{Tuple{CompositeLayup, Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
+    layup_groups::Vector{Tuple{CompositeLayup,Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     # Configuration parameters
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
@@ -76,9 +86,12 @@ end
 
 Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 """
-function FEMMShellT3FFComp(integdomain::IntegDomain{S,F}, layup::CompositeLayup) where {S<:FESetT3,F<:Function}
+function FEMMShellT3FFComp(
+    integdomain::IntegDomain{S,F},
+    layup::CompositeLayup,
+) where {S<:FESetT3,F<:Function}
     _nnmax = 0
-    for j in 1:count(integdomain.fes)
+    for j = 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
             _nnmax = max(_nnmax, integdomain.fes.conn[j][k])
         end
@@ -87,7 +100,7 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S,F}, layup::CompositeLayup)
     layup_groups = [(layup, collect(1:count(integdomain.fes)))]
     # Establish the mapping from the elements to the layup group
     _layup_group_lookup = fill(zero(FInt), count(integdomain.fes))
-    for j in 1:length(layup_groups)
+    for j = 1:length(layup_groups)
         eset = layup_groups[j][2]
         for i in eset # Loop over elements in the layup group
             _layup_group_lookup[i] = j
@@ -118,17 +131,36 @@ function FEMMShellT3FFComp(integdomain::IntegDomain{S,F}, layup::CompositeLayup)
 
     @assert delegateof(integdomain.fes) === FESetShellT3()
 
-    return FEMMShellT3FFComp(integdomain, layup_groups,
-        __TRANSV_SHEAR_FORMULATION_AVERAGE_B, 1.0, 30.0, 5 / 12 / 1.5,
-        false, _normals, _normal_valid,
+    return FEMMShellT3FFComp(
+        integdomain,
+        layup_groups,
+        __TRANSV_SHEAR_FORMULATION_AVERAGE_B,
+        1.0,
+        30.0,
+        5 / 12 / 1.5,
+        false,
+        _normals,
+        _normal_valid,
         _layup_group_lookup,
-        _loc, _J0,
-        _ecoords, _edisp, _ecoords_e, _edisp_e,
+        _loc,
+        _J0,
+        _ecoords,
+        _edisp,
+        _ecoords_e,
+        _edisp_e,
         _dofnums,
-        _E_G, _A_Es, _nvalid, _T,
+        _E_G,
+        _A_Es,
+        _nvalid,
+        _T,
         _elmat,
         _gradN_e,
-        _Bm, _Bb, _Bs, _DpsBmb, _DtBs)
+        _Bm,
+        _Bb,
+        _Bs,
+        _DpsBmb,
+        _DtBs,
+    )
 end
 
 """
@@ -141,7 +173,7 @@ function make(integdomain, layup)
 end
 
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, feid::FInt, qpid::FInt)
-    updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, feid, qpid);
+    updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, feid, qpid)
     n[:] .= csmat(mcsys)[:, 3]
     return n
 end
@@ -153,34 +185,34 @@ function _compute_J!(J0, ecoords)
     # J0[:, 1] .= (x, y, z)
     # x, y, z = ecoords[3, :].-ecoords[1, :]
     # J0[:, 2] .= (x, y, z)
-    for j in 1:3 
+    for j = 1:3
         J0[j, 1] = ecoords[2, j] - ecoords[1, j]
-        J0[j, 2] = ecoords[3, j] - ecoords[1, j]  
+        J0[j, 2] = ecoords[3, j] - ecoords[1, j]
     end
     return J0
 end
 
 function _e_g!(E_G, J0)
     # J0[:, 1] is the tangent to the coordinate curve 1
-    for j in 1:3
-        E_G[j,1]  = J0[j, 1]
+    for j = 1:3
+        E_G[j, 1] = J0[j, 1]
     end
     n = sqrt(E_G[1, 1]^2 + E_G[2, 1]^2 + E_G[3, 1]^2)
-    for j in 1:3
-        E_G[j,1]  /= n
+    for j = 1:3
+        E_G[j, 1] /= n
     end
     # J0[:, 2] is the tangent to the coordinate curve 2
     # Now compute the normal
-    E_G[1, 3] = -E_G[3, 1]*J0[2, 2]+E_G[2, 1]*J0[3, 2]
-    E_G[2, 3] =  E_G[3, 1]*J0[1, 2]-E_G[1, 1]*J0[3, 2]
-    E_G[3, 3] = -E_G[2, 1]*J0[1, 2]+E_G[1, 1]*J0[2, 2]
-    n = sqrt(E_G[1, 3]^2 + E_G[2, 3]^2 + E_G[3, 3]^2);
-    for j in 1:3
-        E_G[j, 3]  /= n
+    E_G[1, 3] = -E_G[3, 1] * J0[2, 2] + E_G[2, 1] * J0[3, 2]
+    E_G[2, 3] = E_G[3, 1] * J0[1, 2] - E_G[1, 1] * J0[3, 2]
+    E_G[3, 3] = -E_G[2, 1] * J0[1, 2] + E_G[1, 1] * J0[2, 2]
+    n = sqrt(E_G[1, 3]^2 + E_G[2, 3]^2 + E_G[3, 3]^2)
+    for j = 1:3
+        E_G[j, 3] /= n
     end
-    E_G[1, 2] = -E_G[3, 3]*E_G[2, 1]+E_G[2, 3]*E_G[3, 1]
-    E_G[2, 2] =  E_G[3, 3]*E_G[1, 1]-E_G[1, 3]*E_G[3, 1]
-    E_G[3, 2] = -E_G[2, 3]*E_G[1, 1]+E_G[1, 3]*E_G[2, 1]
+    E_G[1, 2] = -E_G[3, 3] * E_G[2, 1] + E_G[2, 3] * E_G[3, 1]
+    E_G[2, 2] = E_G[3, 3] * E_G[1, 1] - E_G[1, 3] * E_G[3, 1]
+    E_G[3, 2] = -E_G[2, 3] * E_G[1, 1] + E_G[1, 3] * E_G[2, 1]
     return E_G
 end
 
@@ -194,12 +226,12 @@ function _ecoords_e!(ecoords_e, J0, E_G)
 end
 
 function _centroid!(centroid, ecoords)
-    centroid[1]  = (ecoords[1, 1]+ecoords[2, 1]+ecoords[3, 1])/3
-    centroid[2]  = (ecoords[1, 2]+ecoords[2, 2]+ecoords[3, 2])/3
-    centroid[3]  = (ecoords[1, 3]+ecoords[2, 3]+ecoords[3, 3])/3
+    centroid[1] = (ecoords[1, 1] + ecoords[2, 1] + ecoords[3, 1]) / 3
+    centroid[2] = (ecoords[1, 2] + ecoords[2, 2] + ecoords[3, 2]) / 3
+    centroid[3] = (ecoords[1, 3] + ecoords[2, 3] + ecoords[3, 3]) / 3
     return centroid
 end
-   
+
 struct NodalTriadsE
     r::FFltVec
     nk_e::FFltVec
@@ -210,7 +242,7 @@ end
 function NodalTriadsE()
     NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
 end
-   
+
 (o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
     # Components of nodal cartesian ordinate systems such that the third
     # direction is the direction of the nodal normal, and the angle to rotate
@@ -223,19 +255,20 @@ end
     # transformation matrices. The array `nvalid` indicates for the three nodes
     # which of the normals is valid (`true`).
 
-    for k in 1:length(A_Es)
+    for k = 1:length(A_Es)
         o.nk .= vec(view(normals, c[k], :))
         nvalid[k] = normal_valid[c[k]]
-        if nvalid[k] 
+        if nvalid[k]
             # If the nodal normal is valid, pull it back into the element frame.
             mul!(o.nk_e, transpose(E_G), o.nk)
         else
             # Otherwise the element normal replaces the nodal normal.
-            o.nk_e .= 0.0; o.nk_e[3] = 1.0
+            o.nk_e .= 0.0
+            o.nk_e[3] = 1.0
         end
         cross3!(o.r, o.f3_e, o.nk_e)
         if norm(o.r) > 1.0e-12
-            rotmat3!(A_Es[k], o.r) 
+            rotmat3!(A_Es[k], o.r)
         else
             # A_Es[k] .= I(3)
             A_Es[k] .= 0.0
@@ -265,9 +298,9 @@ end
     # - `T` = transformation matrix, input in the global basis, output in the
     #   nodal basis
     T .= 0.0
-    for i in 1:__nn
-        mul!(o.Tblock,  transpose(A_Es[i]), transpose(E_G))
-        offset = (i-1)*__ndof
+    for i = 1:__nn
+        mul!(o.Tblock, transpose(A_Es[i]), transpose(E_G))
+        offset = (i - 1) * __ndof
         r = offset+1:offset+3
         @. T[r, r] = o.Tblock
         r = offset+4:offset+6
@@ -288,29 +321,30 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # Rotation degrees of freedom: The drilling rotation of the mid surface
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
-    
+
     T .= 0.0
-    for i in 1:__nn
-        roffst = (i-1)*__ndof
-        iA_E = A_Es[i] 
+    for i = 1:__nn
+        roffst = (i - 1) * __ndof
+        iA_E = A_Es[i]
         iA_E_33 = iA_E[3, 3]
         # T[r, r] .= iA_E
-        for cl in 1:3
-            for rw in 1:3
+        for cl = 1:3
+            for rw = 1:3
                 T[roffst+rw, roffst+cl] = iA_E[rw, cl]
             end
         end
-        for cl in 1:2
-            for rw in 1:2
-                T[roffst+3+rw, roffst+3+cl] = iA_E[rw, cl] - (1/iA_E_33)*iA_E[rw, 3]*iA_E[cl, 3]
+        for cl = 1:2
+            for rw = 1:2
+                T[roffst+3+rw, roffst+3+cl] =
+                    iA_E[rw, cl] - (1 / iA_E_33) * iA_E[rw, 3] * iA_E[cl, 3]
             end
         end
-        m1 = (1/iA_E_33)*iA_E[1, 3]
-        m2 = (1/iA_E_33)*iA_E[2, 3]
-        for j in 1:__nn
-            coffst = (j-1)*__ndof
-            for k in 1:3
-                a3 = 1/2 * (iA_E[2, k] * gradN_e[j, 1] - iA_E[1, k] * gradN_e[j, 2])
+        m1 = (1 / iA_E_33) * iA_E[1, 3]
+        m2 = (1 / iA_E_33) * iA_E[2, 3]
+        for j = 1:__nn
+            coffst = (j - 1) * __ndof
+            for k = 1:3
+                a3 = 1 / 2 * (iA_E[2, k] * gradN_e[j, 1] - iA_E[1, k] * gradN_e[j, 2])
                 T[roffst+4, coffst+k] += m1 * a3
                 T[roffst+5, coffst+k] += m2 * a3
             end
@@ -326,18 +360,18 @@ function _gradN_e_Ae!(gradN_e, ecoords_e)
     # c, d = ecoords_e[3, :] .- ecoords_e[1, :]
     # J = (a*d - b*c)
     # gradN_e[:] .= ((b-d)/J, d/J, -b/J, (c-a)/J, -c/J, a/J)
-     a = ecoords_e[2, 1] - ecoords_e[1, 1]
-     b = ecoords_e[2, 2] - ecoords_e[1, 2]
-     c = ecoords_e[3, 1] - ecoords_e[1, 1]
-     d = ecoords_e[3, 2] - ecoords_e[1, 2]
-     J = (a*d - b*c)
-     gradN_e[1, 1] = (b-d)/J
-     gradN_e[2, 1] = d/J
-     gradN_e[3, 1] = -b/J
-     gradN_e[1, 2] = (c-a)/J
-     gradN_e[2, 2] = -c/J
-     gradN_e[3, 2] = a/J
-    return gradN_e, J/2
+    a = ecoords_e[2, 1] - ecoords_e[1, 1]
+    b = ecoords_e[2, 2] - ecoords_e[1, 2]
+    c = ecoords_e[3, 1] - ecoords_e[1, 1]
+    d = ecoords_e[3, 2] - ecoords_e[1, 2]
+    J = (a * d - b * c)
+    gradN_e[1, 1] = (b - d) / J
+    gradN_e[2, 1] = d / J
+    gradN_e[3, 1] = -b / J
+    gradN_e[1, 2] = (c - a) / J
+    gradN_e[2, 2] = -c / J
+    gradN_e[3, 2] = a / J
+    return gradN_e, J / 2
 end
 
 function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
@@ -352,23 +386,33 @@ function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
     b = ecoords_e[p, 2] - ecoords_e[s, 2]
     c = ecoords_e[q, 1] - ecoords_e[s, 1]
     d = ecoords_e[q, 2] - ecoords_e[s, 2]
-    m = (1/2/Ae) # multiplier
+    m = (1 / 2 / Ae) # multiplier
 
     # The first node in the triangle 
     # Node s
     co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m*(b-d);                             Bs[1, co+5] += m*(Ae) 
-    Bs[2, co+3] += m*(c-a); Bs[2, co+4] += m*(-Ae); 
+    Bs[1, co+3] += m * (b - d)
+    Bs[1, co+5] += m * (Ae)
+    Bs[2, co+3] += m * (c - a)
+    Bs[2, co+4] += m * (-Ae)
     # The other two nodes
     # Node p
     co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m*(d);   Bs[1, co+4] += m*(-b*d/2);  Bs[1, co+5] += m*(a*d/2) 
-    Bs[2, co+3] += m*(-c);  Bs[2, co+4] += m*(b*c/2);   Bs[2, co+5] += m*(-a*c/2) 
+    Bs[1, co+3] += m * (d)
+    Bs[1, co+4] += m * (-b * d / 2)
+    Bs[1, co+5] += m * (a * d / 2)
+    Bs[2, co+3] += m * (-c)
+    Bs[2, co+4] += m * (b * c / 2)
+    Bs[2, co+5] += m * (-a * c / 2)
     # Node q
     co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m*(-b);  Bs[1, co+4] += m*(b*d/2);   Bs[1, co+5] += m*(-b*c/2) 
-    Bs[2, co+3] += m*(a);   Bs[2, co+4] += m*(-a*d/2);  Bs[2, co+5] += m*(a*c/2) 
-    
+    Bs[1, co+3] += m * (-b)
+    Bs[1, co+4] += m * (b * d / 2)
+    Bs[1, co+5] += m * (-b * c / 2)
+    Bs[2, co+3] += m * (a)
+    Bs[2, co+4] += m * (-a * d / 2)
+    Bs[2, co+5] += m * (a * c / 2)
+
     return Bs
 end
 
@@ -379,17 +423,18 @@ function _Bsmat!(Bs, ecoords_e, Ae)
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
     # Now averaging of the three contributions
-    Bs .*= (1/3)
+    Bs .*= (1 / 3)
     return Bs
 end
 
 function _Bmmat!(Bm, gradN)
     # Compute the linear membrane strain-displacement matrix.
     fill!(Bm, 0.0)
-    for i in 1:__nn
-        Bm[1,6*(i-1)+1] = gradN[i,1];
-                                             Bm[2,6*(i-1)+2] = gradN[i,2];
-        Bm[3,6*(i-1)+1] = gradN[i,2];        Bm[3,6*(i-1)+2] = gradN[i,1];
+    for i = 1:__nn
+        Bm[1, 6*(i-1)+1] = gradN[i, 1]
+        Bm[2, 6*(i-1)+2] = gradN[i, 2]
+        Bm[3, 6*(i-1)+1] = gradN[i, 2]
+        Bm[3, 6*(i-1)+2] = gradN[i, 1]
     end
 end
 
@@ -398,10 +443,11 @@ function _Bbmat!(Bb, gradN)
     # matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and
     # rotations are in a local coordinate system.
     fill!(Bb, 0.0)
-    for i in 1:__nn
-                                              Bb[1,6*(i-1)+5] = gradN[i,1];
-        Bb[2,6*(i-1)+4] = -gradN[i,2];
-        Bb[3,6*(i-1)+4] = -gradN[i,1];        Bb[3,6*(i-1)+5] = gradN[i,2];
+    for i = 1:__nn
+        Bb[1, 6*(i-1)+5] = gradN[i, 1]
+        Bb[2, 6*(i-1)+4] = -gradN[i, 2]
+        Bb[3, 6*(i-1)+4] = -gradN[i, 1]
+        Bb[3, 6*(i-1)+5] = gradN[i, 2]
     end
 end
 
@@ -412,7 +458,7 @@ Associate geometry with the FEMM.
 
 In this case it means evaluate the nodal normals.
 """
-function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
+function associategeometry!(self::FEMMShellT3FFComp, geom::NodalField{FFlt})
     threshold_angle = self.threshold_angle
     J0 = self._J0
     E_G = self._E_G
@@ -433,9 +479,9 @@ function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
             end
         end
     end
-    
+
     # Normalize to unit length
-    for j in 1:size(normals, 1)
+    for j = 1:size(normals, 1)
         nn = norm(normals[j, :])
         if nn > 0.0
             normals[j, :] ./= nn
@@ -445,8 +491,8 @@ function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
     # Now perform a second pass. If the nodal normal differs by a substantial
     # amount from the element normals, zero out the nodal normal to indicate
     # that the nodal normal should not be used at that vertex. 
-    ntolerance = 1 - sqrt(1 - sin(threshold_angle/180*pi)^2)
-    for el in 1:count(self.integdomain.fes)
+    ntolerance = 1 - sqrt(1 - sin(threshold_angle / 180 * pi)^2)
+    for el = 1:count(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         _compute_J!(J0, geom.values[[i, j, k], :])
         for n in [i, j, k]
@@ -457,7 +503,7 @@ function associategeometry!(self::FEMMShellT3FFComp,  geom::NodalField{FFlt})
             end
         end
     end
-    
+
     # Mark the engine as being associated with geometry
     self._associatedgeometry = true
     return self
@@ -480,14 +526,21 @@ end
 
 Compute the material stiffness matrix.
 """
-function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, TI<:Number}
+function stiffness(
+    self::FEMMShellT3FFComp,
+    assembler::ASS,
+    geom0::NodalField{FFlt},
+    u1::NodalField{TI},
+    Rfield1::NodalField{TI},
+    dchi::NodalField{TI},
+) where {ASS<:AbstractSysmatAssembler,TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = TransformerQtEQ(elmat)
@@ -505,7 +558,12 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
-    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi), nalldofs(dchi));
+    startassembly!(
+        assembler,
+        prod(size(elmat)) * count(fes),
+        nalldofs(dchi),
+        nalldofs(dchi),
+    )
     for lg in self.layup_groups
         layup = lg[1]
         eset = lg[2]
@@ -513,23 +571,28 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
         laminate_stiffnesses!(layup, A, B, D)
         laminate_transverse_stiffness!(layup, H)
         for i in eset # Loop over elements in the layup group
-            gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
+            gathervalues_asmat!(geom0, ecoords, fes.conn[i])
             _centroid!(centroid, ecoords)
             _compute_J!(J0, ecoords)
             _e_g!(E_G, J0)
             _ecoords_e!(ecoords_e, J0, E_G)
             gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
             # Working copies to be transformed
-            sA[:] .= A[:]; sB[:] .= B[:]; sD[:] .= D[:];     sH[:] .= H[:]
+            sA[:] .= A[:]
+            sB[:] .= B[:]
+            sD[:] .= D[:]
+            sH[:] .= H[:]
             # Transform the laminate stiffnesses
-            updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0);
+            updatecsmat!(layup.csys, reshape(centroid, 1, 3), J0, -1, 0)
             m, n = lla(E_G, csmat(layup.csys))
             plane_stress_Tbar_matrix!(Tps, m, n)
-            tps!(sA, Tps); tps!(sB, Tps); tps!(sD, Tps);
+            tps!(sA, Tps)
+            tps!(sB, Tps)
+            tps!(sD, Tps)
             transverse_shear_T_matrix!(Tts, m, n)
             tts!(sH, Tts)
             # Construct the Stiffness Matrix
-            fill!(elmat,  0.0); # Initialize element matrix
+            fill!(elmat, 0.0) # Initialize element matrix
             _Bmmat!(Bm, gradN_e)
             add_btdb_ut_only!(elmat, Bm, Ae, sA, DpsBmb)
             _Bbmat!(Bb, gradN_e)
@@ -539,13 +602,26 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             # he = sqrt(2*Ae) # we avoid taking the square root here, replacing
             # he^2 with 2*Ae
             if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
-                for  o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
-                    Bs .= 0.0; _add_Bsmat_o!(Bs, ecoords_e, Ae, o)
-                    add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))*Ae/3, sH, DtBs)
+                for o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
+                    Bs .= 0.0
+                    _add_Bsmat_o!(Bs, ecoords_e, Ae, o)
+                    add_btdb_ut_only!(
+                        elmat,
+                        Bs,
+                        (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
+                        sH,
+                        DtBs,
+                    )
                 end
             else
                 _Bsmat!(Bs, ecoords_e, Ae)
-                add_btdb_ut_only!(elmat, Bs, (t^2/(t^2+mult_el_size*2*Ae))*Ae, sH, DtBs)
+                add_btdb_ut_only!(
+                    elmat,
+                    Bs,
+                    (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
+                    sH,
+                    DtBs,
+                )
             end
             # Complete the elementwise matrix by filling in the lower triangle
             complete_lt!(elmat)
@@ -554,27 +630,40 @@ function stiffness(self::FEMMShellT3FFComp, assembler::ASS, geom0::NodalField{FF
             _transfmat_a_to_e!(T, A_Es, gradN_e)
             transformwith(elmat, T)
             # Bending diagonal stiffness coefficients
-            kavg = mean((elmat[4, 4], elmat[10, 10], elmat[16, 16],
-                elmat[5, 5], elmat[11, 11], elmat[17, 17])) * drilling_stiffness_scale
+            kavg =
+                mean((
+                    elmat[4, 4],
+                    elmat[10, 10],
+                    elmat[16, 16],
+                    elmat[5, 5],
+                    elmat[11, 11],
+                    elmat[17, 17],
+                )) * drilling_stiffness_scale
             # Add the artificial drilling stiffness in the nodal basis, but only
             # if the nodal normal is valid. 
-            nvalid[1] && (elmat[6,6] += kavg)
-            nvalid[2] && (elmat[12,12] += kavg)
-            nvalid[3] && (elmat[18,18] += kavg)
+            nvalid[1] && (elmat[6, 6] += kavg)
+            nvalid[2] && (elmat[12, 12] += kavg)
+            nvalid[3] && (elmat[18, 18] += kavg)
             # Transform from global (G) into the nodal (A) basis
             _transfmat_g_to_a!(T, A_Es, E_G)
             transformwith(elmat, T)
             # Assembly
-            gatherdofnums!(dchi, dofnums, fes.conn[i]); 
-            assemble!(assembler, elmat, dofnums, dofnums); 
+            gatherdofnums!(dchi, dofnums, fes.conn[i])
+            assemble!(assembler, elmat, dofnums, dofnums)
         end # Loop over elements
     end # Loop over layup groups
-    return makematrix!(assembler);
+    return makematrix!(assembler)
 end
 
-function stiffness(self::FEMMShellT3FFComp, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {TI<:Number}
-    assembler = SysmatAssemblerSparseSymm();
-    return stiffness(self, assembler, geom0, u1, Rfield1, dchi);
+function stiffness(
+    self::FEMMShellT3FFComp,
+    geom0::NodalField{FFlt},
+    u1::NodalField{TI},
+    Rfield1::NodalField{TI},
+    dchi::NodalField{TI},
+) where {TI<:Number}
+    assembler = SysmatAssemblerSparseSymm()
+    return stiffness(self, assembler, geom0, u1, Rfield1, dchi)
 end
 
 
@@ -585,60 +674,74 @@ Compute the diagonal (lumped) mass matrix
 
 The mass matrix can be expected to be non-singular.
 """
-function mass(self::FEMMShellT3FFComp,  assembler::A,  geom0::NodalField{FFlt}, dchi::NodalField{TI}) where {A<:AbstractSysmatAssembler, TI<:Number}
+function mass(
+    self::FEMMShellT3FFComp,
+    assembler::A,
+    geom0::NodalField{FFlt},
+    dchi::NodalField{TI},
+) where {A<:AbstractSysmatAssembler,TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
-    startassembly!(assembler, prod(size(elmat)) * count(fes), nalldofs(dchi),  nalldofs(dchi));
+    startassembly!(
+        assembler,
+        prod(size(elmat)) * count(fes),
+        nalldofs(dchi),
+        nalldofs(dchi),
+    )
     for lg in self.layup_groups
-            layup = lg[1]
-            eset = lg[2]
-            mass_density, moment_of_inertia_density = laminate_inertia!(layup)
-            for i in eset # Loop over elements in the layup group
-                gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-                _centroid!(centroid, ecoords)
-                _compute_J!(J0, ecoords)
-                _e_g!(E_G, J0)
-                _ecoords_e!(ecoords_e, J0, E_G)
-                gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-                # Compute the translational and rotational masses corresponding
-                # to nodes
-                tmass = mass_density*(Ae/3);
-                rmass = moment_of_inertia_density*(Ae/3);
-                # Fill the elementwise matrix in the global basis: the matrix is
-                # lumped, hence diagonal, and no transformation is needed.
-                fill!(elmat,  0.0); # Initialize element matrix
-                for k in 1:npe
-                    # Translation degrees of freedom
-                    for d in 1:3
-                        c = (k - 1) * __ndof + d
-                        elmat[c, c] += tmass
-                    end
-                    # Bending degrees of freedom
-                    for d in 4:6
-                        c = (k - 1) * __ndof + d
-                        elmat[c, c] += rmass
-                    end
+        layup = lg[1]
+        eset = lg[2]
+        mass_density, moment_of_inertia_density = laminate_inertia!(layup)
+        for i in eset # Loop over elements in the layup group
+            gathervalues_asmat!(geom0, ecoords, fes.conn[i])
+            _centroid!(centroid, ecoords)
+            _compute_J!(J0, ecoords)
+            _e_g!(E_G, J0)
+            _ecoords_e!(ecoords_e, J0, E_G)
+            gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
+            # Compute the translational and rotational masses corresponding
+            # to nodes
+            tmass = mass_density * (Ae / 3)
+            rmass = moment_of_inertia_density * (Ae / 3)
+            # Fill the elementwise matrix in the global basis: the matrix is
+            # lumped, hence diagonal, and no transformation is needed.
+            fill!(elmat, 0.0) # Initialize element matrix
+            for k = 1:npe
+                # Translation degrees of freedom
+                for d = 1:3
+                    c = (k - 1) * __ndof + d
+                    elmat[c, c] += tmass
                 end
-                # Assemble
-                gatherdofnums!(dchi,  dofnums,  fes.conn[i]);# retrieve degrees of freedom
-                assemble!(assembler,  elmat,  dofnums,  dofnums);# assemble symmetric matrix
-            end # Loop over elements
-        end # Loop over layup groups
-    return makematrix!(assembler);
+                # Bending degrees of freedom
+                for d = 4:6
+                    c = (k - 1) * __ndof + d
+                    elmat[c, c] += rmass
+                end
+            end
+            # Assemble
+            gatherdofnums!(dchi, dofnums, fes.conn[i])# retrieve degrees of freedom
+            assemble!(assembler, elmat, dofnums, dofnums)# assemble symmetric matrix
+        end # Loop over elements
+    end # Loop over layup groups
+    return makematrix!(assembler)
 end
 
-function mass(self::FEMMShellT3FFComp,  geom::NodalField{FFlt},  u::NodalField{TI}) where {TI<:Number}
-    assembler = SysmatAssemblerSparseSymm();
-    return mass(self, assembler, geom, u);
+function mass(
+    self::FEMMShellT3FFComp,
+    geom::NodalField{FFlt},
+    u::NodalField{TI},
+) where {TI<:Number}
+    assembler = SysmatAssemblerSparseSymm()
+    return mass(self, assembler, geom, u)
 end
 
 
@@ -669,14 +772,24 @@ Inspect integration point quantities.
 ### Return
 The updated inspector data is returned.
 """
-function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u::NodalField{TI}, dT::NodalField{FFlt}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {TI<:Number, F<:Function}
+function inspectintegpoints(
+    self::FEMMShellT3FFComp,
+    geom0::NodalField{FFlt},
+    u::NodalField{TI},
+    dT::NodalField{FFlt},
+    felist::FIntVec,
+    inspector::F,
+    idat,
+    quantity = :Cauchy;
+    context...,
+) where {TI<:Number,F<:Function}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     centroid, J0 = self._loc, self._J0
     ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e 
+    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = TransformerQtEQ(elmat)
@@ -697,7 +810,7 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     out = fill(0.0, 3)
     o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
-    outputcsys = self.layup_groups[1][1].csys; # default: report the stresses in the material coord system
+    outputcsys = self.layup_groups[1][1].csys # default: report the stresses in the material coord system
     for apair in pairs(context)
         sy, val = apair
         if sy == :outputcsys
@@ -712,19 +825,19 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
     if quantity == :transverse_shear || quantity == :transverse || quantity == :shear
         quant = TRANSVERSE_SHEAR
     end
-    if quantity == :membrane_force || quantity == :membrane 
+    if quantity == :membrane_force || quantity == :membrane
         quant = MEMBRANE_FORCE
     end
     # Loop over  all the elements and all the quadrature points within them
     for ilist = 1:length(felist) # Loop over elements
-        i = felist[ilist];
+        i = felist[ilist]
         # Look up the layup
         layup = self.layup_groups[self._layup_group_lookup[i]][1]
         t = thickness(layup)
         laminate_stiffnesses!(layup, A, B, D)
         laminate_transverse_stiffness!(layup, H)
-        gathervalues_asmat!(geom0, ecoords, fes.conn[i]);
-        gathervalues_asvec!(u, edisp, fes.conn[i]);
+        gathervalues_asmat!(geom0, ecoords, fes.conn[i])
+        gathervalues_asvec!(u, edisp, fes.conn[i])
         _centroid!(centroid, ecoords)
         _compute_J!(J0, ecoords)
         _e_g!(E_G, J0)
@@ -737,25 +850,31 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         mul!(edisp_n, T, edisp)
         # Now treat the transformation from the nodal to the element triad
         _transfmat_a_to_e!(T, A_Es, gradN_e)
-         # Transform the nodal vector into the elementwise coordinates
+        # Transform the nodal vector into the elementwise coordinates
         mul!(edisp_e, T, edisp_n)
-        updatecsmat!(outputcsys, centroid, J0, i, 0);
+        updatecsmat!(outputcsys, centroid, J0, i, 0)
         if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
             @warn "Coordinate systems mismatched?"
         end
         # Established the stiffness matrices
-        sA[:] .= A[:]; sB[:] .= B[:]; sD[:] .= D[:];     sH[:] .= H[:]
+        sA[:] .= A[:]
+        sB[:] .= B[:]
+        sD[:] .= D[:]
+        sH[:] .= H[:]
         # Transform the laminate stiffnesses
         updatecsmat!(layup.csys, centroid, J0, i, 0)
         m, n = lla(E_G, csmat(layup.csys))
         plane_stress_Tbar_matrix!(Tps, m, n)
-        tps!(sA, Tps); tps!(sB, Tps); tps!(sD, Tps);
+        tps!(sA, Tps)
+        tps!(sB, Tps)
+        tps!(sD, Tps)
         transverse_shear_T_matrix!(Tts, m, n)
         tts!(sH, Tts)
         # The output coordinate system
         ocsm, ocsn = lla(E_G, csmat(outputcsys))
-        o2_e[1, 1] = o2_e[2, 2]  = ocsm
-        o2_e[1, 2] = ocsn; o2_e[2, 1] = -ocsn
+        o2_e[1, 1] = o2_e[2, 2] = ocsm
+        o2_e[1, 2] = ocsn
+        o2_e[2, 1] = -ocsn
         # Compute the Requested Quantity
         _Bbmat!(Bb, gradN_e)
         _Bmmat!(Bm, gradN_e)
@@ -776,22 +895,41 @@ function inspectintegpoints(self::FEMMShellT3FFComp, geom0::NodalField{FFlt},  u
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)
-            he = sqrt(2*Ae)
+            he = sqrt(2 * Ae)
             shrstr = Bs * edisp_e
-            frc = (t^2/(t^2+mult_el_size*2*Ae))*sH * shrstr
+            frc = (t^2 / (t^2 + mult_el_size * 2 * Ae)) * sH * shrstr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
-        end 
+        end
         # Call the inspector
-        idat = inspector(idat, i, fes.conn[i], ecoords, out, centroid);
+        idat = inspector(idat, i, fes.conn[i], ecoords, out, centroid)
         # end # Loop over quadrature points
     end # Loop over elements
-    return idat; # return the updated inspector data
+    return idat # return the updated inspector data
 end
 
-function inspectintegpoints(self::FEMMShellT3FFComp, geom::NodalField{FFlt},  u::NodalField{TI}, felist::FIntVec, inspector::F, idat, quantity=:Cauchy; context...) where {TI<:Number, F<:Function}
+function inspectintegpoints(
+    self::FEMMShellT3FFComp,
+    geom::NodalField{FFlt},
+    u::NodalField{TI},
+    felist::FIntVec,
+    inspector::F,
+    idat,
+    quantity = :Cauchy;
+    context...,
+) where {TI<:Number,F<:Function}
     dT = NodalField(fill(zero(FFlt), nnodes(geom), 1)) # zero difference in temperature
-    return inspectintegpoints(self, geom, u, dT, felist, inspector, idat, quantity; context...);
+    return inspectintegpoints(
+        self,
+        geom,
+        u,
+        dT,
+        felist,
+        inspector,
+        idat,
+        quantity;
+        context...,
+    )
 end
 
 end # module

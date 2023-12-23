@@ -24,6 +24,7 @@ using LinearAlgebra
 # The finite element code relies on the basic functionality implemented in this
 # package.
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked
 
 # The material parameters may be defined with the specification of the units.
 # The elastic properties are:
