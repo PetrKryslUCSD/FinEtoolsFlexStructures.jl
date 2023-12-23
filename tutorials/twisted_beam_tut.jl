@@ -2,6 +2,8 @@
 
 # Source code: [`twisted_beam_tut.jl`](twisted_beam_tut.jl)
 
+# Last updated: 12/23/23
+
 # ## Description
 
 # The initially twisted cantilever beam is one of the standard test
@@ -25,7 +27,10 @@
 # Test Finite Element Accuracy,” Finite Elements in Analysis Design, vol. 11, pp.
 # 3–20, 1985.
 
-# [2] Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically Exact Shell Model. Part II: The Linear Theory; Computational Aspects,” Computational Methods in Applied Mechanical Engineering, vol. 73, pp. 53–92, 1989.
+# [2] Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant
+# Geometrically Exact Shell Model. Part II: The Linear Theory; Computational
+# Aspects,” Computational Methods in Applied Mechanical Engineering, vol. 73,
+# pp. 53–92, 1989.
 
 # [3] Zupan D, Saje M (2004) On "A proposed standard set of problems to test
 # finite element accuracy": the twisted beam. Finite Elements in Analysis
@@ -87,20 +92,24 @@ params = params_thicker_dir_3
 # The mesh is initially generated for a rectangular 2d domain. The element size
 # can be controlled with these two variables:
 
-nL = 48;
-nW = 8;
-nL, nW = 8, 4
+nL, nW = 8, 2
+# This represents a fairly coarse mesh. We may try something more refined:
+# nL, nW = 4*8, 4*2
 
 fens, fes = T3block(L, W, nL, nW, :a);
 
 # The 2d mesh is expanded into a three dimensional domain, and the
-# locations of the nodes are tweaked to produce the pre twisted shape.
+# locations of the nodes are modified to produce the pre-youtwisted shape.
 fens.xyz = xyz3(fens)
-for i in 1:count(fens)
-    a = fens.xyz[i, 1] / L * (pi / 2)
-    y = fens.xyz[i, 2] - (W / 2)
-    z = fens.xyz[i, 3]
-    fens.xyz[i, :] = [fens.xyz[i, 1], y * cos(a) - z * sin(a), y * sin(a) + z * cos(a)]
+fens = let
+    for i in 1:count(fens)
+        x = fens.xyz[i, 1]
+        a = x / L * (pi / 2)
+        y = fens.xyz[i, 2] - (W / 2)
+        z = fens.xyz[i, 3]
+        fens.xyz[i, :] = [x, y * cos(a) - z * sin(a), y * sin(a) + z * cos(a)]
+    end
+    fens
 end
 
 
@@ -112,8 +121,7 @@ t3ffm = FEMMShellT3FFModule
 # The shell elements have a type `FESetShellT3`. The type of the mesh is the
 # plain isoparametric triangle, which is instructed to delegate to the shell
 # element. 
-sfes = FESetShellT3()
-accepttodelegate(fes, sfes)
+accepttodelegate(fes, FESetShellT3())
 
 # Use the convenience function to make an instance of the finite element model
 # machine for the T3FF shell. 
@@ -137,7 +145,6 @@ l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
 for i in 1:6
     setebc!(dchi, l1, true, i)
 end
-applyebc!(dchi)
 numberdofs!(dchi);
 
 # Associate the finite element model machine with geometry. The shell
@@ -149,7 +156,7 @@ t3ffm.associategeometry!(femm, geom0)
 # Assemble the system stiffness matrix. 
 K = t3ffm.stiffness(femm, geom0, u0, Rfield0, dchi);
 
-# Though load is a concentrated force applied at the center of the beam. First
+# The load is a concentrated force applied at the center of the beam. First
 # we select the node.
 nl = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = tolerance)
 # Next we create a mesh of the loaded boundary (i.e. the selected node), so that
@@ -165,8 +172,8 @@ fi = ForceIntensity(v);
 # Finally we computed the load vector corresponding to the force intensity.
 F = distribloads(lfemm, geom0, dchi, fi, 3);
 
-# Extract the free-free block of the matrix. And the free block for the right
-# and side vector.
+# Extract the free-free block of the matrix, and the free block for the
+# right-hand side vector.
 K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
 F_f = vector_blocked(F, nfreedofs(dchi))[:f]
 
@@ -177,7 +184,7 @@ scattersysvec!(dchi, U[:])
 
 # The deflection in the correct direction at the loaded node is now extracted.
 tipdefl = dchi.values[nl, params.dir][1]
-@show tipdefl / params.uex * 100
+@info "Normalized deflection: $(tipdefl / params.uex * 100)%"
 
 # Generate a graphical display of resultants. The resultants only make sense in
 # a coordinate system aligned with the shell surface. Here we construct such a

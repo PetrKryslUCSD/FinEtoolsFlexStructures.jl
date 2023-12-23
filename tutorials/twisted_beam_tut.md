@@ -176,7 +176,6 @@ l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
 for i in 1:6
     setebc!(dchi, l1, true, i)
 end
-applyebc!(dchi)
 numberdofs!(dchi);
 ````
 
@@ -194,7 +193,7 @@ Assemble the system stiffness matrix.
 K = t3ffm.stiffness(femm, geom0, u0, Rfield0, dchi);
 ````
 
-Though load is a concentrated force applied at the center of the beam. First
+The load is a concentrated force applied at the center of the beam. First
 we select the node.
 
 ````julia
@@ -229,8 +228,8 @@ Finally we computed the load vector corresponding to the force intensity.
 F = distribloads(lfemm, geom0, dchi, fi, 3);
 ````
 
-Extract the free-free block of the matrix. And the free block for the right
-and side vector.
+Extract the free-free block of the matrix, and the free block for the
+right-hand side vector.
 
 ````julia
 K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
