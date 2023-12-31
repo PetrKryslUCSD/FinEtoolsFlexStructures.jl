@@ -23,6 +23,7 @@
 
 ## News
 
+- 12/30/2023: Update for Julia 1.10.
 - 12/21/2023: Tutorials merged back into the package tree.
 - 09/26/2023: Multiple examples revised. Numerous documentation improvements.
 - 08/14/2023: Updated for Julia 1.9.2. Revised nomenclature of layup transformation matrices.
