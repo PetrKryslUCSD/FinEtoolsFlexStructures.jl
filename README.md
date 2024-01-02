@@ -26,36 +26,9 @@
 - 12/30/2023: Update for Julia 1.10.
 - 12/21/2023: Tutorials merged back into the package tree.
 - 09/26/2023: Multiple examples revised. Numerous documentation improvements.
-- 08/14/2023: Updated for Julia 1.9.2. Revised nomenclature of layup transformation matrices.
-- 07/13/2023: Updated for Julia 1.9 and FinEtools 7.
-- 05/26/2022: Paper on explicit dynamics accepted for publication  in the
-  International Journal for Numerical Methods in Engineering. [Draft is
-  available in PDF.](docs/expl-shells-compressed.pdf)
-- 05/07/2022: Upgraded to Julia 1.7.2.
-- 02/13/2022: [Paper](https://doi.org/10.1002/nme.6944) describing the robust
-  triangular flat-facet shell element has been accepted for publication in the
-  International Journal for Numerical Methods in Engineering. [Draft is
-  available in PDF.](docs/shells-submitted.pdf)
 
 [Past news](oldnews.md)
 
-
-## Testing
-
-The package `FinEtoolsFlexStructures.jl` is registered. Simply do
-```
-using Pkg; Pkg.add("FinEtoolsFlexStructures"); 
-Pkg.test("FinEtoolsFlexStructures"); 
-```
-
-The package can also be cloned.
-Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, 
-which is the result of cloning the repository.
-The present package can be tested with
-```
-using Pkg; Pkg.activate("."); Pkg.instantiate(); 
-using Pkg; Pkg.test(); 
-```
 
 ## Tutorials
 
@@ -128,3 +101,12 @@ Static plots or animation of deformation during a static or dynamic simulation c
 Export to  [Paraview](https://www.paraview.org/)  is also available. Static
 pictures and time collections (useful for animations) are supported this way.
 
+## Documentation
+
+- Paper on explicit dynamics accepted for publication  in the
+  International Journal for Numerical Methods in Engineering. [Draft is
+  available in PDF.](docs/expl-shells-compressed.pdf)
+- [Paper](https://doi.org/10.1002/nme.6944) describing the robust
+  triangular flat-facet shell element has been accepted for publication in the
+  International Journal for Numerical Methods in Engineering. [Draft is
+  available in PDF.](docs/shells-submitted.pdf)
