@@ -1128,7 +1128,7 @@ function argyr_swing_animated()
         gathersysvec!(a0, a0v)
         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
         vpv = v0v +(dt*(1-ng))*a0v;
-        fi = ForceIntensity(FFlt[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
 
         iter = 1;
         while true
@@ -1285,7 +1285,7 @@ function argyr_swing_compare()
         gathersysvec!(a0, a0v)
         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
         vpv = v0v +(dt*(1-ng))*a0v;
-        fi = ForceIntensity(FFlt[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
 
         iter = 1;
         while true
