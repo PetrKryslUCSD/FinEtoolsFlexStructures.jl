@@ -86,13 +86,16 @@ function test(visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi)
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     formul.associategeometry!(femm, geom0)
-    K = formul.stiffness(femm, geom0, u0, Rfield0, dchi)
+    K = formul.stiffness(femm, massem, geom0, u0, Rfield0, dchi)
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(1)))
-    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0])
-    F = distribloads(lfemm, geom0, dchi, fi, 2)
+    fi = ForceIntensity(Float64[0, 0, q, 0, 0, 0])
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2)
 
     # Solve
     U = K \ F

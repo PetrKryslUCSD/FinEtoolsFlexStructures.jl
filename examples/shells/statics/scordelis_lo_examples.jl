@@ -86,15 +86,18 @@ function _execute_model(n = 8, visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*25 sin(40/360*2*pi)*25 L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -90, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
     U = K\F
@@ -173,15 +176,18 @@ function _execute_model_w_units(n = 8, visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*R sin(40/360*2*pi)*R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, q, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, 0, q, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
     U = K\F

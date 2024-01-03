@@ -110,16 +110,19 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0.05, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, 0, 0.05, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     @assert  isapprox(sum(F), 1.0)
     
     # @infiltrate
@@ -143,7 +146,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     vtkwrite("$input-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
 
     # Generate a graphical display of resultants
-    function csys!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function csys!(csmatout, XYZ, tangents, feid, qpid)
         cross3!(view(csmatout, :, 3), view(tangents, :, 1), view(tangents, :, 2))
         r = view(csmatout, :, 3)
         csmatout[:, 3] .= vec(r)/norm(vec(r))
