@@ -13,7 +13,7 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 
 
-function   cartesian!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
+function   cartesian!(csmatout, XYZ, tangents, feid, qpid)
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
     csmatout[:, 2] .= (0.0, 1.0, 0.0)
     csmatout[:, 3] .= (0.0, 0.0, 1.0)
@@ -88,7 +88,7 @@ function _execute_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true
     # Load
     nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -p, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -p, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
 
     # @infiltrate
@@ -213,7 +213,7 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     # Load
     nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -p, 0, 0, 0]);
+    fi = ForceIntensity(Float64[0, 0, -p, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 2);
 
     # @infiltrate
