@@ -97,7 +97,7 @@ function twisting_circle()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     tbox = plot_space_box([[0 -radius -radius]; [2*radius radius radius]])
     tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -108,6 +108,9 @@ function twisting_circle()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(torquen, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     t = 0.0; #
     step = 0;
@@ -125,16 +128,16 @@ function twisting_circle()
         gathersysvec!(a0, a0v)
         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
         vpv = v0v +(dt*(1-ng))*a0v;
-        fi = ForceIntensity(FFlt[0, 0, 0, (t < 0.08)*Tmag, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, 0, (t < 0.08)*Tmag, 0, 0]);
 
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv
