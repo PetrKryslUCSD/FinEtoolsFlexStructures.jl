@@ -59,7 +59,7 @@ rho = 7800.0
 R = 0.1
 L = 0.8
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -197,8 +197,8 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     @gp  :- collect(0.0:dt:(nsteps*dt)) cdeflections " lw 2 lc rgb '$color' with lines title 'Deflection at the center' "  :-
 
     @gp  :- "set xlabel 'Time'" :-
-    @gp  :- "set ylabel 'Deflection'" :-
-    @gp  :- "set title 'Free-floating plate'"
+    @gp  :- "set ylabel 'Deflection at the centre'" :-
+    @gp  :- "set title 'Clamped cylinder'"
 
 
 # Visualization
