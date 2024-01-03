@@ -17,6 +17,7 @@ module slit_cylinder_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked, solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -39,7 +40,7 @@ vmax = C * pi
 # Twisting moment magnitude
 M_x_phi =  D*(1-nu)*C/R^2
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -101,16 +102,16 @@ function _execute(n = 2, visualize = true)
     # Load
     loadbdry = subset(bfes, ll0)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0, 0, T/(2*pi*R), 0]);
+    fi = ForceIntensity(Float64[0, 0, 0, 0, T/(2*pi*R), 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 1);
     loadbdry = subset(bfes, llL2)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0, 0, -T/(2*pi*R), 0]);
+    fi = ForceIntensity(Float64[0, 0, 0, 0, -T/(2*pi*R), 0]);
     F += distribloads(lfemm, geom0, dchi, fi, 1);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+
+    solve_blocked!(dchi, K, F)
 
     @show vmax, maximum(dchi.values[connectednodes(subset(bfes, llL2)), 2])
 
