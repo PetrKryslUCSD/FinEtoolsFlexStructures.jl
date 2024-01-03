@@ -2,12 +2,7 @@
 
 julia_version = "1.10.0"
 manifest_format = "2.0"
-project_hash = "57d20215d91eba278dad9237d0e7851c545ea772"
-
-[[deps.ArgCheck]]
-git-tree-sha1 = "a3a402a35a2f7e0b87828ccabbd5ebfbebe356b4"
-uuid = "dce04be8-c92d-5529-be00-80e4d2c0e197"
-version = "2.3.0"
+project_hash = "b54b42a5dd8f19e01284cbd0cb76102d5a5519b3"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -56,21 +51,15 @@ version = "0.1.5"
 
 [[deps.Blink]]
 deps = ["Base64", "Distributed", "HTTP", "JSExpr", "JSON", "Lazy", "Logging", "MacroTools", "Mustache", "Mux", "Pkg", "Reexport", "Sockets", "WebIO"]
-git-tree-sha1 = "b1c61fd7e757c7e5ca6521ef41df8d929f41e3af"
+git-tree-sha1 = "bc93511973d1f949d45b0ea17878e6cb0ad484a1"
 uuid = "ad839575-38b3-5650-b840-f874b8c74a25"
-version = "0.12.8"
+version = "0.12.9"
 
 [[deps.CPUSummary]]
 deps = ["CpuId", "IfElse", "Static"]
 git-tree-sha1 = "a7157ab6bcda173f533db4c93fc8a27a48843757"
 uuid = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
 version = "0.1.30"
-
-[[deps.CSV]]
-deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
-git-tree-sha1 = "679e69c611fff422038e9e21e270c4197d49d918"
-uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-version = "0.10.12"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
@@ -184,9 +173,9 @@ version = "1.15.0"
 
 [[deps.DataDrop]]
 deps = ["HDF5", "JSON", "LinearAlgebra", "SparseArrays", "Test"]
-git-tree-sha1 = "457a7b1e91c7001c00445232045fccf1a2d28175"
+git-tree-sha1 = "e2b93bf2c70b6ecfc1270a3ed0115c40f3e235a7"
 uuid = "aa547a04-dd37-49ab-8e73-656744f8a8fc"
-version = "0.1.4"
+version = "0.1.5"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -202,12 +191,6 @@ version = "1.0.0"
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
-
-[[deps.DefaultApplication]]
-deps = ["InteractiveUtils"]
-git-tree-sha1 = "c0dfa5a35710a193d83f03124356eef3386688fc"
-uuid = "3f0dd361-4fe0-5fc6-8523-80b14ec94d85"
-version = "1.1.0"
 
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
@@ -260,12 +243,6 @@ git-tree-sha1 = "dcb08a0d93ec0b1cdc4af184b26b591e9695423a"
 uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
 version = "0.1.10"
 
-[[deps.FilePathsBase]]
-deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
-git-tree-sha1 = "9f00e42f8d99fdde64d40c8ea5d14269a2e2c1aa"
-uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.21"
-
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
@@ -287,21 +264,25 @@ version = "1.9.3"
 
 [[deps.FinEtools]]
 deps = ["ChunkSplitters", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "d8db9f54cbdd9310e739f0f06c32b2332cebc01b"
+git-tree-sha1 = "25ad440eb2cf5ec6c20177c68007be81f7717dee"
+repo-rev = "main"
+repo-url = "https://github.com/PetrKryslUCSD/FinEtools.jl.git"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "7.1.9"
+version = "7.2.2"
 
 [[deps.FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "SuiteSparse", "Test"]
-git-tree-sha1 = "509fe54c0f46aa3dc5d1740902e683329e8a2052"
+git-tree-sha1 = "0558926571aa11d9a3063e32373fc70655b3267e"
+repo-rev = "main"
+repo-url = "https://github.com/PetrKryslUCSD/FinEtoolsDeforLinear.jl.git"
 uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
-version = "2.0.6"
+version = "2.1.0"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-git-tree-sha1 = "cb9caa85781d206cd3cb170e74bcf35cb8a6d417"
+path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "2.1.0"
+version = "2.1.1"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -325,10 +306,6 @@ git-tree-sha1 = "04cb9cfaa6ba5311973994fe3496ddec19b6292a"
 uuid = "de31a74c-ac4f-5751-b3fd-e18cd04993ca"
 version = "0.5.0"
 
-[[deps.Future]]
-deps = ["Random"]
-uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
-
 [[deps.Gnuplot]]
 deps = ["ColorSchemes", "ColorTypes", "Colors", "DataStructures", "PrecompileTools", "REPL", "ReplMaker", "StatsBase", "StructC14N", "Test"]
 git-tree-sha1 = "d381a1afef7b3caab017b533cddab8293e6f0d67"
@@ -336,10 +313,16 @@ uuid = "dc211083-a33a-5b79-959f-2ff34033469d"
 version = "1.6.1"
 
 [[deps.HDF5]]
-deps = ["Compat", "HDF5_jll", "Libdl", "Mmap", "Printf", "Random", "Requires", "UUIDs"]
-git-tree-sha1 = "114e20044677badbc631ee6fdc80a67920561a29"
+deps = ["Compat", "HDF5_jll", "Libdl", "MPIPreferences", "Mmap", "Preferences", "Printf", "Random", "Requires", "UUIDs"]
+git-tree-sha1 = "26407bd1c60129062cec9da63dc7d08251544d53"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.16.16"
+version = "0.17.1"
+
+    [deps.HDF5.extensions]
+    MPIExt = "MPI"
+
+    [deps.HDF5.weakdeps]
+    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 
 [[deps.HDF5_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "libaec_jll"]
@@ -375,12 +358,6 @@ version = "2.10.0+0"
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
-
-[[deps.InlineStrings]]
-deps = ["Parsers"]
-git-tree-sha1 = "9cc2baf75c6d09f9da536ddf58eb2f29dedaf461"
-uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.4.0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -679,24 +656,6 @@ git-tree-sha1 = "dfdf5519f235516220579f949664f1bf44e741c5"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.6.3"
 
-[[deps.PGFPlotsX]]
-deps = ["ArgCheck", "Dates", "DefaultApplication", "DocStringExtensions", "MacroTools", "OrderedCollections", "Parameters", "Requires", "Tables"]
-git-tree-sha1 = "3e7a0345b9f37da2cd770a5d47bb5cb6e62c7a81"
-uuid = "8314cec4-20b6-5062-9cdb-752b83310925"
-version = "1.6.0"
-
-    [deps.PGFPlotsX.extensions]
-    ColorsExt = "Colors"
-    ContourExt = "Contour"
-    MeasurementsExt = "Measurements"
-    StatsBaseExt = "StatsBase"
-
-    [deps.PGFPlotsX.weakdeps]
-    Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
-    Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
-    Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
-    StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-
 [[deps.PMIx_jll]]
 deps = ["Artifacts", "Hwloc_jll", "JLLWrappers", "Libdl", "Zlib_jll", "libevent_jll"]
 git-tree-sha1 = "8b3b19351fa24791f94d7ae85faf845ca1362541"
@@ -750,12 +709,6 @@ git-tree-sha1 = "43883d15c7cf16f340b9367c645cf88372f55641"
 uuid = "1d0040c9-8b98-4ee7-8388-3f51789ca0ad"
 version = "0.1.13"
 
-[[deps.PooledArrays]]
-deps = ["DataAPI", "Future"]
-git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
-uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
-version = "1.4.3"
-
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "03b4c25b43cb84cee5c90aa9b5ea0a78fd848d2f"
@@ -805,9 +758,9 @@ version = "1.3.0"
 
 [[deps.Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "033b3dcf811234b6d0bad28ea5395981c387fad2"
+git-tree-sha1 = "116d71e489abc472efa460cfa2bc0ac7cd0bab54"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.5.11"
+version = "3.5.12"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -829,12 +782,6 @@ deps = ["IfElse", "Static", "VectorizationBase"]
 git-tree-sha1 = "3aac6d68c5e57449f5b9b865c9ba50ac2970c4cf"
 uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
 version = "0.6.42"
-
-[[deps.SentinelArrays]]
-deps = ["Dates", "Random"]
-git-tree-sha1 = "0e7508ff27ba32f26cd459474ca2ede1bc10991f"
-uuid = "91c51154-3ec4-41a3-a24f-3f23e20d615c"
-version = "1.4.1"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
@@ -882,9 +829,9 @@ version = "0.3.3"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "42d5373c10272d14ef49cc68ffc22df3b93c549a"
+git-tree-sha1 = "4e17a790909b17f7bf1496e3aec138cf01b60b3b"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.8.2"
+version = "1.9.0"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -909,9 +856,9 @@ version = "1.7.0"
 
 [[deps.StatsBase]]
 deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "d1bf48bfcc554a3761a133fe3a9bb01488e06916"
+git-tree-sha1 = "1d77abd07f617c4868c33d4f5b9e1dbb2643c9cf"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.21"
+version = "0.34.2"
 
 [[deps.StrideArraysCore]]
 deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "ManualMemory", "Requires", "SIMDTypes", "Static", "ThreadingUtilities"]
@@ -1052,12 +999,6 @@ repo-url = "https://github.com/PetrKryslUCSD/VisualStructures.jl.git"
 uuid = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 version = "0.1.3"
 
-[[deps.WeakRefStrings]]
-deps = ["DataAPI", "InlineStrings", "Parsers"]
-git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
-uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
-version = "1.4.2"
-
 [[deps.WebIO]]
 deps = ["AssetRegistry", "Base64", "Distributed", "FunctionalCollections", "JSON", "Logging", "Observables", "Pkg", "Random", "Requires", "Sockets", "UUIDs", "WebSockets", "Widgets"]
 git-tree-sha1 = "0eef0765186f7452e52236fa42ca8c9b3c11c6e3"
@@ -1075,11 +1016,6 @@ deps = ["Colors", "Dates", "Observables", "OrderedCollections"]
 git-tree-sha1 = "fcdae142c1cfc7d89de2d11e08721d0f2f86c98a"
 uuid = "cc8bc4a8-27d6-5769-a93b-9d913e69aa62"
 version = "0.6.6"
-
-[[deps.WorkerUtilities]]
-git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
-uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
-version = "1.6.1"
 
 [[deps.WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams", "VTKBase"]
