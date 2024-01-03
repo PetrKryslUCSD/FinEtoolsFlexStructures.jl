@@ -28,8 +28,8 @@ using CSV
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 using ThreadedSparseCSR
 using UnicodePlots
-using InteractiveUtils
-using BenchmarkTools
+# using InteractiveUtils
+# using BenchmarkTools
 
 const E = 10.5e6*phun("psi")
 const nu = 0.3;
@@ -198,7 +198,7 @@ function _execute_parallel_csr(n = 64, nthr = 0)
     cpointdof = dchi.dofnums[cpoint, 3]
     
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         r = vec(XYZ); 
         r .= vec(r)/norm(vec(r))
         forceout[1:3] .= -r*q
@@ -208,7 +208,7 @@ function _execute_parallel_csr(n = 64, nthr = 0)
 
     # Distributed loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
+    fi = ForceIntensity(Float64, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
     Fmag = vector_blocked(Fmag, nfreedofs(dchi))[:f]
 
