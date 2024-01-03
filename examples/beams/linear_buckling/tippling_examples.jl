@@ -1,7 +1,6 @@
 module tippling_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
 using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
@@ -60,28 +59,29 @@ function tippling_1()
     numberdofs!(dchi);
 
     # Assemble the global discrete system
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
     tipn = selectnode(fens; box = Float64[0 0 0 0 L L], tolerance = L/10000)
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -magn*b*h/magn_scale, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, -magn*b*h/magn_scale, 0, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    solve_blocked!(dchi, K, F)
+    U = K \ F
+    scattersysvec!(dchi, U)
     @show  dchi.values[tipn, :]
 
     # Compute the geometric stiffness
     u0.values = dchi.values[:,1:3]
     update_rotation_field!(Rfield0, dchi)
-    Kg = geostiffness(femm, geom0, u0, Rfield0, dchi);
-
-    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
-    Kg_ff = matrix_blocked(Kg, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    Kg = geostiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Solve the eigenvalue problem
-    d,v,nconv = eigs(-Kg_ff, K_ff; nev=neigvs, which=:LM, explicittransform=:none)
+    d,v,nconv = eigs(-Kg, K; nev=neigvs, which=:LM, explicittransform=:none)
     fs = 1.0 ./ (d) ./ magn_scale
     println("Buckling factors: $fs [ND]")
     println("Reference: $reffs [ND]")

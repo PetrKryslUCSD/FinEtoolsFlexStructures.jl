@@ -100,7 +100,7 @@ function test2(direction = 2)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-    @show dchi.values[tipl, direction], deflex
+    @show direction, dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
     scaling = 1e0
@@ -202,7 +202,7 @@ function test3(direction = 2)
 
     # Solve the static problem
     solve_blocked!(dchi, K, F)
-    @show dchi.values[tipl, direction], deflex
+    @show direction, dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
     scaling = 1e0
