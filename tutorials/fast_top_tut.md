@@ -9,6 +9,12 @@ solution is available in Krysl, P., Endres, L.: Explicit Newmark/Verlet
 algorithm for time integration of the rotational dynamics of rigid bodies.
 Int. J. Numer. Meth. Eng. 62, 2154–2177 (2005).
 
+A beam is pinned at the bottom, and spins in a gravity field, executing
+precession and nutation. Its top node inscribes a curve in the 3D space which
+is displayed as the equations of motion are integrated.
+
+![](fast_top.png)
+
 ## Goals
 
 - Illustrate integration of the nonlinear equations
@@ -26,7 +32,6 @@ package.
 
 ````julia
 using FinEtools
-using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked
 ````
 
 The material parameters may be defined with the specification of the units.
@@ -171,7 +176,14 @@ using FinEtoolsFlexStructures.FEMMCorotBeamModule
 CB = FEMMCorotBeamModule
 femm = CB.FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
 fi = ForceIntensity(q);
+````
 
+Here we prepare matrix and vector assemblers that only work with a free
+degrees of freedom.
+
+````julia
+massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using DelimitedFiles
@@ -226,21 +238,18 @@ Initialization
 
         iter = 1;
         while true
-            F = CB.distribloads_global(femm, geom0, u1, Rfield1, dchi, fi) +
-             CB.restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
-            rhs .= vector_blocked(F, nfreedofs(dchi))[:f]
-            K = CB.stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = CB.mass(femm, geom0, u1, Rfield1, dchi);
-            G = CB.gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
-            M_ff = matrix_blocked(M, nfreedofs(dchi))[:ff]
-            K_ff = matrix_blocked(K, nfreedofs(dchi))[:ff]
-            G_ff = matrix_blocked(G, nfreedofs(dchi))[:ff]
+            F = CB.distribloads_global(femm, vassem, geom0, u1, Rfield1, dchi, fi) +
+             CB.restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);
+            rhs .= F
+            K = CB.stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = CB.mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = CB.gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
-            rhs .+= M_ff*TMPv
+            rhs .+= M*TMPv
             @. TMPv = ((-ng/nb/dt)*stepdchiv+(ng/nb/dt)*dchipv - vpv)
-            rhs .+= G_ff*TMPv;
-            dchi = scattersysvec!(dchi, (K_ff+(ng/nb/dt)*G_ff+(1/(nb*dt^2))*M_ff)\rhs); # Disp. incr
+            rhs .+= G*TMPv;
+            dchi = scattersysvec!(dchi, (K+(ng/nb/dt)*G+(1/(nb*dt^2))*M)\rhs); # Disp. incr
             u1.values[:] += (dchi.values[:,1:3])[:];   # increment displacement
             stepdchi.values[:] += dchi.values[:]
             v1.values[:] += (ng/nb/dt)*dchi.values[:];
