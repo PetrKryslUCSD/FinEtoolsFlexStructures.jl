@@ -132,7 +132,7 @@ function curved_cantilever()
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
     
     # tbox = plot_space_box([[0.0*radius 0.0*radius 0.0*radius]; [1.15*radius 0.75*radius 2.0*radius]])
     # tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -143,7 +143,10 @@ function curved_cantilever()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     load_parameters = 0.0:0.05:1;
     tip_displacement = fill(0.0, length(load_parameters), 3);
     step = 0
@@ -151,15 +154,15 @@ function curved_cantilever()
         applyebc!(dchi) # Apply boundary conditions
         u1.values[:] = u0.values[:]; # guess
         Rfield1.values[:] = Rfield0.values[:]; # guess
-        fi = ForceIntensity(FFlt[0, 0, load_parameter*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, load_parameter*Fmag, 0, 0, 0]);
         
         println("Load: $load_parameter")
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi) + geostiffness(femm, massem, geom0, u1, Rfield1, dchi);
             dchi = scattersysvec!(dchi, (K)\rhs); # Disp. incr
             u1.values[:] += (dchi.values[:,1:3])[:];   # increment displacement
             update_rotation_field!(Rfield1, dchi)
@@ -247,7 +250,7 @@ function curved_cantilever_thin()
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
     
     # tbox = plot_space_box([[0.0*radius 0.0*radius 0.0*radius]; [1.15*radius 0.75*radius 2.0*radius]])
     # tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -259,6 +262,9 @@ function curved_cantilever_thin()
     loadbdry = FESetP1(reshape(tipn, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     load_parameters = 0.0:0.05:1;
     tip_displacement = fill(0.0, length(load_parameters), 3);
     step = 0
@@ -266,15 +272,15 @@ function curved_cantilever_thin()
         applyebc!(dchi) # Apply boundary conditions
         u1.values[:] = u0.values[:]; # guess
         Rfield1.values[:] = Rfield0.values[:]; # guess
-        fi = ForceIntensity(FFlt[0, 0, load_parameter*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, load_parameter*Fmag, 0, 0, 0]);
         
         println("Load: $load_parameter")
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi) + geostiffness(femm, massem, geom0, u1, Rfield1, dchi);
             dchi = scattersysvec!(dchi, (K)\rhs); # Disp. incr
             u1.values[:] += (dchi.values[:,1:3])[:];   # increment displacement
             update_rotation_field!(Rfield1, dchi)
