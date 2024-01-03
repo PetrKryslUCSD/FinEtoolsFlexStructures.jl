@@ -29,8 +29,8 @@ using Gnuplot;  # @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using UnicodePlots
-using InteractiveUtils
-using BenchmarkTools
+# using InteractiveUtils
+# using BenchmarkTools
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 
 
@@ -220,7 +220,7 @@ function _execute(nref = 2, nthr = 0, color = "red")
     
     # Four cycles of the carrier frequency
 
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[mpoint, 1]
         dy = XYZ[2] - fens.xyz[mpoint, 2]
         dz = XYZ[3] - fens.xyz[mpoint, 3]
@@ -235,10 +235,10 @@ function _execute(nref = 2, nthr = 0, color = "red")
 
     if distributedforce
         lfemm = FEMMBase(IntegDomain(fes, TriRule(6)))
-        fi = ForceIntensity(FFlt, 6, computetrac!);
+        fi = ForceIntensity(Float64, 6, computetrac!);
         Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
     else
-        Fmag = fill(0.0, dchi.nfreedofs)
+        Fmag = fill(0.0, nfreedofs(dchi))
         Fmag[mpointdof1] = -totalforce/4 # only a quarter of the plate is modeled
     end
 
