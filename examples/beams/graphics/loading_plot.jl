@@ -1,4 +1,4 @@
-module  edit_plot_examples
+module  loading_plot_examples
 using FinEtools
 using FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam
 using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionCircle, CrossSectionRectangle
