@@ -83,15 +83,18 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -q, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     # @infiltrate
     # Solve
@@ -101,7 +104,7 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/center_w, digits = 4)*100)%"
 
     # Generate a graphical display of resultants
-    cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+    cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
         csmatout[:, 1] .= vec(XYZ)/norm(vec(XYZ))
         csmatout[:, 3] .= (0.0, 0.0, 1.0)
         cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))

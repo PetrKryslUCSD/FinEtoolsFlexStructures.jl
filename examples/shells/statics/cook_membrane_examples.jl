@@ -56,17 +56,20 @@ function _execute(n = 8, visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     bfes = meshboundary(fes)
     nl = selectelem(fens, bfes; box = Float64[width width -Inf Inf -Inf Inf], tolerance = tolerance)
     loadbdry = subset(bfes, nl)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, magn, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64[0, magn, 0, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     # Solve
     U = K\F
