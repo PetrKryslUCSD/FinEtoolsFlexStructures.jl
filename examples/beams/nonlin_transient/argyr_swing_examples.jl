@@ -1100,7 +1100,7 @@ function argyr_swing_animated()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     tbox = plot_space_box([[-1.5*L -0.5*L -1.5*L]; [1.5*L 2.5*L 1.5*L]])
     tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -1111,6 +1111,9 @@ function argyr_swing_animated()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(elbown, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     t = 0.0; #
     step = 0;
@@ -1132,12 +1135,12 @@ function argyr_swing_animated()
 
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv
@@ -1249,7 +1252,7 @@ function argyr_swing_compare()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     reft = range(0, 0.5, length = size(tipus,1))
     plots = cat(
@@ -1268,6 +1271,9 @@ function argyr_swing_compare()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(elbown, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     t = 0.0; #
     step = 0;
@@ -1289,12 +1295,12 @@ function argyr_swing_compare()
 
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv
