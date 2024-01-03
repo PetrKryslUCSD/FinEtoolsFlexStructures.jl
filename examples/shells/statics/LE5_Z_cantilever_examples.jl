@@ -28,7 +28,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-function zcant!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)  
+function zcant!(csmatout, XYZ, tangents, feid, qpid)
     r = vec(XYZ); 
     cross3!(r, view(tangents, :, 1), view(tangents, :, 2))
     csmatout[:, 3] .= vec(r)/norm(vec(r))
@@ -92,22 +92,25 @@ function _execute_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = t
     
     applyebc!(dchi)
     numberdofs!(dchi);
-    @show dchi.nfreedofs
+    @show nfreedofs(dchi)
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
     
     # Load
     nl = selectnode(fens; box = Float64[10.0 10.0 1.0 1.0 0 0], tolerance = tolerance)
     loadbdry1 = FESetP1(reshape(nl, 1, 1))
     lfemm1 = FEMMBase(IntegDomain(loadbdry1, PointRule()))
-    fi1 = ForceIntensity(FFlt[0, 0, +0.6e6, 0, 0, 0]);
+    fi1 = ForceIntensity(Float64[0, 0, +0.6e6, 0, 0, 0]);
     nl = selectnode(fens; box = Float64[10.0 10.0 -1.0 -1.0 0 0], tolerance = tolerance)
     loadbdry2 = FESetP1(reshape(nl, 1, 1))
     lfemm2 = FEMMBase(IntegDomain(loadbdry2, PointRule()))
-    fi2 = ForceIntensity(FFlt[0, 0, -0.6e6, 0, 0, 0]);
-    F = distribloads(lfemm1, geom0, dchi, fi1, 3) + distribloads(lfemm2, geom0, dchi, fi2, 3);
+    fi2 = ForceIntensity(Float64[0, 0, -0.6e6, 0, 0, 0]);
+    F = distribloads(lfemm1, vassem, geom0, dchi, fi1, 3) + distribloads(lfemm2, vassem, geom0, dchi, fi2, 3);
 
     # @infiltrate
     # Solve
