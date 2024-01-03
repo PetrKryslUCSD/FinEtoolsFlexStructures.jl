@@ -81,9 +81,12 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[L/2 L/2 0 0 -Inf Inf], inflate = tolerance)
@@ -95,9 +98,9 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
     #     forceout[3] = -g * n[3]
     #     return forceout
     # end
-    # fi = ForceIntensity(FFlt, 6, computeforce!)
-    fi = ForceIntensity(FFlt[0, 0, -g, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    # fi = ForceIntensity(Float64, 6, computeforce!)
+    fi = ForceIntensity(Float64[0, 0, -g, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
     U = K\F

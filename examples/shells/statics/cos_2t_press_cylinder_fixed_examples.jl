@@ -18,6 +18,7 @@ module cos_2t_press_cylinder_fixed_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked, solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -35,7 +36,7 @@ L = 2.0;
 
 # The cylinder axis is parallel to Y
 
-function cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+function cylindrical!(csmatout, XYZ, tangents, feid, qpid)
     n = cross(tangents[:, 1], tangents[:, 2]) 
     n = n/norm(n)
     # r = vec(XYZ); r[2] = 0.0
@@ -45,7 +46,7 @@ function cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_lab
     return csmatout
 end
 
-function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+function computetrac!(forceout::Vector{T}, XYZ, tangents, feid, qpid)  where {T}
     r = vec(XYZ); r[2] = 0.0
     r .= vec(r)/norm(vec(r))
     theta = atan(r[3], r[1])
@@ -103,16 +104,19 @@ function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the fixed edge
     # nl = selectnode(fens; box = Float64[R R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64, 6, computetrac!);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     
     # Solve
     U = K\F

@@ -42,7 +42,7 @@ Length = 2.0;
 
 # The hyperboloid axis is parallel to Y
 
-function hyperbolic!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) 
+function hyperbolic!(csmatout, XYZ, tangents, feid, qpid)
     n = cross(tangents[:, 1], tangents[:, 2]) 
     n = n/norm(n)
     # r = vec(XYZ); r[2] = 0.0
@@ -52,7 +52,7 @@ function hyperbolic!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_labe
     return csmatout
 end
 
-function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+function computetrac!(forceout, XYZ, tangents, feid, qpid)
     r = vec(XYZ); r[2] = 0.0
     r .= vec(r)/norm(vec(r))
     theta = atan(r[3], r[1])
@@ -113,16 +113,19 @@ function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, di
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     # nl = selectnode(fens; box = Float64[R R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    F = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64, 6, computetrac!);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     
     # Solve
     U = K\F
@@ -179,7 +182,7 @@ end # function allrun
 function test_convergence(formul = FEMMShellT3FFModule, thicknessmult = 1/100000, distortion = 0.0)
     @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
     results = []
-    ns = [16, 32, 64, 128, 256]
+    ns = [16, 32, 64, 128, ]
     for n in ns
         push!(results, _execute(formul, n, Length/2*thicknessmult, true, 2*distortion/n))
     end
