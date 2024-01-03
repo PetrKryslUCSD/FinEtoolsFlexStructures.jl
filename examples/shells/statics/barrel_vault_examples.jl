@@ -20,6 +20,7 @@ module barrel_vault_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: matrix_blocked, vector_blocked, solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -105,19 +106,18 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[-Inf Inf sin(40/360*2*pi)*R sin(40/360*2*pi)*R L/2 L/2], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[-0.625, 0, 0, 0, 0, 0]);
+    fi = ForceIntensity(Float64[-0.625, 0, 0, 0, 0, 0]);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
     
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
 
     targetu =  dchi.values[nl, 1][1]
     @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 
     # Generate a graphical display of resultants
-    cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+    cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
         r = -vec(XYZ); r[3] = 0.0
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)
