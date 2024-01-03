@@ -19,6 +19,7 @@ is displayed as the equations of motion are integrated.
 
 - Illustrate integration of the nonlinear equations
   of motion with the Newmark algorithm.
+- Show the power of online visualization.
 
 ````julia
 using LinearAlgebra

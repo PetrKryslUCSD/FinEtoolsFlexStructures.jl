@@ -20,6 +20,7 @@
 
 # - Illustrate integration of the nonlinear equations 
 #   of motion with the Newmark algorithm.
+# - Show the power of online visualization.
 
 using LinearAlgebra
 using PlotlyJS
