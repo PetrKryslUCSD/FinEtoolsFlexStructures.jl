@@ -85,10 +85,13 @@ function twisting_circle()
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
     
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     tbox = plot_space_box([[0 -radius -radius]; [2.5*radius radius radius]])
     tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
     plots = cat(tbox,  tshape0; dims = 1)
@@ -101,7 +104,7 @@ function twisting_circle()
     step = 0
     for load_parameter in load_parameters
         dchi.values[:] .= 0.0
-        dchi.fixed_values[torquen[1], 4] = rotmag * load_parameter_delta
+        dchi.values[torquen[1], 4] = rotmag * load_parameter_delta
         applyebc!(dchi) # Apply boundary conditions
         u1.values[:] = u0.values[:]; # guess
         Rfield1.values[:] = Rfield0.values[:]; # guess
@@ -110,9 +113,9 @@ function twisting_circle()
         println("Load: $load_parameter")
         iter = 1;
         while true
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             rhs = Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi) + geostiffness(femm, massem, geom0, u1, Rfield1, dchi);
             dchi = scattersysvec!(dchi, (K)\rhs); # Disp. incr
             dchi.values[torquen[1], 4] = 0.0
             u1.values[:] += (dchi.values[:,1:3])[:];   # increment displacement
@@ -204,7 +207,7 @@ function twisting_circle_frames()
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
     
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     
@@ -323,7 +326,7 @@ function twisting_circle_frames_alt()
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
     
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     
