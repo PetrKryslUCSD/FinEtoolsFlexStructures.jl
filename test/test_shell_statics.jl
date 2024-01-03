@@ -80,7 +80,7 @@ function _execute(n = 8, visualize = true)
         inflate = tolerance,
     )
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[0, 0, -90, 0, 0, 0])
+    fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve
@@ -208,7 +208,7 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [97.9615 97.9615 -16 -16 0 20], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0.05, 0, 0, 0])
+    fi = ForceIntensity(Float64[0, 0, 0.05, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # @infiltrate
@@ -503,11 +503,11 @@ function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
     nl = selectnode(fens; box = Float64[10.0 10.0 1.0 1.0 0 0], tolerance = tolerance)
     loadbdry1 = FESetP1(reshape(nl, 1, 1))
     lfemm1 = FEMMBase(IntegDomain(loadbdry1, PointRule()))
-    fi1 = ForceIntensity(FFlt[0, 0, +0.6e6, 0, 0, 0])
+    fi1 = ForceIntensity(Float64[0, 0, +0.6e6, 0, 0, 0])
     nl = selectnode(fens; box = Float64[10.0 10.0 -1.0 -1.0 0 0], tolerance = tolerance)
     loadbdry2 = FESetP1(reshape(nl, 1, 1))
     lfemm2 = FEMMBase(IntegDomain(loadbdry2, PointRule()))
-    fi2 = ForceIntensity(FFlt[0, 0, -0.6e6, 0, 0, 0])
+    fi2 = ForceIntensity(Float64[0, 0, -0.6e6, 0, 0, 0])
     F =
         distribloads(lfemm1, geom0, dchi, fi1, 3) +
         distribloads(lfemm2, geom0, dchi, fi2, 3)
@@ -655,7 +655,7 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
         inflate = tolerance,
     )
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt[-0.625, 0, 0, 0, 0, 0])
+    fi = ForceIntensity(Float64[-0.625, 0, 0, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # @infiltrate
@@ -667,9 +667,9 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
 
     # Generate a graphical display of resultants
     cylindrical!(
-        csmatout::FFltMat,
-        XYZ::FFltMat,
-        tangents::FFltMat,
+        csmatout,
+        XYZ,
+        tangents,
         feid::FInt,
         qpid::FInt,
     ) = begin
