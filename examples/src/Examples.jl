@@ -1,3 +1,0 @@
-module Examples
-
-end # module
