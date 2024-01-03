@@ -100,7 +100,6 @@ function simo_vuquoc_animated()
     push!(members, frame_member([0 L 0;L L 0], n, cs))
     push!(members, frame_member([L L 0;L 0 0], n, cs))
     fens, fes = merge_members(members; tolerance = tolerance);
-    @show E * fes.A[1], E * fes.I2[1], E/2 * fes.J[1], rho * fes.A[1], rho * fes.I2[1]
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
@@ -148,7 +147,7 @@ function simo_vuquoc_animated()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     tbox = plot_space_box([[-0.5*L -0.5*L -2.0*L]; [1.5*L 1.5*L 2.0*L]])
     tshape0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
@@ -159,6 +158,9 @@ function simo_vuquoc_animated()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(elbown, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     t = 0.0; #
     step = 0;
@@ -176,16 +178,16 @@ function simo_vuquoc_animated()
         gathersysvec!(a0, a0v)
         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
         vpv = v0v +(dt*(1-ng))*a0v;
-        fi = ForceIntensity(FFlt[0, 0, (t<2.0)*((t<1.0)*t+(t>1.0)*(2.0-t))*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, (t<2.0)*((t<1.0)*t+(t>1.0)*(2.0-t))*Fmag, 0, 0, 0]);
 
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv
@@ -254,7 +256,6 @@ function simo_vuquoc_compare()
     push!(members, frame_member([0 L 0;L L 0], n, cs))
     push!(members, frame_member([L L 0;L 0 0], n, cs))
     fens, fes = merge_members(members; tolerance = tolerance);
-    @show E * fes.A[1], E * fes.I2[1], E/2 * fes.J[1], rho * fes.A[1], rho * fes.I2[1]
 
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
@@ -302,7 +303,7 @@ function simo_vuquoc_compare()
     stepdchiv = gathersysvec(dchi);
     rhs = gathersysvec(dchi);
     TMPv = deepcopy(rhs)
-    utol = 1e-13*dchi.nfreedofs;
+    utol = 1e-13*nfreedofs(dchi);
 
     plots = cat(
             scatter(;x=Aus[:, 1], y=Aus[:, 2], mode="markers+lines", line_color = "rgb(255, 0, 0)", name="A"); 
@@ -314,6 +315,9 @@ function simo_vuquoc_compare()
     femm = FEMMCorotBeam(IntegDomain(fes, GaussRule(1, 2)), material)
     loadbdry = FESetP1(reshape(elbown, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
 
     t = 0.0; #
     step = 0;
@@ -331,16 +335,16 @@ function simo_vuquoc_compare()
         gathersysvec!(a0, a0v)
         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
         vpv = v0v +(dt*(1-ng))*a0v;
-        fi = ForceIntensity(FFlt[0, 0, (t<2.0)*((t<1.0)*t+(t>1.0)*(2.0-t))*Fmag, 0, 0, 0]);
+        fi = ForceIntensity(Float64[0, 0, (t<2.0)*((t<1.0)*t+(t>1.0)*(2.0-t))*Fmag, 0, 0, 0]);
 
         iter = 1;
         while true
-            F = distribloads(lfemm, geom0, dchi, fi, 3);
-            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi);       # Internal forces
+            F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+            Fr = restoringforce(femm, vassem, geom0, u1, Rfield1, dchi);       # Internal forces
             @. rhs = F + Fr;
-            K = stiffness(femm, geom0, u1, Rfield1, dchi);
-            M = mass(femm, geom0, u1, Rfield1, dchi);
-            G = gyroscopic(femm, geom0, u1, Rfield1, v1, dchi);
+            K = stiffness(femm, massem, geom0, u1, Rfield1, dchi);
+            M = mass(femm, massem, geom0, u1, Rfield1, dchi);
+            G = gyroscopic(femm, massem, geom0, u1, Rfield1, v1, dchi);
             gathersysvec!(stepdchi, stepdchiv)
             @. TMPv = ((-1/(nb*dt^2))*stepdchiv+(1/(nb*dt^2))*dchipv)
             rhs .+= M*TMPv
@@ -451,7 +455,7 @@ end # simo_vuquoc_compare
 #     stepdchiv = gathersysvec(dchi);
 #     rhs = gathersysvec(dchi);
 #     TMPv = deepcopy(rhs)
-#     utol = 1e-13*dchi.nfreedofs;
+#     utol = 1e-13*nfreedofs(dchi);
 
 #     reft = range(0, 0.5, length = size(Aus,1))
 #     plots = cat(
@@ -483,7 +487,7 @@ end # simo_vuquoc_compare
 #         gathersysvec!(a0, a0v)
 #         dchipv = dt*v0v + (dt^2/2*(1-2*nb))*a0v
 #         vpv = v0v +(dt*(1-ng))*a0v;
-#         fi = ForceIntensity(FFlt[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
+#         fi = ForceIntensity(Float64[0, 0, (t<0.2)*((t<0.1)*t+(t>0.1)*(0.2-t))*Fmag, 0, 0, 0]);
 
 #         iter = 1;
 #         while true
