@@ -38,7 +38,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-function spherical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)  
+function spherical!(csmatout, XYZ, tangents, feid, qpid)
     r = vec(XYZ); 
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 0.0, 1.0)
@@ -108,23 +108,26 @@ function _execute_w_approx_normals(n = 8, visualize = true, drilling_stiffness_m
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
     total_normals, invalid_normals = num_normals(femm)
     @assert invalid_normals == 0
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 R R 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, -1, 0, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[R R 0 0 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[1, 0, 0, 0, 0, 0]);
+    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
 
     # @infiltrate
@@ -243,21 +246,24 @@ function _execute_w_exact_normals(n = 8, visualize = true, drilling_stiffness_mu
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 R R 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, -1, 0, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[R R 0 0 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[1, 0, 0, 0, 0, 0]);
+    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
 
     # @infiltrate

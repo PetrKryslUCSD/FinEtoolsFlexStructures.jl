@@ -26,7 +26,7 @@ function _execute(n = 2, visualize = true)
     fens, fes = Q4spheren(R, n)
     fens, fes = Q4toT3(fens, fes)
 
-    spherical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+    spherical!(csmatout, XYZ, tangents, feid, qpid) = begin
         r = vec(XYZ); 
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)
@@ -76,21 +76,24 @@ function _execute(n = 2, visualize = true)
     applyebc!(dchi)
     numberdofs!(dchi);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 R R 0 0], tolerance = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[0, -1, 0, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[R R 0 0 0 0], tolerance = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    fi = ForceIntensity(FFlt[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, geom0, dchi, fi, 3);
+    fi = ForceIntensity(Float64[1, 0, 0, 0, 0, 0]);
+    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
 
     # @infiltrate
