@@ -77,16 +77,19 @@ function _execute(visualize = true, nL = 9, nW = 1, nT = 4)
     applyebc!(u0)
     numberdofs!(u0);
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(u0))
+    vassem = SysvecAssemblerFBlock(nfreedofs(u0))
+
     # Assemble the system matrix
     associategeometry!(femm, geom)
-    K = stiffness(femm, geom, u0);
+    K = stiffness(femm, massem, geom, u0);
 
     # Load
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [0 Inf -16 -16 0 20], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(2, 2)))
-    fi = ForceIntensity(FFlt[0, 0, 0.05/thickness, 0, 0, 0]);
-    F = distribloads(lfemm, geom, u0, fi, 2);
+    fi = ForceIntensity(Float64[0, 0, 0.05/thickness, 0, 0, 0]);
+    F = distribloads(lfemm, vassem, geom, u0, fi, 2);
     
     # @infiltrate
     # Solve
