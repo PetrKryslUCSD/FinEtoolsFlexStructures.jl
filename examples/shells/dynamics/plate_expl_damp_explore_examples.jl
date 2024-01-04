@@ -24,10 +24,11 @@ using PlotlyJS
 using Gnuplot;  
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
+using SparseMatricesCSR
 using UnicodePlots
 using PGFPlotsX
-using InteractiveUtils
-using BenchmarkTools
+# using InteractiveUtils
+# using BenchmarkTools
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 
 # Aluminium Alloy
@@ -186,8 +187,11 @@ function _execute(nref = 2, nthr = 0)
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
+    I, J, V = findnz(K)
+    # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
     
     # Solve
     function pwr(K, M)
@@ -227,7 +231,7 @@ function _execute(nref = 2, nthr = 0)
         pointdofs[k] = dchi.dofnums[points[k], 3]
     end
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[points["A"], 1]
         dy = XYZ[2] - fens.xyz[points["A"], 2]
         dz = XYZ[3] - fens.xyz[points["A"], 3]
@@ -241,10 +245,10 @@ function _execute(nref = 2, nthr = 0)
 
     if distributedforce
         lfemm = FEMMBase(IntegDomain(fes, TriRule(6)))
-        fi = ForceIntensity(FFlt, 6, computetrac!);
+        fi = ForceIntensity(Float64, 6, computetrac!);
         Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
     else
-        Fmag = fill(0.0, dchi.nfreedofs)
+        Fmag = fill(0.0, nfreedofs(dchi))
         Fmag[pointdofs["A"]] = -totalforce/4 # only a quarter of the plate is modeled
     end
 

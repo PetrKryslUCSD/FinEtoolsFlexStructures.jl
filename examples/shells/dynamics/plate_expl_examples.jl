@@ -24,10 +24,11 @@ using PlotlyJS
 using Gnuplot; # @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
+using SparseMatricesCSR
 using UnicodePlots
 using PGFPlotsX
-using InteractiveUtils
-using BenchmarkTools
+# using InteractiveUtils
+# using BenchmarkTools
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 
 # Aluminium Alloy
@@ -147,12 +148,17 @@ function _execute(nref = 2, nthr = 0)
     numberdofs!(dchi, perm);
     # numberdofs!(dchi);
 
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
-    
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
+    I, J, V = findnz(K)
+    # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
+    @show typeof(K), typeof(M)
     # Solve
     function _pwr(K, M, maxit = 30, rtol = 1/100000)
         invM = fill(0.0, size(M, 1))
@@ -200,7 +206,7 @@ function _execute(nref = 2, nthr = 0)
         pointdofs[k] = dchi.dofnums[points[k], 3]
     end
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[points["A"], 1]
         dy = XYZ[2] - fens.xyz[points["A"], 2]
         dz = XYZ[3] - fens.xyz[points["A"], 3]
@@ -214,10 +220,10 @@ function _execute(nref = 2, nthr = 0)
 
     if distributedforce
         lfemm = FEMMBase(IntegDomain(fes, TriRule(6)))
-        fi = ForceIntensity(FFlt, 6, computetrac!);
-        Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+        fi = ForceIntensity(Float64, 6, computetrac!);
+        Fmag = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     else
-        Fmag = fill(0.0, dchi.nfreedofs)
+        Fmag = fill(0.0, nfreedofs(dchi))
         Fmag[pointdofs["A"]] = -totalforce/4 # only a quarter of the plate is modeled
     end
 
@@ -349,7 +355,7 @@ function test(nrefs = [5], nthr = 0)
     return results
 end
 
-function allrun(nrefs = [5,], nthr = 0)
+function allrun(nrefs = [4, 5, 6, 7], nthr = 0)
     println("#####################################################")
     println("# test ")
     test(nrefs, nthr)
@@ -363,12 +369,12 @@ println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
 end # module
 nothing
 
-using .Main.plate_expl_examples; 
-# results = Main.plate_expl_examples.allrun(7)                                        
-results = Main.plate_expl_examples.allrun([4, 5, 6, 7])                                        
-# results = Main.plate_expl_examples.allrun([5, 6, 7])                                        
-# using PGFPlotsX
-# using CSV
+# using .Main.plate_expl_examples;
+# # results = Main.plate_expl_examples.allrun(7)
+# results = Main.plate_expl_examples.allrun([4, 5, 6, 7])
+# # results = Main.plate_expl_examples.allrun([5, 6, 7])
+# # using PGFPlotsX
+# # using CSV
 
 
 # styles = ["dotted", "dashed", "solid"]
