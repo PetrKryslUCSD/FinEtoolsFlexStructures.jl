@@ -21,9 +21,10 @@ using PlotlyJS
 using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
+using SparseMatricesCSR
 using UnicodePlots
-using InteractiveUtils
-using BenchmarkTools
+# using InteractiveUtils
+# using BenchmarkTools
 
 const E = 200e9;
 const nu = 0.3;
@@ -54,7 +55,8 @@ function pwr(K, M, maxit = 30)
         vn = norm(v)
         v .*= (1.0/vn)
     end
-    sqrt((v' * (K * v)) / (v' * M * v))
+    ThreadedSparseCSR.bmul!(w, K, v)
+    sqrt((w' * v) / (v' * (M * v)))
 end
 
 # function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
@@ -134,7 +136,7 @@ function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
     end
 end
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -192,8 +194,11 @@ function _set_up_model(n = 64, thickness = 0.01, drilling_stiffness_scale = 1.0)
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
+    I, J, V = findnz(K)
+        # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
     
     return fens, fes, geom0, dchi, K, M
 end
@@ -223,7 +228,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -238,8 +243,9 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
 
     # Sinusoidal loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
+    fi = ForceIntensity(Float64, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    Fmag = Fmag[1:nfreedofs(dchi)]
 
     function force!(F, t)
         if t < 2 * (2*pi/omegaf)
@@ -252,7 +258,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     end
 
     # Suddenly applied constant force at a node
-    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag = fill(0.0, nfreedofs(dchi))
     # Fmag[qpointdof] = -1.0
     # function force!(F, t)
     #     F .= Fmag
