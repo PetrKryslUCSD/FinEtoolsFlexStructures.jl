@@ -27,7 +27,7 @@ using PGFPlotsX
 using CSV
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 using ThreadedSparseCSR
-using UnicodePlots
+using GEPHelpers: pwr_largest
 # using InteractiveUtils
 # using BenchmarkTools
 
@@ -164,22 +164,7 @@ function _execute_parallel_csr(n = 64, nthr = 0)
     K_ff = SparseMatricesCSR.sparsecsr(findnz(K_ff)..., size(K_ff)...)
 
     # Solve
-    function pwr(K, M)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        for i in 1:30
-            ThreadedSparseCSR.bmul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-        end
-        sqrt((v' * (K * v)) / (v' * M * v))
-    end
-    @time omega_max = pwr(K_ff, M_ff)
+    @time omega_max = pwr_largest(K_ff, M_ff)
     @show omega_max
 
     # @time evals, evecs, nconv = eigs(Symmetric(K), Symmetric(M); nev=1, which=:LM, explicittransform=:none)
