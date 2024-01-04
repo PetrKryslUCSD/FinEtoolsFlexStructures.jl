@@ -160,10 +160,10 @@ function _execute(nref = 2, nthr = 0)
     K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
     @show typeof(K), typeof(M)
     # Solve
-    @time omega_max = pwr_largest(K, M)
+    @time omega_max = pwr_largest(K, M, 300, 1e-6)
 
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
-    @show dt = Float64(0.95 * 2/omega_max) 
+    @show dt = Float64(0.9 * 2/omega_max)
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
