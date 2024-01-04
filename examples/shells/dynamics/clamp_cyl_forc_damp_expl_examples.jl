@@ -18,12 +18,14 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using VisualStructures: default_layout_3d, plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using PlotlyJS
-using Gnuplot; @gp "clear"
+using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
-using UnicodePlots
-using InteractiveUtils
-using BenchmarkTools
+using SparseMatricesCSR
+using GEPHelpers: pwr_largest
+
+# using InteractiveUtils
+# using BenchmarkTools
 
 const E = 200e9;
 const nu = 0.3;
@@ -301,7 +303,7 @@ function parloop_vom!(M, Kasm, threadbuffs, ksi, U0, V0, tend, dt, force!, peek,
     end
 end
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -361,26 +363,15 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
 
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
-    K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
+    I, J, V = findnz(K)
+    # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
+    @show typeof(K), typeof(M)
     
     # Solve
-    function pwr(K, M)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        for i in 1:30
-            mul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-        end
-        sqrt((v' * K * v) / (v' * M * v))
-    end
-    @time omega_max = pwr(K, M)
+    @time omega_max = pwr_largest(K, M)
     @show omega_max
 
     # @time evals, evecs, nconv = eigs(Symmetric(K), Symmetric(M); nev=1, which=:LM, explicittransform=:none)
@@ -399,7 +390,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -414,7 +405,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
 
     # Sinusoidal loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
+    fi = ForceIntensity(Float64, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
     function force!(F, t)
@@ -428,7 +419,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     end
 
     # Suddenly applied constant force at a node
-    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag = fill(0.0, nfreedofs(dchi))
     # Fmag[qpointdof] = -1.0
     # function force!(F, t)
     #     F .= Fmag
@@ -526,26 +517,16 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
     SM = FinEtoolsFlexStructures.AssemblyModule
-    K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    # K = FEMMShellT3FFModule.stiffness(femm, SM.SysmatAssemblerSparseCSRSymm(0.0), geom0, u0, Rfield0, dchi);
+    # M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
+    I, J, V = findnz(K)
+    # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
+    @show typeof(K), typeof(M)
     
-    # Solve
-    function pwr(K, M)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        for i in 1:30
-            ThreadedSparseCSR.bmul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-        end
-        sqrt((v' * (K * v)) / (v' * M * v))
-    end
-    @time omega_max = pwr(K, M)
+    @time omega_max = pwr_largest(K, M)
     @show omega_max
 
     # @time evals, evecs, nconv = eigs(Symmetric(K), Symmetric(M); nev=1, which=:LM, explicittransform=:none)
@@ -564,7 +545,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -577,10 +558,13 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
         return forceout
     end
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Sinusoidal loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64, 6, computetrac!);
+    Fmag = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     function force!(F, t)
         if t < 2 * (2*pi/omegaf)
@@ -593,7 +577,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     end
 
     # Suddenly applied constant force at a node
-    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag = fill(0.0, nfreedofs(dchi))
     # Fmag[qpointdof] = -1.0
     # function force!(F, t)
     #     F .= Fmag
@@ -640,7 +624,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     end
 end
 
-function _execute_serial(n = 64, thickness = 0.01)
+  function _execute_serial(n = 64, thickness = 0.01)
     color = "blue"  
 
     tolerance = min(R, L) / n  / 100
@@ -691,33 +675,41 @@ function _execute_serial(n = 64, thickness = 0.01)
 
     # Assemble the system matrix
     FEMMShellT3FFModule.associategeometry!(femm, geom0)
-    K = FEMMShellT3FFModule.stiffness(femm, geom0, u0, Rfield0, dchi);
-    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerSparseDiag(), geom0, dchi);
+    K = FEMMShellT3FFModule.stiffness(femm, SysmatAssemblerFFBlock(nfreedofs(dchi)), geom0, u0, Rfield0, dchi);
+    M = FEMMShellT3FFModule.mass(femm, SysmatAssemblerFFBlock(SysmatAssemblerSparseDiag(), nfreedofs(dchi), nfreedofs(dchi)), geom0, dchi);
     
+    I, J, V = findnz(K)
+    # Use the CSR package.
+    K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
+
     # Solve
-    function pwr(K, M)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        for i in 1:30
-            mul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-        end
-        sqrt((v' * K * v) / (v' * M * v))
-    end
-    @time omega_max = pwr(K, M)
+    # function pwr(K, M)
+    #     invM = fill(0.0, size(M, 1))
+    #     invM .= 1.0 ./ (vec(diag(M)))
+    #     v = rand(size(M, 1))
+    #     w = fill(0.0, size(M, 1))
+    #     for i in 1:40
+    #         mul!(w, K, v)
+    #         wn = norm(w)
+    #         w .*= (1.0/wn)
+    #         v .= invM .* w
+    #         vn = norm(v)
+    #         v .*= (1.0/vn)
+    #     end
+    #     # ev = sqrt((v' * K * v) / (v' * M * v)) # EXTREMELY SLOW
+    #     mul!(w, K, v) # FAST
+    #     ev = sqrt((w' * v) / (v' * (M * v))) # FAST
+    #     return ev
+    # end
+    @info "Power iteration"
+    @time omega_max = pwr_largest(K, M)
     @show omega_max
+    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
 
     # @time evals, evecs, nconv = eigs(Symmetric(K), Symmetric(M); nev=1, which=:LM, explicittransform=:none)
-    # @show sqrt(evals)
+    # # @show sqrt(evals)
     # @show omega_max = sqrt(evals[1])
-
-    @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
+    # @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
 
     U0 = gathersysvec(dchi)
     V0 = deepcopy(U0)
@@ -729,7 +721,7 @@ function _execute_serial(n = 64, thickness = 0.01)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -742,10 +734,13 @@ function _execute_serial(n = 64, thickness = 0.01)
         return forceout
     end
 
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
     # Sinusoidal loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
-    Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
+    fi = ForceIntensity(Float64, 6, computetrac!);
+    Fmag = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     function force!(F, t)
         if t < 2 * (2*pi/omegaf)
@@ -758,7 +753,7 @@ function _execute_serial(n = 64, thickness = 0.01)
     end
 
     # Suddenly applied constant force at a node
-    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag = fill(0.0, nfreedofs(dchi))
     # Fmag[qpointdof] = -1.0
     # function force!(F, t)
     #     F .= Fmag
@@ -867,7 +862,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
     threadbuffs = ThreadBufferVOM[];
     for th in 1:nth
         rang = th < nth ? (chunk*(th-1)+1:chunk*(th)+1-1) : (chunk*(th-1)+1:N)
-        push!(threadbuffs, ThreadBufferVOM(rang, fill(0.0, dchi.nfreedofs)));
+        push!(threadbuffs, ThreadBufferVOM(rang, fill(0.0, nfreedofs(dchi))));
     end
 
     # Solve
@@ -908,7 +903,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -923,7 +918,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
 
     # Sinusoidal loading on the surface of the shell
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
+    fi = ForceIntensity(Float64, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
     function force!(F, t)
@@ -937,7 +932,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
     end
 
     # Suddenly applied constant force at a node
-    # Fmag = fill(0.0, dchi.nfreedofs)
+    # Fmag = fill(0.0, nfreedofs(dchi))
     # Fmag[qpointdof] = -1.0
     # function force!(F, t)
     #     F .= Fmag
@@ -1094,19 +1089,19 @@ function _explore_csr(n = 64, thickness = 0.01, nthr = 0)
     nothing
 end
 
-function allrun(ns = [4*64])
+function allrun(ns = [64])
     println("#####################################################")
     println("# test_serial ")
     test_serial(ns)
-    println("#####################################################")
-    println("# test_parallel ")
-    test_parallel(ns)
+    # println("#####################################################")
+    # println("# test_parallel ")
+    # test_parallel(ns)
     println("#####################################################")
     println("# test_parallel_csr ")
     test_parallel_csr(ns)
-    println("#####################################################")
-    println("# test_parallel_vom ")
-    test_parallel_vom(ns)
+    # println("#####################################################")
+    # println("# test_parallel_vom ")
+    # test_parallel_vom(ns)
     return true
 end # function allrun
 
