@@ -23,7 +23,7 @@ using PlotlyJS
 using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
-using UnicodePlots
+using GEPHelpers: pwr_largest
 # using InteractiveUtils.#
 # using BenchmarkTools
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
@@ -175,22 +175,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     K_ff = SparseMatricesCSR.sparsecsr(findnz(K_ff)..., size(K_ff)...)
 
     # Solve
-    function pwr(K, M)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        for i in 1:30
-            ThreadedSparseCSR.bmul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-        end
-        sqrt((v' * (K * v)) / (v' * M * v))
-    end
-    @time omega_max = pwr(K_ff, M_ff)
+    @time omega_max = pwr_largest(K_ff, M_ff)
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
     @show dt = Float64(0.9* 2/omega_max) * (sqrt(1+ksi^2) - ksi)
 
