@@ -25,7 +25,7 @@ using Gnuplot; # @gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using ThreadedSparseCSR
 using SparseMatricesCSR
-using UnicodePlots
+using GEPHelpers: pwr_largest
 using PGFPlotsX
 # using InteractiveUtils
 # using BenchmarkTools
@@ -160,32 +160,8 @@ function _execute(nref = 2, nthr = 0)
     K = SparseMatricesCSR.sparsecsr(I, J, V, size(K)...)
     @show typeof(K), typeof(M)
     # Solve
-    function _pwr(K, M, maxit = 30, rtol = 1/100000)
-        invM = fill(0.0, size(M, 1))
-        invM .= 1.0 ./ (vec(diag(M)))
-        v = rand(size(M, 1))
-        w = fill(0.0, size(M, 1))
-        everyn = Int(round(maxit / 50)) + 1
-        lambda = lambdap = 0.0
-        for i in 1:maxit
-            ThreadedSparseCSR.bmul!(w, K, v)
-            wn = norm(w)
-            w .*= (1.0/wn)
-            v .= invM .* w
-            vn = norm(v)
-            v .*= (1.0/vn)
-            if i % everyn  == 0
-                lambda = sqrt((v' * (K * v)) / (v' * M * v))
-                @show i, abs(lambda - lambdap) / lambda
-                if abs(lambda - lambdap) / lambda  < rtol
-                    break
-                end
-                lambdap = lambda
-            end
-        end
-        return lambda
-    end
-    @time omega_max = _pwr(K, M, Int(round(count(fens) / 1000)))
+    @time omega_max = pwr_largest(K, M)
+
     @show omega_max = max(omega_max, 20*2*pi*carrier_frequency)
     @show dt = Float64(0.95 * 2/omega_max) 
 
