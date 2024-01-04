@@ -38,7 +38,7 @@ rho = 7800.0
 R = 0.1
 L = 0.4
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, feid::FInt, qpid::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
