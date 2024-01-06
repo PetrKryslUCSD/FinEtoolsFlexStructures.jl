@@ -180,9 +180,9 @@ version = "0.1.5"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "3dbd312d370723b6bb43ba9d02fc36abade4518d"
+git-tree-sha1 = "ac67408d9ddf207de5cfa9a97e114352430f01ed"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.15"
+version = "0.18.16"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -277,25 +277,21 @@ version = "1.9.3"
 
 [[deps.FinEtools]]
 deps = ["ChunkSplitters", "DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "25ad440eb2cf5ec6c20177c68007be81f7717dee"
-repo-rev = "main"
-repo-url = "https://github.com/PetrKryslUCSD/FinEtools.jl.git"
+git-tree-sha1 = "f5d3675b69af20e5648e28c457e41c1d12ca5821"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "7.2.2"
+version = "7.3.0"
 
 [[deps.FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "SuiteSparse", "Test"]
-git-tree-sha1 = "0558926571aa11d9a3063e32373fc70655b3267e"
-repo-rev = "main"
-repo-url = "https://github.com/PetrKryslUCSD/FinEtoolsDeforLinear.jl.git"
+git-tree-sha1 = "f98acaa2b92416d3fae4240a7dd77b7c56bd7102"
 uuid = "e9187c00-8bdd-11e9-1e70-7ba8303116a2"
 version = "2.1.0"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-path = ".."
+git-tree-sha1 = "298992a4041e9fb236dc4942353df4c6a36aabfe"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "2.1.1"
+version = "2.2.0"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -327,7 +323,7 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[deps.GEPHelpers]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "97b60b0571d6dd7221140a7f29e25c35df50da83"
+git-tree-sha1 = "061ebe437d184b884b3d59a04cb6fc3899549210"
 repo-rev = "main"
 repo-url = "https://github.com/PetrKryslUCSD/GEPHelpers.jl.git"
 uuid = "3f428ce3-b273-4d47-9ed2-092cb711fea6"
