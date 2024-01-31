@@ -29,7 +29,7 @@ function update_rotation_field!(Rfield, dchi)
     R = fill(0.0, 3, 3)
     Rdelta = fill(0.0, 3, 3)
     Rupdated = fill(0.0, 3, 3)
-    for i = 1:size(Rs, 1)
+    for i in axes(Rs, 1)
         R[:] .= @view Rs[i, :]
         rotmat3!(Rdelta, @view Adelta[i, :])
         mul!(Rupdated, Rdelta, R)

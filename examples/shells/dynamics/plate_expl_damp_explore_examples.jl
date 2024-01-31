@@ -55,8 +55,8 @@ const visualizeclear = !true
 const visualizevtk = !true
 const distributedforce = !true
 
-const color = "black"
-const algorithm = :cd
+# const color = "black"
+# const algorithm = :cd
 const color = "red"
 const algorithm = :predcorr
 
@@ -366,7 +366,7 @@ function _execute(nref = 2, nthr = 0)
             @info "Dumping visualization"
             times = Float64[]
             vectors = []
-            for i in 1:length(displacements)
+            for i in eachindex(displacements)
                 scattersysvec!(dchi, displacements[i])
                 push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
                 push!(times, i*dt*nbtw)

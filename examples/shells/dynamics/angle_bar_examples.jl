@@ -25,7 +25,7 @@ using Gnuplot; #@gp "clear"
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection
 using SparseMatricesCSR
 using ThreadedSparseCSR
-using GEPHelpers: pwr_largest
+using VibrationGEPHelpers: gep_largest
 
 # using InteractiveUtils
 # using BenchmarkTools
@@ -249,7 +249,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0)
         @info "Dumping visualization"
         times = Float64[]
         vectors = []
-        for i in 1:length(displacements)
+        for i in eachindex(displacements)
             scattersysvec!(dchi, displacements[i])
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)

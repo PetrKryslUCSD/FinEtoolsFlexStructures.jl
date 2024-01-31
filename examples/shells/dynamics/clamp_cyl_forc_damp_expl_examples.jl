@@ -111,7 +111,7 @@ end
 # end
 
 function parmul!(R, tbs)
-    Threads.@threads for i in 1:length(tbs)
+    Threads.@threads for i in eachindex(tbs)
         if i == 1
             mul!(R, tbs[i].kcolumns, tbs[i].uv)
         else
@@ -221,7 +221,7 @@ function parloop_csr!(M, K, ksi, U0, V0, tend, dt, force!, peek, nthr)
 end
 
 function parvommul!(R, vom, P, threadbuffs, U)
-    Threads.@threads for i in 1:length(threadbuffs)
+    Threads.@threads for i in eachindex(threadbuffs)
         if i == 1
             vommul!(R, vom, P, threadbuffs[i].rang, U)
         else
@@ -457,7 +457,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
         @info "Dumping visualization"
         times = Float64[]
         vectors = []
-        for i in 1:length(displacements)
+        for i in eachindex(displacements)
             scattersysvec!(dchi, displacements[i])
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)
@@ -615,7 +615,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
         @info "Dumping visualization"
         times = Float64[]
         vectors = []
-        for i in 1:length(displacements)
+        for i in eachindex(displacements)
             scattersysvec!(dchi, displacements[i])
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)
@@ -791,7 +791,7 @@ end
         @info "Dumping visualization"
         times = Float64[]
         vectors = []
-        for i in 1:length(displacements)
+        for i in eachindex(displacements)
             scattersysvec!(dchi, displacements[i])
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)
@@ -970,7 +970,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
         @info "Dumping visualization"
         times = Float64[]
         vectors = []
-        for i in 1:length(displacements)
+        for i in eachindex(displacements)
             scattersysvec!(dchi, displacements[i])
             push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
             push!(times, i*dt*nbtw)
@@ -1071,7 +1071,7 @@ function _explore_csr(n = 64, thickness = 0.01, nthr = 0)
     finishes = fill(0, size(K, 1))
     nzs = fill(0, size(K, 1))
 
-    for i in 1:length(I)
+    for i in eachindex(I)
         nzs[I[i]] += 1
         starts[I[i]] = min(starts[I[i]], J[i])
         finishes[I[i]] = max(finishes[I[i]], J[i])

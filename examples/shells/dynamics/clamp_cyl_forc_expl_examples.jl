@@ -116,7 +116,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     # Check that the mass matrix is diagonal
     # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
     I, J, V = findnz(M)
-    for i in 1:length(I)
+    for i in eachindex(I)
         if I[i] != J[i]
             V[i] = 0.0
         end
@@ -223,7 +223,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     sleep(2.5)
     
     scale = 10^6;
-    for i in 1:length(displacements)
+    for i in eachindex(displacements)
         scattersysvec!(dchi, scale .* displacements[i])
         Rfield1 = deepcopy(Rfield0)
         update_rotation_field!(Rfield1, dchi)

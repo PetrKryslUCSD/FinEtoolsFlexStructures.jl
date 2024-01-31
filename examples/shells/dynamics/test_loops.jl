@@ -174,7 +174,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
 
     function parmul!(R, tbs)
         tasks = [];
-        for th in 1:length(tbs)
+        for th in eachindex(tbs)
             tb = tbs[th]
             push!(tasks, Threads.@spawn begin 
                 mul!(tb.result, tb.kcolumns, tb.uv)
@@ -208,7 +208,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
             nothing
         end
         tasks = [];
-        for th in 1:length(tbs)
+        for th in eachindex(tbs)
             tb = tbs[th]
             push!(tasks, Threads.@spawn begin 
                 tb.result .= zero(eltype(tb.result))

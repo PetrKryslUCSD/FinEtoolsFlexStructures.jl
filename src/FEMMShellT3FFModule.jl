@@ -346,7 +346,7 @@ end
     # transformation matrices. The array `nvalid` indicates for the three nodes
     # which of the normals is valid (`true`).
 
-    for k = 1:length(A_Es)
+    for k in eachindex(A_Es)
         o.nk .= vec(view(normals, c[k], :))
         nvalid[k] = normal_valid[c[k]]
         if nvalid[k]
@@ -568,7 +568,7 @@ function associategeometry!(self::FEMMShellT3FF, geom::NodalField{FFlt})
     end
 
     # Normalize to unit length
-    for j = 1:size(normals, 1)
+    for j in axes(normals, 1)
         nn = norm(normals[j, :])
         if nn > 0.0
             normals[j, :] ./= nn
@@ -884,7 +884,7 @@ function inspectintegpoints(
         quant = MEMBRANE_FORCE
     end
     # Loop over  all the elements and all the quadrature points within them
-    for ilist = 1:length(felist) # Loop over elements
+    for ilist in eachindex(felist) # Loop over elements
         i = felist[ilist]
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         gathervalues_asvec!(u, edisp, fes.conn[i])

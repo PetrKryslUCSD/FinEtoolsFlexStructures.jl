@@ -39,7 +39,7 @@ function parcoomul!(R, IB, JB, VB, tbs, U)
         end
     end
     tasks = []
-    for th in 1:length(tbs)
+    for th in eachindex(tbs)
         push!(tasks, Threads.@spawn begin
             innercoomul!(tbs[th].result, tbs[th].I, tbs[th].J, tbs[th].V, U)
         end)
@@ -58,7 +58,7 @@ function parcsrmul!(y::AbstractVector, A::SparseMatrixCSR, v::AbstractVector)
   A.m == size(y, 1) || throw(DimensionMismatch())
   fill!(y, zero(eltype(y)))
   o = getoffset(A)
-  Threads.@threads for row = 1:size(y, 1)
+  Threads.@threads for row = axes(y, 1)
     @inbounds for nz in nzrange(A,row)
       col = A.colval[nz]+o
       y[row] += A.nzval[nz]*v[col]

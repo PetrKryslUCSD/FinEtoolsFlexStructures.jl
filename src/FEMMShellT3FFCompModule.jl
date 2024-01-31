@@ -103,7 +103,7 @@ function FEMMShellT3FFComp(
     layup_groups = [(layup, collect(1:count(integdomain.fes)))]
     # Establish the mapping from the elements to the layup group
     _layup_group_lookup = fill(zero(FInt), count(integdomain.fes))
-    for j = 1:length(layup_groups)
+    for j  in eachindex(layup_groups)
         eset = layup_groups[j][2]
         for i in eset # Loop over elements in the layup group
             _layup_group_lookup[i] = j
@@ -258,7 +258,7 @@ end
     # transformation matrices. The array `nvalid` indicates for the three nodes
     # which of the normals is valid (`true`).
 
-    for k = 1:length(A_Es)
+    for k in eachindex(A_Es)
         o.nk .= vec(view(normals, c[k], :))
         nvalid[k] = normal_valid[c[k]]
         if nvalid[k]
@@ -484,7 +484,7 @@ function associategeometry!(self::FEMMShellT3FFComp, geom::NodalField{FFlt})
     end
 
     # Normalize to unit length
-    for j = 1:size(normals, 1)
+    for j in axes(normals, 1)
         nn = norm(normals[j, :])
         if nn > 0.0
             normals[j, :] ./= nn
@@ -832,7 +832,7 @@ function inspectintegpoints(
         quant = MEMBRANE_FORCE
     end
     # Loop over  all the elements and all the quadrature points within them
-    for ilist = 1:length(felist) # Loop over elements
+    for ilist in eachindex(felist) # Loop over elements
         i = felist[ilist]
         # Look up the layup
         layup = self.layup_groups[self._layup_group_lookup[i]][1]

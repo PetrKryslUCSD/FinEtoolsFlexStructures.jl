@@ -5,7 +5,7 @@ using FinEtools
 objects = []
 
 f = CSV.File("$(@__DIR__)/spherical_cap_expl_22-KE-1.00000e+00.csv") 
-xdata, ydata = f["t"][1:21:end],  f["v"][1:21:end]);
+xdata, ydata = f["t"][1:21:end],  f["v"][1:21:end];
 @pgf p = PGFPlotsX.Plot(
 {
 color = "black",
@@ -17,7 +17,7 @@ push!(objects, p)
 push!(objects, LegendEntry("1.0"))
 
 f = CSV.File("$(@__DIR__)/spherical_cap_expl_22-KE-1.00000e-01.csv") 
-xdata, ydata = f["t"][1:71:end],  f["v"][1:71:end]);
+xdata, ydata = f["t"][1:71:end],  f["v"][1:71:end];
 @pgf p = PGFPlotsX.Plot(
 {
 only_marks,
@@ -31,7 +31,7 @@ push!(objects, p)
 push!(objects, LegendEntry("0.1"))
 
 f = CSV.File("$(@__DIR__)/spherical_cap_expl_22-KE-1.00000e+01.csv") 
-xdata, ydata = f["t"][17:71:end],  f["v"][17:71:end]);
+xdata, ydata = f["t"][17:71:end],  f["v"][17:71:end];
 @pgf p = PGFPlotsX.Plot(
 {
 only_marks,

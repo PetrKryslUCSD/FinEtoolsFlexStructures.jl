@@ -410,6 +410,6 @@ using .mcompostat0
 rh = mcompostat0.test_homogeneous()
 rc = mcompostat0.test_composite()
 
-for i = 1:length(rc)
+for i in eachindex(rc)
     @test norm(rc[i] - rh[i]) / norm(rh[i]) < 1.0e56
 end

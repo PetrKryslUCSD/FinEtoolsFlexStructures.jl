@@ -293,7 +293,7 @@ receptance12 = fill(0.0im, nf)
 receptance112 = fill(0.0im, nf)
 
 # Now Loop over 
-for   fi in 1:length(frequencies)
+for   fi in eachindex(frequencies)
     f =  frequencies[fi];
     om = 2*pi*f;
     # Solve the system of complex  equations of balance:

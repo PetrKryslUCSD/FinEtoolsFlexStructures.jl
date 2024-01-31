@@ -122,7 +122,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     # Check that the mass matrix is diagonal
     # Make sure the matrix is truly diagonal: delete all tiny off-diagonals
     I, J, V = findnz(M_ff)
-    for i in 1:length(I)
+    for i in eachindex(I)
         if I[i] != J[i]
             V[i] = 0.0
         end
@@ -168,7 +168,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
         - 2 * exp(-20/L*sqrt(rx^2+ry^2))
     end
     for i in 1:count(fens)
-        for j in 3
+        for j in [3, ]
             d = dchi.dofnums[i, j]
             if d > 0 && d <= nfreedofs(dchi)
                 V0[d] = initialvelocity(fens.xyz[i, :])
@@ -221,7 +221,7 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     sleep(2.5)
     
     scale = 1900;
-    for i in 1:length(displacements)
+    for i in eachindex(displacements)
         scattersysvec!(dchi, scale .* displacements[i])
         Rfield1 = deepcopy(Rfield0)
         update_rotation_field!(Rfield1, dchi)

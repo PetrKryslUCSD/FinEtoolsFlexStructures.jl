@@ -770,7 +770,7 @@ function inspectintegpoints(
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     # Loop over  all the elements and all the quadrature points within them
-    for ilist = 1:length(felist) # Loop over elements
+    for ilist = eachindex(felist) # Loop over elements
         i = felist[ilist]
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
         gathervalues_asvec!(dchi, disp_g, fes.conn[i])
