@@ -17,9 +17,13 @@
 ## Current limitations
 
 - Only elastic structures can be modeled.
-- Only simple solid or closed thin-walled beam cross sections are implemented. Open thin-walled beams cannot be simulated at this point since the warping of the section is not enabled.
+- Only simple solid or closed thin-walled beam cross sections are implemented.
+  Open thin-walled beams cannot be simulated at this point since the warping of
+  the section is not enabled.
 - Shell reference surface offset not yet tested.
-- Neither beams nor shells can be attached with an offset (eccentricity).
+- Neither general beams nor shells can be attached with an offset
+  (eccentricity). There is a linear beam model that can be used with
+  eccentricities (offsets of the attachment points relative to the nodes).
 
 ## News
 
