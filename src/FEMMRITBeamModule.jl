@@ -1,3 +1,7 @@
+"""
+Module for construction of the linear algebra matrix and vector quantities for
+the linear Timoshenko beam based on reduced integration.
+"""
 module FEMMRITBeamModule
 
 using LinearAlgebra: norm, Transpose, mul!
@@ -16,7 +20,7 @@ Type for linear reduced-integration beam finite element modeling machine.
 
 Only linear kinematics is implemented at the moment, and only linear basis
 functions are available (i.e. it is a two-node element). The beam stiffness is
-shear-flexible(Timoshenko). The local beam stiffness is expressed analytically:
+shear-flexible (Timoshenko). The local beam stiffness is expressed analytically:
 the one-point numerical integration is hardwired.
 """
 mutable struct FEMMRITBeam{ID<:IntegDomain{S} where {S<:FESetL2}, M<:MatDeforElastIso} <: AbstractFEMM
@@ -209,7 +213,7 @@ function stiffness(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )

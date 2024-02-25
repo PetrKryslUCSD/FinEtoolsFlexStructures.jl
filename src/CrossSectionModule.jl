@@ -1,3 +1,6 @@
+"""
+Module for working with cross-section properties of beam elements.
+"""
 module CrossSectionModule
 
 using Dierckx

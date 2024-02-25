@@ -1,3 +1,6 @@
+"""
+Module for working with composite layups.
+"""
 module CompositeLayupModule
 
 using FinEtools

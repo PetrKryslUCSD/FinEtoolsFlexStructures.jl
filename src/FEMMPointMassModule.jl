@@ -1,3 +1,7 @@
+"""
+Module for construction of the linear algebra matrix and vector quantities for
+the point masses.
+"""
 module FEMMPointMassModule
 
 using LinearAlgebra: norm, Transpose, mul!
@@ -18,9 +22,14 @@ mutable struct FEMMPointMass{ID<:IntegDomain} <: AbstractFEMM
 end
 
 """
-    mass(self::FEMMCorotBeam,  assembler::A,
-      geom::NodalField{FFlt},
-      u::NodalField{T}) where {A<:AbstractSysmatAssembler, T<:Number}
+    mass(
+        self::FEMMPointMass,
+        assembler::ASS,
+        geom0::NodalField{FFlt},
+        u1::NodalField{T},
+        Rfield1::NodalField{T},
+        dchi::NodalField{TI},
+    ) where {ASS<:AbstractSysmatAssembler,T<:Number,TI<:Number}
 
 Compute the consistent mass matrix
 
@@ -36,7 +45,7 @@ function mass(
 ) where {ASS<:AbstractSysmatAssembler,T<:Number,TI<:Number}
     fes = self.integdomain.fes
     dofnums = zeros(FInt, 1, 6)
-    startassembly!(assembler, 3 * 3 * count(fes), nalldofs(dchi), nalldofs(dchi))
+    startassembly!(assembler, 3, 3, count(fes), nalldofs(dchi), nalldofs(dchi))
     for i = 1:count(fes) # Loop over elements
         gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
         assemble!(assembler, self._massmatrix, dofnums[1:3], dofnums[1:3])

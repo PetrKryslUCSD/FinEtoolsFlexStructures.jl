@@ -1,3 +1,7 @@
+"""
+Module for construction of the linear algebra matrix and vector quantities for
+the linear beam with eccentric connections to nodes.
+"""
 module FEMMLinBeamModule
 
 using LinearAlgebra: norm, Transpose, mul!
@@ -560,11 +564,11 @@ function mass(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
-    for i = 1:count(fes) # Loop over elements
+    for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
         fill!(elmat, 0.0) # Initialize element matrix
         L0, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
@@ -620,7 +624,7 @@ function stiffness(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )

@@ -1,3 +1,6 @@
+"""
+Module for a 3-node shell element set.
+"""
 module FESetShellT3Module
 
 using FinEtools

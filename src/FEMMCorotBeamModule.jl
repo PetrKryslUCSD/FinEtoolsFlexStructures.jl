@@ -1,3 +1,7 @@
+"""
+Module for construction of the linear algebra matrix and vector quantities for
+the non-linear co-rotational beam.
+"""
 module FEMMCorotBeamModule
 
 using LinearAlgebra: norm, Transpose, mul!
@@ -823,7 +827,7 @@ function mass(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
@@ -901,7 +905,7 @@ function gyroscopic(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
@@ -985,7 +989,7 @@ function stiffness(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
@@ -1055,7 +1059,7 @@ function geostiffness(
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )

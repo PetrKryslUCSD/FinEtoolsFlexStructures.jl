@@ -1,3 +1,6 @@
+"""
+Module for a 4-node shell element set.
+"""
 module FESetShellQ4Module
 
 using FinEtools

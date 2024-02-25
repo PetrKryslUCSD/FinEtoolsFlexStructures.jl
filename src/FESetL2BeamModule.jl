@@ -1,3 +1,6 @@
+"""
+Module for a 2-node beam element set.
+"""
 module FESetL2BeamModule
 
 using FinEtools

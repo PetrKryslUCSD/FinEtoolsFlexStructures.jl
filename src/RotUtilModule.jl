@@ -1,3 +1,6 @@
+"""
+Module for utilities working with rotations in 3D space. 
+"""
 module RotUtilModule
 
 using LinearAlgebra: norm, mul!

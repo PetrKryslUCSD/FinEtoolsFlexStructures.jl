@@ -1,3 +1,6 @@
+"""
+Module for construction of framed structures consisting of beam elements.
+"""
 module MeshFrameMemberModule
 
 # using SimplePCHIP

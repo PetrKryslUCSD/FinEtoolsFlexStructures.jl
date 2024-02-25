@@ -1,5 +1,4 @@
 """
-    AssemblyModule
 Module for assemblers  of system matrices and vectors.
 """
 module AssemblyModule
@@ -27,11 +26,13 @@ function SysmatAssemblerSparseCSRSymm(zero::T=0.0) where {T<:Number}
 end
 
 function startassembly!(self::SysmatAssemblerSparseCSRSymm,
-    expected_ntriples::IT,
+    elem_mat_nrows::IT,
+    elem_mat_ncols::IT,
+    n_elem_mats::IT,
     row_nalldofs::IT,
     col_nalldofs::IT;
     force_init = false) where {IT <: Integer}
-    self.a = startassembly!(self.a, expected_ntriples, row_nalldofs, col_nalldofs; force_init)
+    self.a = startassembly!(self.a, elem_mat_nrows, elem_mat_ncols, n_elem_mats, row_nalldofs, col_nalldofs; force_init)
     return self
 end
 

@@ -1,8 +1,13 @@
+"""
+Module for operations on interiors of domains to construct system matrices and
+system vectors for linear layered (composite) shells using the robust flat-facet
+three-node triangular finite element (T3FF).
+"""
 module FEMMShellT3FFCompModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
-using FinEtools
+using FinEtools 
 using FinEtools.FTypesModule:
     FInt, FFlt, FCplxFlt, FFltVec, FIntVec, FFltMat, FIntMat, FMat, FVec, FDataDict
 import FinEtools.FESetModule: gradN!, nodesperelem, manifdim
@@ -563,7 +568,7 @@ function stiffness(
     mult_el_size = self.mult_el_size
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
@@ -696,7 +701,7 @@ function mass(
     ndn = ndofs(dchi)
     startassembly!(
         assembler,
-        prod(size(elmat)) * count(fes),
+        size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )

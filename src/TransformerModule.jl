@@ -1,3 +1,6 @@
+"""
+Module for geometric transformations of element matrices.
+"""
 module TransformerModule
 
 using LinearAlgebra: norm, Transpose, mul!
