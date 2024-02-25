@@ -27,9 +27,10 @@
 
 ## News
 
+- 02/25/2024: Update for FinEtools 8.
 - 12/30/2023: Update for Julia 1.10.
 - 12/21/2023: Tutorials merged back into the package tree.
-- 09/26/2023: Multiple examples revised. Numerous documentation improvements.
+
 
 [Past news](#past-news)
 
@@ -117,6 +118,7 @@ pictures and time collections (useful for animations) are supported this way.
 
 ## <a name="past-news"></a>Past news
 
+- 09/26/2023: Multiple examples revised. Numerous documentation improvements.
 - 08/14/2023: Updated for Julia 1.9.2. Revised nomenclature of layup transformation matrices.
 - 07/13/2023: Updated for Julia 1.9 and FinEtools 7.
 - 05/26/2022: Paper on explicit dynamics accepted for publication  in the

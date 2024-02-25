@@ -1,7 +1,7 @@
 name = "FinEtoolsFlexStructures"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
 authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
-version = "2.2.2"
+version = "3.0.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
@@ -20,8 +20,8 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Arpack = "=0.5.3"
 DataDrop = "^0.1"
 Dierckx = "^0.5"
-FinEtools = "^7.3"
-FinEtoolsDeforLinear = "^2"
+FinEtools = "^8"
+FinEtoolsDeforLinear = "^3"
 LinearAlgebra = "^1.10"
 SparseArrays = "^1.10"
 SparseMatricesCSR = "^0.6"
