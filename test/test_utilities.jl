@@ -14,7 +14,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 function _test()
    SM = AssemblyModule
    a = SM.SysmatAssemblerSparseCSRSymm(0.0)
-   SM.startassembly!(a, 5 * 5 * 3, 7, 7)
+   SM.startassembly!(a, 5, 5, 3, 7, 7)
    m = [0.24406   0.599773    0.833404  0.0420141
     0.786024  0.00206713  0.995379  0.780298
     0.845816  0.198459    0.355149  0.224996]
@@ -31,7 +31,7 @@ function _test()
    # @show A
 
    a = SysmatAssemblerSparseSymm(0.0)
-   startassembly!(a, 5 * 5 * 3, 7, 7)
+   startassembly!(a, 5, 5, 3, 7, 7)
    m = [0.24406   0.599773    0.833404  0.0420141
     0.786024  0.00206713  0.995379  0.780298
     0.845816  0.198459    0.355149  0.224996]
