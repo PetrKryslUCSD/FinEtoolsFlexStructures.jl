@@ -33,11 +33,16 @@ using ..CompositeLayupModule:
 const __nn = 3 # number of nodes
 const __ndof = 6 # number of degrees of freedom per node
 
-# Formulation for the transverse shear stiffness which averages the
-# strain-displacement matrix.
+
+"""
+Formulation for the transverse shear stiffness which averages the
+strain-displacement matrix.
+"""
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
-# Formulation for the transverse shear stiffness which averages the
-# stiffness matrix.
+"""
+Formulation for the transverse shear stiffness which averages the
+stiffness matrix.
+"""
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
@@ -48,7 +53,7 @@ Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
 normals. This formulation is suitable for modelling of COMPOSITE (layered) materials. 
 
-For details for the homogeneous-shell refer to [`FEMMShellT3FF`](@ref).
+For details about the homogeneous-shell refer to [`FinEtoolsFlexStructures.FEMMShellT3FFModule.FEMMShellT3FF`](@ref).
 """
 mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}} <: AbstractFEMM
     integdomain::ID # integration domain data
