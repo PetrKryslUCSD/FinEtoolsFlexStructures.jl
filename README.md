@@ -56,6 +56,10 @@ using Pkg; Pkg.activate("."); Pkg.instantiate();
 include("circle_modal_tut.jl")
 ```
 
+When running a tutorial with graphical plotting in VSCode, make sure to turn off
+(uncheck) "Julia: Use Plot Pane" in the  Preferences. Otherwise the animations
+will not work.
+
 ## Examples
 
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps
