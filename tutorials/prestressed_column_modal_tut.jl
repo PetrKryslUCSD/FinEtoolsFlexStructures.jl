@@ -2,6 +2,8 @@
 
 # Source code: [`prestressed_column_modal_tut.jl`](prestressed_column_modal_tut.jl)
 
+# Last updated: 04/19/24
+
 # ## Description
 
 # Vibration analysis of a simply supported column loaded with axial force. 
@@ -241,8 +243,7 @@ sigdig(n) = round(n * 1000) / 1000
 
 using Gnuplot
 
-
-@gp  "set terminal windows 0 "  :-
+Gnuplot.options.term = "wxt"
 
 @gp  :- Ps./PEul freqs./analyt_freq " lw 2 lc rgb 'red' with p title 'Fundamental frequency' "  :-
 

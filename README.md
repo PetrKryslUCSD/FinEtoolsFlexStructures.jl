@@ -60,6 +60,9 @@ When running a tutorial with graphical plotting in VSCode, make sure to turn off
 (uncheck) "Julia: Use Plot Pane" in the  Preferences. Otherwise the animations
 will not work.
 
+Charts and such are plotted with Gnuplot. Please make sure you have that
+installed in such a place that Julia  REPL can find it.
+
 ## Examples
 
 Let us assume that the working directory   is `"FinEtoolsFlexStructures.jl"`, perhaps

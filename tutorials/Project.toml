@@ -13,5 +13,5 @@ VisualStructures = "4ff8b045-ea8a-4ad0-a12a-3d0ba4e7e6b4"
 
 [compat]
 Arpack = "=0.5.3"
-FinEtools = "^7"
-julia = "^1.9"
+FinEtools = "^8"
+julia = "^1.10"

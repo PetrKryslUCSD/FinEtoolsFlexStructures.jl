@@ -2,6 +2,8 @@
 
 # Source code: [`fast_top_tut.jl`](fast_top_tut.jl)
 
+# Last updated: 04/19/24
+
 # ## Description
 
 # Fast-spinning Lagrange  top simulated by a beam model. The reference
