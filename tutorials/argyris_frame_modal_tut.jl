@@ -2,7 +2,7 @@
 
 # Source code: [`argyris_frame_modal_tut.jl`](argyris_frame_modal_tut.jl)
 
-# Last updated: 12/23/23
+# Last updated: 04/23/2024
 
 # ## Description
 
@@ -174,19 +174,27 @@ end
 
 # ## Plot of the fundamental frequency as it depends on the loading factor
 
-using Gnuplot
+using PlotlyJS
 
 # We concatenate the ranges for the load factors and the calculated fundamental
 # frequencies and present them in a single plot.
 
-Gnuplot.gpexec("reset session")
-@gp  "set terminal windows 0 "  :-
 
-@gp  :- cat(collect(lfp), collect(lfm); dims=1) cat(fsp, fsm; dims=1) " lw 2 lc rgb 'red' with p title 'Fundamental frequency' "  :-
+# Plot the amplitude of the response curves. We output two curves.
+# The first for the driving-point FRF:
+x, y = cat(collect(lfp), collect(lfm); dims=1), cat(fsp, fsm; dims=1)
+trace1 = scatter(; x=x, y=y, mode="markers", name="Fundamental frequency", line_color="rgb(15, 15, 215)",
+    marker=attr(size=4, symbol="diamond-open"))
 
-@gp  :- "set xlabel 'Loading factor P'" :-
-@gp  :- "set ylabel 'Frequency(P) [Hz]'" :-
-@gp  :- "set title 'Frame fundamental frequency'"
+# Set up the layout:
+layout = Layout(; 
+    xaxis=attr(title="Loading factor P", type="linear"),
+    yaxis=attr(title="Frequency(P) [Hz]", type="linear"),
+    title="Transfer function")
+# Plot the graphs:
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([trace1, ], layout; config = config)
+display(pl)
 
 
 # Clearly, the curve giving the dependence of the fundamental frequency on the

@@ -2,6 +2,8 @@
 
 Source code: [`fast_top_tut.jl`](fast_top_tut.jl)
 
+Last updated: 04/19/24
+
 ## Description
 
 Fast-spinning Lagrange  top simulated by a beam model. The reference
@@ -220,9 +222,9 @@ Additional fields
     step = 0;
     while (t <= tend)
         t = t + dt;
-        (mod(step, 50)==0) && println("Time $(t)"); # pause
 ````
 
+(mod(step, 50)==0) && println("Time $(t)"); # pause
 Initialization
 
 ````julia

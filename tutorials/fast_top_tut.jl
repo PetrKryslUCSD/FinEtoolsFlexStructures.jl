@@ -171,7 +171,7 @@ function integrate(tend, CB, geom0, u0, Rfield0, dchi, v0, report)
     step = 0;
     while (t <= tend)
         t = t + dt;
-        (mod(step, 50)==0) && println("Time $(t)"); # pause
+        # (mod(step, 50)==0) && println("Time $(t)"); # pause
         # Initialization
         applyebc!(dchi) # Apply boundary conditions
         u1.values[:] = u0.values[:]; # guess

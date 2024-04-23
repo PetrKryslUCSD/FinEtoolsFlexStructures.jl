@@ -2,6 +2,8 @@
 
 Source code: [`garteur_geometry_vis_tut.jl`](garteur_geometry_vis_tut.jl)
 
+Last updated: 04/19/24
+
 ## Description
 
 This virtual test application is based on the test article

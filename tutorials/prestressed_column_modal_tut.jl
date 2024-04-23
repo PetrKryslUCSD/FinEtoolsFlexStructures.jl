@@ -240,15 +240,19 @@ sigdig(n) = round(n * 1000) / 1000
 @show sigdig.(Ps./PEul), sigdig.(freqs)
 
 # ## Present a plot
+using PlotlyJS
 
-using Gnuplot
+x = Ps./PEul; y = freqs./analyt_freq;
+tc0 = scatter(; x=x, y=y, mode="markers", name="Fundamental frequency", line_color="rgb(215, 15, 15)", 
+    marker=attr(size=9, symbol="diamond-open"))
 
-Gnuplot.options.term = "wxt"
-
-@gp  :- Ps./PEul freqs./analyt_freq " lw 2 lc rgb 'red' with p title 'Fundamental frequency' "  :-
-
-@gp  :- "set xlabel 'P/P_{Euler}'" :-
-@gp  :- "set ylabel 'Frequency(P)/Frequency(0) [Hz]'" :-
-@gp  :- "set title 'Prestressed column'"
+# Set up the layout:
+layout = Layout(; xaxis=attr(title="P/P_{Euler}", type="linear"), 
+    yaxis=attr(title="Frequency(P)/Frequency(0) [ND]", type="linear"), 
+        title="Prestressed column")  
+# Plot the graphs:
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([tc0, ], layout; config = config)
+display(pl)
 
 nothing

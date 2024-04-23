@@ -2,7 +2,7 @@
 
 # Source code: [`circle_3d_modal_conv_tut.jl`](circle_3d_modal_conv_tut.jl)
 
-# Last updated: 04/19/24
+# Last updated: 04/23/24
 
 # ## Description
 
@@ -75,10 +75,10 @@ oshift = (2*pi*15)^2
 
 # We will generate this many elements per radius of the cross-section, and along
 # the length of the circular ring.
+nrs, nLs = 2 .^(1:3), 20*2 .^(1:3)
 results = let
     results = []
-    for i in 1:3
-        nperradius, nL = 2^i, 20*2^i
+    for (nperradius, nL) in zip(nrs, nLs)
         tolerance = diameter/nperradius/100
         # Generate the mesh in a straight cylinder.
         fens, fes = H8cylindern(diameter/2, 2*pi, nperradius, nL)
@@ -119,10 +119,8 @@ results = let
         K  = stiffness(femm, geom, u)
         M = mass(femm, geom, u)
 
-
         # The matrix partitioning now must be enforced to accommodate the prescribed
         # displacements and rotations.
-
         K_ff = matrix_blocked(K, nfreedofs(u))[:ff]
         M_ff = matrix_blocked(M, nfreedofs(u))[:ff]
 
@@ -154,35 +152,41 @@ end
 # dividing the circumference of the ring with a number of elements generated
 # circumferentially.
 
-
+# Present the convergence data in graphical form.
 using FinEtools.AlgoBaseModule: richextrapol
+using PlotlyJS
 
-using Gnuplot
-@gp  "set terminal windows 0 "  :-
+x = 2*pi*radius./nLs ./ radius; 
 
 # Modes 7 and 8
 sols = [r[1] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 7 and 8: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'red' with lp title 'Mode 7, 8' "  :-
-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc78 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 7, 8", line_color="rgb(215, 15, 15)", 
+    marker=attr(size=9, symbol="diamond-open"))
 # Modes 9 and 10
 sols = [r[2] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 9 and 10: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'green' with lp title 'Mode 9, 10' "  :-
-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc910 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 9, 10", line_color="rgb(15, 215, 15)", 
+    marker=attr(size=9, symbol="square-open"))
 # Modes 11 and 12
 sols = [r[3] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 11 and 12: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'blue' with lp title 'Mode 11, 12' "  :-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc1112 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 11, 12", line_color="rgb(15, 15, 215)", 
+    marker=attr(size=9, symbol="circle-open"))
+# Set up the layout:
+layout = Layout(; 
+    xaxis=attr(title="Normalized Element Size [ND]", type="log"),
+    yaxis=attr(title="Normalized error [ND]", type="log"),
+    title="3D: Convergence of modes 7, ..., 12")
+# Plot the graphs:
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([tc78, tc910, tc1112], layout; config = config)
+display(pl)
 
-@gp  :- "set xrange [0.01:0.1]" "set logscale x" :-
-@gp  :- "set logscale y" :-
-@gp  :- "set xlabel 'Element size'" :-
-@gp  :- "set ylabel 'Normalized error [ND]'" :-
-@gp  :- "set title '3D: Convergence of modes 7, ..., 12'"
+nothing

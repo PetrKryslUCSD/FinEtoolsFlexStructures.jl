@@ -2,6 +2,8 @@
 
 Source code: [`garteur_hva_tut.jl`](garteur_hva_tut.jl)
 
+Last updated: 04/19/24
+
 ## Description
 
 This virtual test application is based on the test article
@@ -405,7 +407,7 @@ receptance112 = fill(0.0im, nf)
 Now Loop over
 
 ````julia
-for   fi in 1:length(frequencies)
+for   fi in eachindex(frequencies)
     f =  frequencies[fi];
     om = 2*pi*f;
 ````
@@ -453,30 +455,40 @@ results[112] = Dict("receptance"=>receptance112, "mobility"=>mobility112, "accel
 ## Present the results graphically
 
 ````julia
-using Gnuplot
+using PlotlyJS
 ````
 
 Plot the amplitude of the response curves. We output two curves.
 The first for the driving-point FRF:
 
 ````julia
-quantity = "accelerance"; units = "m/s^2/N"
+quantity = "accelerance";
+units = "m/s^2/N";
 outputat = 12
 y = abs.(results[outputat][quantity]) / phun(units)
-@gp  "set terminal windows 0 "  :-
-@gp  :- frequencies y " lw 2 lc rgb 'blue' with lines title 'output at $(outputat)' "  :-
-````
-
-The second for the cross transfer:
-
-````julia
+trace1 = scatter(; x=frequencies, y=y, mode="markers+lines", name="output at $(outputat)", line_color="rgb(15, 15, 215)",
+    marker=attr(size=4, symbol="diamond-open"))
 outputat = 112
 y = abs.(results[outputat][quantity]) / phun(units)
-@gp  :- frequencies y " lw 2 lc rgb 'red' with lines title 'output at $(outputat)' "  :-
-@gp  :- "set logscale y" :-
-@gp  :- "set xlabel 'Frequency [Hz]'" :-
-@gp  :- "set ylabel 'abs(H) [$(units)]'" :-
-@gp  :- "set title 'Force at $(forceat), $(quantity)'"
+trace2 = scatter(; x=frequencies, y=y, mode="markers+lines", name="output at $(outputat)", line_color="rgb(215, 15, 15)",
+    marker=attr(size=4, symbol="square-open"))
+````
+
+Set up the layout:
+
+````julia
+layout = Layout(;
+    xaxis=attr(title="Frequency [Hz]", type="linear"),
+    yaxis=attr(title="abs(H) [$(units)]", type="log"),
+    title="Transfer function")
+````
+
+Plot the graphs:
+
+````julia
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([trace1, trace2], layout; config = config)
+display(pl)
 ````
 
 Plot the phase shift of the response curves. Again we output two curves,
@@ -485,8 +497,8 @@ the first for the driving-point FRF:
 ````julia
 outputat = 12
 y = atan.(imag(results[outputat][quantity]), real(results[outputat][quantity]))/pi*180
-@gp  "set terminal windows 1 "  :-
-@gp  :- frequencies y " lw 2 lc rgb 'blue' with lines title 'output at $(outputat)' "  :-
+trace1 = scatter(; x=frequencies, y=y, mode="markers+lines", name="output at $(outputat)", line_color="rgb(15, 15, 215)",
+    marker=attr(size=4, symbol="diamond-open"))
 ````
 
 The second for the cross transfer:
@@ -494,11 +506,25 @@ The second for the cross transfer:
 ````julia
 outputat = 112
 y = atan.(imag(results[outputat][quantity]), real(results[outputat][quantity]))/pi*180
-@gp  :- frequencies y " lw 2 lc rgb 'red' with lines title 'output at $(outputat)' "  :-
-@gp  :- "set xlabel 'Frequency [Hz]'" :-
-@gp  :- "set ylabel 'Phase shift [deg]'" :-
-@gp  :- "set title 'Force at $(forceat), $(quantity)'"
+trace2 = scatter(; x=frequencies, y=y, mode="markers+lines", name="output at $(outputat)", line_color="rgb(215, 15, 15)",
+    marker=attr(size=4, symbol="square-open"))
+````
 
+Set up the layout:
+
+````julia
+layout = Layout(;
+    xaxis=attr(title="Frequency [Hz]", type="linear"),
+    yaxis=attr(title="Phase shift [deg]", type="linear"),
+    title="Transfer function")
+````
+
+Plot the graphs:
+
+````julia
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([trace1, trace2], layout; config = config)
+display(pl)
 
 nothing
 ````

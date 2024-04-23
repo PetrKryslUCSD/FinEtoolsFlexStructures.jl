@@ -1,5 +1,9 @@
 # GARTEUR SM-AG19 Testbed: Modal analysis
 
+Source code: [`garteur_modal_tut.jl`](garteur_modal_tut.jl)
+
+Last updated: 04/19/24
+
 ## Description
 
 This virtual test application is based on the test article

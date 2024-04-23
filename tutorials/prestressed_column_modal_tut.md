@@ -2,6 +2,8 @@
 
 Source code: [`prestressed_column_modal_tut.jl`](prestressed_column_modal_tut.jl)
 
+Last updated: 04/19/24
+
 ## Description
 
 Vibration analysis of a simply supported column loaded with axial force.
@@ -374,16 +376,27 @@ sigdig(n) = round(n * 1000) / 1000
 ## Present a plot
 
 ````julia
-using Gnuplot
+using PlotlyJS
 
+x = Ps./PEul; y = freqs./analyt_freq;
+tc0 = scatter(; x=x, y=y, mode="markers", name="Fundamental frequency", line_color="rgb(215, 15, 15)",
+    marker=attr(size=9, symbol="diamond-open"))
+````
 
-@gp  "set terminal windows 0 "  :-
+Set up the layout:
 
-@gp  :- Ps./PEul freqs./analyt_freq " lw 2 lc rgb 'red' with p title 'Fundamental frequency' "  :-
+````julia
+layout = Layout(; xaxis=attr(title="P/P_{Euler}", type="linear"),
+    yaxis=attr(title="Frequency(P)/Frequency(0) [ND]", type="linear"),
+        title="Prestressed column")
+````
 
-@gp  :- "set xlabel 'P/P_{Euler}'" :-
-@gp  :- "set ylabel 'Frequency(P)/Frequency(0) [Hz]'" :-
-@gp  :- "set title 'Prestressed column'"
+Plot the graphs:
+
+````julia
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([tc0, ], layout; config = config)
+display(pl)
 
 nothing
 ````

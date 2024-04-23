@@ -2,7 +2,7 @@
 
 # Source code: [`circle_modal_conv_tut.jl`](circle_modal_conv_tut.jl)
 
-# Last updated: 04/19/24
+# Last updated: 04/23/24
 
 # ## Description
 
@@ -111,10 +111,10 @@ i=2 # the first ovaling mode
 material = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
 
 # We will generate this many elements  along the length of the circular ring.
+ns = 10*2 .^(1:3)
 results = let
     results = []
-    for i in 1:3
-        n = 10*2^i
+    for n in ns
         # beam elements along the member.
         tolerance = radius/n/1000;
         # Generate the mesh of a straight member.
@@ -167,35 +167,41 @@ end
 # dividing the circumference of the ring with a number of elements generated
 # circumferentially.
 
-
+# Present the convergence results in graphical form.
 using FinEtools.AlgoBaseModule: richextrapol
+using PlotlyJS
 
-using Gnuplot
-@gp  "set terminal windows 1 "  :-
+x = 2*pi*radius./ns ./ radius; 
 
 # Modes 7 and 8
 sols = [r[1] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 7 and 8: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'red' with lp title 'Mode 7, 8' "  :-
-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc78 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 7, 8", line_color="rgb(215, 15, 15)", 
+    marker=attr(size=9, symbol="diamond-open"))
 # Modes 9 and 10
 sols = [r[2] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 9 and 10: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'green' with lp title 'Mode 9, 10' "  :-
-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc910 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 9, 10", line_color="rgb(15, 215, 15)", 
+    marker=attr(size=9, symbol="square-open"))
 # Modes 11 and 12
 sols = [r[3] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])  
 print("Predicted frequency 11 and 12: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'blue' with lp title 'Mode 11, 12' "  :-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc1112 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 11, 12", line_color="rgb(15, 15, 215)", 
+    marker=attr(size=9, symbol="circle-open"))
+# Set up the layout:
+layout = Layout(; 
+    xaxis=attr(title="Normalized Element Size [ND]", type="log"),
+    yaxis=attr(title="Normalized error [ND]", type="log"),
+    title="Beam: Convergence of modes 7, ..., 12")
+# Plot the graphs:
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([tc78, tc910, tc1112], layout; config = config)
+display(pl)
 
-@gp  :- "set xrange [0.01:0.1]" "set logscale x" :-
-@gp  :- "set logscale y" :-
-@gp  :- "set xlabel 'Element size'" :-
-@gp  :- "set ylabel 'Normalized error [ND]'" :-
-@gp  :- "set title 'Beam: Convergence of modes 7, ..., 12'"
+nothing

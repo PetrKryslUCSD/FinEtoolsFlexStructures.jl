@@ -2,6 +2,8 @@
 
 Source code: [`circle_3d_modal_conv_tut.jl`](circle_3d_modal_conv_tut.jl)
 
+Last updated: 04/23/24
+
 ## Description
 
 Vibration analysis of a free-floating steel ring. This is a
@@ -26,14 +28,14 @@ The reference values were analytically determined (Blevins, FORMULAS FOR
 DYNAMICS, ACOUSTICS AND VIBRATION, Table 4.16). Note that shear flexibility
 was neglected when computing the reference values.
 
-| Mode       |         Reference Value (Hz)  |  NAFEMS Target Value (Hz) |
-| -------   |     -------  |  ------- |
-| 7, 8 | (out of plane)   |        51.85          |         52.29  |
-| 9, 10 |  (in plane)       |       53.38         |          53.97  |
-| 11, 12 |  (out of plane)   |     148.8          |         149.7  |
-| 13, 14 |  (in plane)       |     151.0          |         152.4  |
-| 15, 16 |  (out of plane)   |     287.0          |         288.3  |
-|  17, 18 |  (in plane)      |      289.5         |          288.3  |
+| Mode number | Shape                | Reference Value (Hz)  |  NAFEMS Target Value (Hz) |
+| --------   |  -------------------  |  -------------------- |  ------------------------ |
+| 7, 8       | (out of plane)        |        51.85          |           52.29           |
+| 9, 10      |  (in plane)           |        53.38          |           53.97           |
+| 11, 12     |  (out of plane)       |       148.8           |          149.7            |
+| 13, 14     |  (in plane)           |       151.0           |          152.4            |
+| 15, 16     |  (out of plane)       |       287.0           |          288.3            |
+|  17, 18    |  (in plane)           |       289.5           |          288.3            |
 
 ## Goals
 
@@ -93,10 +95,10 @@ We will generate this many elements per radius of the cross-section, and along
 the length of the circular ring.
 
 ````julia
+nrs, nLs = 2 .^(1:3), 20*2 .^(1:3)
 results = let
     results = []
-    for i in 1:3
-        nperradius, nL = 2^i, 20*2^i
+    for (nperradius, nL) in zip(nrs, nLs)
         tolerance = diameter/nperradius/100
 ````
 
@@ -211,11 +213,13 @@ refinement factor as a convenience: we will calculate the element size by
 dividing the circumference of the ring with a number of elements generated
 circumferentially.
 
+Present the convergence data in graphical form.
+
 ````julia
 using FinEtools.AlgoBaseModule: richextrapol
+using PlotlyJS
 
-using Gnuplot
-@gp  "set terminal windows 0 "  :-
+x = 2*pi*radius./nLs ./ radius;
 ````
 
 Modes 7 and 8
@@ -224,8 +228,9 @@ Modes 7 and 8
 sols = [r[1] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])
 print("Predicted frequency 7 and 8: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'red' with lp title 'Mode 7, 8' "  :-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc78 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 7, 8", line_color="rgb(215, 15, 15)",
+    marker=attr(size=9, symbol="diamond-open"))
 ````
 
 Modes 9 and 10
@@ -234,8 +239,9 @@ Modes 9 and 10
 sols = [r[2] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])
 print("Predicted frequency 9 and 10: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'green' with lp title 'Mode 9, 10' "  :-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc910 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 9, 10", line_color="rgb(15, 215, 15)",
+    marker=attr(size=9, symbol="square-open"))
 ````
 
 Modes 11 and 12
@@ -244,14 +250,28 @@ Modes 11 and 12
 sols = [r[3] for r in results]
 resextrap = richextrapol(sols, [4.0, 2.0, 1.0])
 print("Predicted frequency 11 and 12: $(resextrap[1])\n")
-errs = abs.(sols .- resextrap[1])./resextrap[1]
-@gp  :- 2*pi*radius./[80, 160, 320] errs " lw 2 lc rgb 'blue' with lp title 'Mode 11, 12' "  :-
+y = abs.(sols .- resextrap[1])./resextrap[1]
+tc1112 = scatter(; x=x, y=y, mode="markers+lines", name="Mode 11, 12", line_color="rgb(15, 15, 215)",
+    marker=attr(size=9, symbol="circle-open"))
+````
 
-@gp  :- "set xrange [0.01:0.1]" "set logscale x" :-
-@gp  :- "set logscale y" :-
-@gp  :- "set xlabel 'Element size'" :-
-@gp  :- "set ylabel 'Normalized error [ND]'" :-
-@gp  :- "set title '3D: Convergence of modes 7, ..., 12'"
+Set up the layout:
+
+````julia
+layout = Layout(;
+    xaxis=attr(title="Normalized Element Size [ND]", type="log"),
+    yaxis=attr(title="Normalized error [ND]", type="log"),
+    title="3D: Convergence of modes 7, ..., 12")
+````
+
+Plot the graphs:
+
+````julia
+config  = PlotConfig(plotlyServerURL="https://chart-studio.plotly.com", showLink=true)
+pl = plot([tc78, tc910, tc1112], layout; config = config)
+display(pl)
+
+nothing
 ````
 
 ---
