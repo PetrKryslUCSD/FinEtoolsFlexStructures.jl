@@ -205,7 +205,20 @@ using .mcompshell1
 mcompshell1.test()
 
 module mcompshell2
-# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
+"""
+From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
+Use Abaqus to model a simply supported rectangular plate with dimensions
+ax = 2000 mm, ay = 2000 mm, for a laminate [±45/0]S.
+Apply a tensile edge load
+Nx = 200 N/mm. Determine the maximum horizontal displacement. Each layer is 1.0 mm
+thick with the following properties:
+E1 = 37.88 GPa
+G12 = 3.405 GPa
+ν12 = 0.299
+E2 = 9.407 GPa
+G23 = 3.308 GPa
+ν23 = 0.422
+"""
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!
