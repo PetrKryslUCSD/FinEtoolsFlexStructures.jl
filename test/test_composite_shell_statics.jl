@@ -204,7 +204,7 @@ end
 using .mcompshell1
 mcompshell1.test()
 
-module mcompshell2
+
 """
 From Barbero's Finite Element Analysis using Abaqus ... book Example 3.3
 Use Abaqus to model a simply supported rectangular plate with dimensions
@@ -219,6 +219,7 @@ E2 = 9.407 GPa
 G23 = 3.308 GPa
 ν23 = 0.422
 """
+module mcompshell2
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!
