@@ -24,7 +24,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
+# using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 function _execute_dsg_model(formul, n, visualize)
     E = 200e3*phun("MPa")
@@ -88,24 +88,27 @@ function _execute_dsg_model(formul, n, visualize)
     associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
     M = mass(femm, geom0, dchi);
+    fr = freedofs(dchi)
+    K_ff = K[fr, fr]
+    M_ff = M[fr, fr]
 
     # Solve
     OmegaShift = 0.1*2*pi
     neigvs = 4
-    d, v, nconv = eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM, explicittransform=:none)
+    d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     fs = real(sqrt.(complex(d)))/(2*pi)
     @show fs
         
     # Visualization
-    U = v[:, 4]
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
-        #plot_nodes(fens),
-        plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
+    # U = v[:, 4]
+    # scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    # update_rotation_field!(Rfield0, dchi)
+    # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+    #     #plot_nodes(fens),
+    #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    # dims = 1)
+    # pl = render(plots)
 end
 
 
