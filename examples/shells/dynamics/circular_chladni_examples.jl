@@ -1,5 +1,5 @@
 """
-Spherical cap, transient vibration.
+# Spherical cap, transient vibration.
 
 The structure is loaded with a suddenly applied pressure.
 The downward deflection at the centre is monitored.
@@ -11,6 +11,7 @@ using LinearAlgebra
 using SparseArrays
 using Arpack
 using FinEtools
+using FinEtools.MeshUtilModule: gradedspace
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked, vector_blocked
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures
@@ -21,6 +22,10 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using SymRCM
 using FinEtools.MeshExportModule.VTKWrite: vtkwritecollection, vtkwrite
 
+function biastowardsends(a, b, N)
+    sort(vcat(gradedspace(a, (a + b) / 2, Int(round(N / 2)), 2), gradedspace(b, (a + b) / 2, Int(round(N / 2)), 2)))
+end
+
 const E = 70.0e3 * phun("MPa")
 const nu = 0.34
 const rho = 2700 * phun("kg/m^3")
@@ -28,13 +33,13 @@ const R = 120.0 * phun("mm")
 const h = 1.0 * phun("mm")
 const wmag = 600 * phun("micro*m")
 const o2shift = (20 * 2 * pi)^2
-const frequencies = vcat(
-    linearspace(1.0, 60.0, 20),
-    linearspace(60.0, 70.0, 70),
-    linearspace(70.0, 90.0, 30),
-    linearspace(90.0, 100.0, 30),
-    linearspace(100.0, 1000.0, 300),
-    )
+const f = [3.28451e+01, 6.52558e+01, 9.00651e+01, 2.08699e+02, 3.61328e+02, 3.67857e+02, 3.83570e+02, 5.62524e+02, 6.04128e+02, 7.96744e+02, 9.04541e+02, 1.04571e+03, 1.06972e+03, 1.09128e+03, 1.25119e+03, 1.37448e+03, 1.37887e+03, 1.44462e+03, 1.44883e+03, 1.64328e+03, 1.64494e+03, 1.72060e+03, 1.72569e+03, 1.90974e+03, 1.91348e+03, 2.05683e+03, 2.07907e+03, 2.10875e+03, 2.13029e+03, 2.42437e+03, 2.52235e+03, 2.53267e+03, 2.55700e+03]
+const N = 16
+_frequencies = eltype(f)[]
+for i in 1:length(f)-1
+    global _frequencies = vcat(_frequencies, biastowardsends(f[i], f[i+1], N))
+end
+const frequencies = sort(_frequencies)
 const color = "red"
 const visualize = true
 const a0 = 0.1
@@ -75,7 +80,7 @@ function test(n=16, visualize=true)
     # C = connectionmatrix(femm, count(fens))
     # perm = symrcm(C)
 
-    @show mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+    mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -124,7 +129,6 @@ function test(n=16, visualize=true)
     U_d = gathersysvec(dchi, :d)
     F_f = zeros(Complex{Float64}, nfreedofs(dchi))
     
-
     U_f = zeros(Complex{Float64}, nfreedofs(dchi), length(frequencies))
     for k in eachindex(frequencies)
         frequency = frequencies[k]
