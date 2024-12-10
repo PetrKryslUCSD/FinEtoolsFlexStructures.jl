@@ -16,7 +16,7 @@ using LinearAlgebra
 using SparseArrays
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
 
-function tippling_1()
+function tippling_1(visualize = false)
     # Parameters:
     E = 1000000.0;
     nu = 0.3;
@@ -71,8 +71,9 @@ function tippling_1()
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve the static problem
-    U = K \ F
-    scattersysvec!(dchi, U)
+    fr = freedofs(dchi)
+    U_f = K[fr, fr] \ F[fr]
+    scattersysvec!(dchi, U_f)
     @show  dchi.values[tipn, :]
 
     # Compute the geometric stiffness
@@ -81,21 +82,25 @@ function tippling_1()
     Kg = geostiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Solve the eigenvalue problem
-    d,v,nconv = eigs(-Kg, K; nev=neigvs, which=:LM, explicittransform=:none)
+    d,v,nconv = eigs(-Kg[fr, fr], K[fr, fr]; nev=neigvs, which=:LM, explicittransform=:none)
     fs = 1.0 ./ (d) ./ magn_scale
     println("Buckling factors: $fs [ND]")
     println("Reference: $reffs [ND]")
 
     # Visualize vibration modes
-    scattersysvec!(dchi, 10*v[:, 1])
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 1.1*L]]),
-    plot_nodes(fens),
-    plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-    dims = 1)
-    pl = render(plots)
-    save_to_json(pl, "plot.json")
-    # @show p.plot.data
+    if visualize
+        scattersysvec!(dchi, 10*v[:, 1])
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 1.1*L]]),
+                    plot_nodes(fens),
+                    plot_solid(fens, fes;
+                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+                    dims = 1)
+        pl = render(plots)
+        save_to_json(pl, "plot.json")
+        # @show p.plot.data
+    end
+    
     true
 end # tippling_1
 
