@@ -1,21 +1,3 @@
-module curved_beam_examples
-
-
-
-using FinEtools
-using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
-using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
-using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
-using FinEtoolsFlexStructures.FEMMLinBeamModule
-using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
-using LinearAlgebra: dot
-using Arpack
-using LinearAlgebra
-using SparseArrays
-using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
-
 """
 CURVED BEAM WITH STATIC LOADS
 PROBLEM DESCRIPTION
@@ -38,7 +20,25 @@ G = 4,000,000 lb/in2
 Section Properties
 Thickness = 0. 1 in
 """
-function test2(direction = 2)
+module curved_beam_examples
+
+using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CrossSectionModule: CrossSectionRectangle
+using FinEtoolsFlexStructures.MeshFrameMemberModule: frame_member, merge_members
+using FinEtoolsFlexStructures.FEMMLinBeamModule
+using FinEtoolsFlexStructures.FEMMCorotBeamModule
+using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
+using LinearAlgebra: dot
+using Arpack
+using LinearAlgebra
+using SparseArrays
+using Test
+using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json
+
+
+function test2(direction = 2, visualize = false)
     E = 10000000.0 #  lb/in2
     nu = 0.25
     # Section Properties
@@ -103,44 +103,24 @@ function test2(direction = 2)
     @show direction, dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
-    scaling = 1e0
-    dchi.values .*= scaling
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[-radius -radius -radius]; [radius radius radius]]),
-        plot_nodes(fens),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values); dims = 1)
-    pl = render(plots)
+    if visualize
+        scaling = 1e0
+        dchi.values .*= scaling
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[-radius -radius -radius]; [radius radius radius]]),
+                    plot_nodes(fens),
+                    plot_solid(fens, fes;
+                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+                    dims = 1)
+        pl = render(plots)
+    end
+   
 
     true
 end
 
 
-using FinEtoolsFlexStructures.FEMMCorotBeamModule
-
-"""
-CURVED BEAM WITH STATIC LOADS
-PROBLEM DESCRIPTION
-In this example a curved cantilever beam, modeled with shell elements, is
-subjected to unit forces at the tip in the in-plane and out-of-plane directions, that
-is, the Y and Z directions, respectively. The in-plane and out-of-plane loads are
-applied in different load cases. The tip displacements in the direction of the load
-are compared with independent hand calculated results.
-The geometry, properties and loading are as suggested in MacNeal and Harder
-1985. The cantilever beam is bent into a 90° arc. It has a 4.12 inch inner radius
-and a 4.32 inch outer radius. Thus it is 0.2 inch wide and approximately 6.63 inch
-long at its centerline. The beam is 0.1 inch thick in the Y direction. For modeling
-in SAP2000, the curved beam is meshed into six area objects, each subtending a
-15° arc.
-
-Material Properties
-E = 10,000,000 lb/in2
-ν = 0.25
-G = 4,000,000 lb/in2
-Section Properties
-Thickness = 0. 1 in
-"""
-
-function test3(direction = 2)
+function test3(direction = 2, visualize = false)
     E = 10000000.0 #  lb/in2
     nu = 0.25
     # Section Properties
@@ -205,14 +185,18 @@ function test3(direction = 2)
     @show direction, dchi.values[tipl, direction], deflex
     @test norm(dchi.values[tipl, direction] .- deflex) / deflex < 0.05
 
-    scaling = 1e0
-    dchi.values .*= scaling
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[-radius -radius -radius]; [radius radius radius]]),
-        plot_nodes(fens),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values); dims = 1)
-    pl = render(plots)
-
+    if visualize
+        scaling = 1e0
+        dchi.values .*= scaling
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[-radius -radius -radius]; [radius radius radius]]),
+                    plot_nodes(fens),
+                    plot_solid(fens, fes;
+                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+                    dims = 1)
+        pl = render(plots)
+    end
+    
     true
 end
 
