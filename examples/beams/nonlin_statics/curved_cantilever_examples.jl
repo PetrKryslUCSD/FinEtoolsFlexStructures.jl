@@ -1,19 +1,21 @@
-module curved_cantilever_examples
-##  Curved (45 deg circular arc) cantilever, Transverse force at the tip
-# 
-# Large-deflection problem. Solved many times:
-#
-# Bathe, Boulourchi 1979
-# Simo, Vu-Quoc 1986
-# Cardona, Geradin 1988
-# Krysl 1993
-# Krysl, FAESOR script curved_cantilever
-# 
-# Present calculation refers to the data of
-# Reference: EULERIAN FORMULATION FOR LARGE-DISPLACEMENT ANALYSIS OF SPACE
-# FRAMES, by B.  A.  lzzuddin I and A.  S.  Elnashai,
-# Journal of Engineering Mechanics, Vol.  119, No.  3,  March, 1993.
+"""
+Curved (45 deg circular arc) cantilever, Transverse force at the tip
 
+Large-deflection problem. Solved many times:
+
+Bathe, Boulourchi 1979
+Simo, Vu-Quoc 1986
+Cardona, Geradin 1988
+Krysl 1993
+Krysl, FAESOR script curved_cantilever
+
+Present calculation refers to the data of
+Reference: EULERIAN FORMULATION FOR LARGE-DISPLACEMENT ANALYSIS OF SPACE
+FRAMES, by B.  A.  lzzuddin I and A.  S.  Elnashai,
+Journal of Engineering Mechanics, Vol.  119, No.  3,  March, 1993.
+"""
+module curved_cantilever_examples
+ 
 
 using FinEtools
 using FinEtoolsDeforLinear
