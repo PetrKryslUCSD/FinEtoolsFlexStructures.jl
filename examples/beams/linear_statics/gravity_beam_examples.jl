@@ -1,7 +1,7 @@
 module gravity_beam_examples
 
 """
-gravity loading on a straight beam
+Gravity loading on a straight beam
 Consistent loading with distribloads_global
 """
 module mgravitybeam4
@@ -24,7 +24,7 @@ using SparseArrays
 using Test
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json, plot_local_frames
 
-function test(nel = 2)
+function test(nel = 2, visualize = true)
     E = 12.0*phun("GPa")
     nu = 0.3
     # Section Properties
@@ -97,16 +97,20 @@ function test(nel = 2)
 
     inspectintegpoints(femm, geom0, dchi, NodalField([1.0]), 1:count(fes), inspector, nothing)
 
-    scaling = 100.0
-    dchi.values .*= scaling
-    update_rotation_field!(Rfield0, dchi)
-    plots = cat(plot_space_box([[-L -L -L]; [L L L]]),
-        plot_nodes(fens),
-        plot_local_frames(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values, ecc = femm.eccentricities);
-        dims = 1)
-    pl = render(plots)
-
+    if visualize
+        scaling = 100.0
+        dchi.values .*= scaling
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[-L -L -L]; [L L L]]),
+                    plot_nodes(fens),
+                    plot_local_frames(fens, fes;
+                                      x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values),
+                    plot_solid(fens, fes;
+                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values,
+                               ecc = femm.eccentricities);
+                    dims = 1)
+        pl = render(plots)
+    end
     true
 end
 
