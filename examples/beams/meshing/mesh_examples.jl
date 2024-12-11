@@ -8,7 +8,7 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_s
 using PlotlyJS
 using JSON
 
-function curve_mesh()
+function curve_mesh(visualize = false)
     L = 42
     xyz = [0 0 0;
     0 L/4 L*1/4;
@@ -19,15 +19,17 @@ function curve_mesh()
 
     cs = CrossSectionCircle(s -> 5.9910, s -> [0.0, 0.0, 1.0])
     fens, fes = frame_member(xyz, nL, cs)
-    plots = cat(plot_nodes(fens),
-        plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4),
-        dims = 1)
-    # push!(plots, plot_nodes(fens))
-    render(plots; aspectratio = [1.0 1.0 4.0])
+    if visualize
+        plots = cat(plot_nodes(fens),
+                    plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4),
+                    dims = 1)
+        # push!(plots, plot_nodes(fens))
+        render(plots; aspectratio = [1.0 1.0 4.0])
+    end
     true
 end # curve_mesh
 
-function line_mesh_solid()
+function line_mesh_solid(visualize = false)
     L = 40.2
     xyz = [0 0 0;
     0 0 L]
@@ -35,15 +37,17 @@ function line_mesh_solid()
 
     cs = CrossSectionCircle(s -> 2.5, s -> [0.0, 1.0, 0.0])
     fens, fes = frame_member(xyz, nL, cs)
-    plots = cat(plot_nodes(fens),
-        plot_solid(fens, fes);
-        dims = 1)
-    # push!(plots, plot_nodes(fens))
-    render(plots; aspectratio = [1.0 1.0 1.0])
+    if visualize
+        plots = cat(plot_nodes(fens),
+                    plot_solid(fens, fes);
+                    dims = 1)
+        # push!(plots, plot_nodes(fens))
+        render(plots; aspectratio = [1.0 1.0 1.0])
+    end
     true
 end # curve_mesh
 
-function curve_mesh_solid()
+function curve_mesh_solid(visualize = false)
     L = 42
     xyz = [0 0 0;
     0 L/4 L*1/4;
@@ -54,15 +58,17 @@ function curve_mesh_solid()
 
     cs = CrossSectionCircle(s -> 0.5, s -> [0.0, 0.0, 1.0])
     fens, fes = frame_member(xyz, nL, cs)
-    plots = cat(plot_nodes(fens),
-        plot_solid(fens, fes);
-        dims = 1)
-    # push!(plots, plot_nodes(fens))
-    render(plots; aspectratio = space_aspectratio(fens.xyz))
+    if visualize
+        plots = cat(plot_nodes(fens),
+                    plot_solid(fens, fes);
+                    dims = 1)
+        # push!(plots, plot_nodes(fens))
+        render(plots; aspectratio = space_aspectratio(fens.xyz))
+    end
     true
 end # curve_mesh
 
-function argyr_l_frame()
+function argyr_l_frame(visualize = false)
     # Parameters:
     E=71240.0;#MPa
     nu=0.31;# Poisson ratio
@@ -88,15 +94,16 @@ function argyr_l_frame()
     push!(members, frame_member([0 0 L; L 0 L], n, cs))
     push!(members, frame_member([L 0 L; L 0 0], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
-
-    plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
-        plot_nodes(fens),
-        plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4), dims = 1)
-    render(plots; aspectratio = [1.0 1.0 1.0])
+    if visualize
+        plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
+                    plot_nodes(fens),
+                    plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4), dims = 1)
+        render(plots; aspectratio = [1.0 1.0 1.0])
+    end
     true
 end # argyr_l_frame
 
-function argyr_l_frame_movable()
+function argyr_l_frame_movable(visualize = false)
     # Parameters:
     E=71240.0;#MPa
     nu=0.31;# Poisson ratio
@@ -122,16 +129,17 @@ function argyr_l_frame_movable()
     push!(members, frame_member([0 0 L; L 0 L], n, cs))
     push!(members, frame_member([L 0 L; L 0 0], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
-
-    plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
-        plot_nodes(fens),
-        plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4), dims = 1)
-    p = render(plots; aspectratio = [1.0 1.0 1.0])
-    @show p.plot.data
+    if visualize
+        plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
+                    plot_nodes(fens),
+                    plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4), dims = 1)
+        p = render(plots; aspectratio = [1.0 1.0 1.0])
+        @show p.plot.data
+    end
     true
 end # argyr_l_frame
 
-function argyr_l_frame_solid()
+function argyr_l_frame_solid(visualize = false)
     # Parameters:
     E=71240.0;#MPa
     nu=0.31;# Poisson ratio
@@ -157,31 +165,34 @@ function argyr_l_frame_solid()
     push!(members, frame_member([0 0 L; L 0 L], n, cs))
     push!(members, frame_member([L 0 L; L 0 0], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
-
-    plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
-        plot_nodes(fens),
-        plot_solid(fens, fes; facecolor = "rgb(155, 0, 0)"), dims = 1)
-    render(plots; aspectratio = [1.0 1.0 1.0])
+    if visualize
+        plots = cat(plot_space_box([[0 -L/2 0]; [L L/2 L]]),
+                    plot_nodes(fens),
+                    plot_solid(fens, fes; facecolor = "rgb(155, 0, 0)"), dims = 1)
+        render(plots; aspectratio = [1.0 1.0 1.0])
+    end
     true
 end # argyr_l_frame
 
-function curve_mesh_change_view()
+function curve_mesh_change_view(visualize = false)
     L = 42
     xyz = [0 0 0;
-    0 L/4 L*1/4;
-    L/4 L/4 L*2/4;
-    L/4 0 L*3/4;
-    0 0 L]
+           0 L/4 L*1/4;
+           L/4 L/4 L*2/4;
+           L/4 0 L*3/4;
+           0 0 L]
     nL = 20
 
     cs = CrossSectionCircle(s -> 5.9910, s -> [0.0, 0.0, 1.0])
     fens, fes = frame_member(xyz, nL, cs)
-    plots = cat(plot_nodes(fens),
-        plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4),
-        dims = 1)
-    # push!(plots, plot_nodes(fens))
-    pl = render(plots; aspectratio = [1.0 1.0 4.0])
-    savejson(pl, "plot.json")
+    if visualize
+        plots = cat(plot_nodes(fens),
+                    plot_midline(fens, fes; color = "rgb(155, 155, 255)", lwidth = 4),
+                    dims = 1)
+        # push!(plots, plot_nodes(fens))
+        pl = render(plots; aspectratio = [1.0 1.0 4.0])
+        savejson(pl, "plot.json")
+    end
     true
 end # curve_mesh
 
