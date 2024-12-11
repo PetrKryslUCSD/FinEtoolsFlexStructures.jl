@@ -1,9 +1,12 @@
+"""
+Argyris L-frame, large-amplitude swinging motion.
+
+An L-shaped frame is pushed at the elbow by a triangular-pulse force,
+which sends it swinging about the pinned end. The frame executes
+large-amplitude dynamic motion.
+"""
 module argyr_swing_examples
-# Argyris L-frame, large-amplitude swinging motion.
-#
-# An L-shaped frame is pushed at the elbow by a triangular-pulse force,
-# which sends it swinging about the pinned end. The frame executes
-# large-amplitude dynamic motion.
+
 
 using FinEtools
 using FinEtoolsDeforLinear

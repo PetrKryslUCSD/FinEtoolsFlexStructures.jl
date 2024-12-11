@@ -1,8 +1,11 @@
+"""
+Fast Lagrangian top.
+
+Fast-spinning Lagrange  top simulated by a beam model. The reference
+solution is available in Lagrange_top_fast (rigid-body solver).
+"""
 module fast_top_examples
-##  Fast Lagrangian top.
-#
-# Fast-spinning Lagrange  top simulated by a beam model. The reference
-# solution is available in Lagrange_top_fast (rigid-body solver).
+
 
 using FinEtools
 using FinEtoolsDeforLinear

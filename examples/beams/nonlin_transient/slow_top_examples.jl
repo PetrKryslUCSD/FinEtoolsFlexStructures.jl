@@ -1,8 +1,11 @@
+"""
+Slow Lagrangian Top.
+
+Slow-spinning Lagrange  top simulated by a beam model. The reference
+solution is available in Lagrange_top_slow (rigid-body solver).
+"""
 module slow_top_examples
-##  slow Lagrangian top.
-#
-# slow-spinning Lagrange  top simulated by a beam model. The reference
-# solution is available in Lagrange_top_slow (rigid-body solver).
+
 
 using FinEtools
 using FinEtoolsDeforLinear

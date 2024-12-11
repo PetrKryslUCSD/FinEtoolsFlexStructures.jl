@@ -1,7 +1,10 @@
+"""
+Simo, J. C. and L. Vuquoc (1988). "ON THE DYNAMICS IN SPACE OF RODS 
+UNDERGOING LARGE MOTIONS - A GEOMETRICALLY EXACT APPROACH." 
+Computer Methods in Applied Mechanics and Engineering 66(2): 125-161.
+"""
 module simo_vuquoc_examples
-# Simo, J. C. and L. Vuquoc (1988). "ON THE DYNAMICS IN SPACE OF RODS 
-# UNDERGOING LARGE MOTIONS - A GEOMETRICALLY EXACT APPROACH." 
-# Computer Methods in Applied Mechanics and Engineering 66(2): 125-161.
+
 
 using FinEtools
 using FinEtoolsDeforLinear

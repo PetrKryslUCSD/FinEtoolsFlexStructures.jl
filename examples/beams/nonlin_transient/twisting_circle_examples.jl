@@ -1,5 +1,7 @@
+"""
+Twisting of a circle into shape with two turns. Dynamic simulation.
+"""
 module twisting_circle_examples
-# Twisting of a circle into shape with two turns
 
 using FinEtools
 using FinEtoolsDeforLinear

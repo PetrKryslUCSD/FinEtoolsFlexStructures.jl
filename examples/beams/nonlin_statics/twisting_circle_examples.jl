@@ -45,7 +45,7 @@ function twisting_circle()
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> h, s -> b, s -> [0.0, 0.0, 1.0])
 
-    tolerance = radius/nel/1000;
+    tolerance = radius/nel/1000; 
     fens, fes = frame_member([0 0 0; 2*pi 0 0], nel, cs)
     for i in 1:count(fens)
         a = fens.xyz[i, 1]

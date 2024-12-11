@@ -98,7 +98,7 @@ function standard_single_dsg3()
     # # Visualization
     for j in 1:length(dec.values)
         U = v[:, j]
-        scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+        scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U, DOF_KIND_ALL)
         Rfield = deepcopy(Rfield0)
         update_rotation_field!(Rfield, dchi)
         plots = cat(plot_space_box([[-L -L -L]; [+L +L +L]]),
