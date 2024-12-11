@@ -14,7 +14,10 @@ by diaphragms at its curved edges (an aircraft hanger), deforming under its own
 weight. It is interesting to observe that the geometry is such that the
 centerpoint of the roof moves upward under the self-weight(downwardly directed)
 load. Perhaps this is one reason why the problem is not straightforward
-numerically. 
+numerically.
+
+Analytical solution for the vertical deflection and the midpoint of the
+free edge is often cited as 0.3024. However, this number is suspect. 
 """
 module vis_scordelis_lo_examples
 
@@ -28,8 +31,7 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-# analytical solution for the vertical deflection and the midpoint of the
-# free edge 
+# Analytical solution?
 analyt_sol=-0.3024;
 # Parameters:
 E=4.32e8;
@@ -55,12 +57,6 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
         fens.xyz[i, :] .= (R*sin(a), y, R*(cos(a)-1))
     end
-
-    # conn = fill(0, count(fes), 3)
-    # for i in 1:count(fes)
-    #     conn[i, :] .= fes.conn[i][2], fes.conn[i][3], fes.conn[i][1]
-    # end
-    # fromarray!(fes, conn)
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     ocsys = CSys(3, 3, cylindrical!)
@@ -162,7 +158,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     result
 end
 
-function test_convergence(ns = [16, 32], visualize = true)
+function test_convergence(ns = [16, 32], visualize = false)
     formul = FEMMShellT3FFModule
     @info "Scordelis-Lo shell"
     results = []
