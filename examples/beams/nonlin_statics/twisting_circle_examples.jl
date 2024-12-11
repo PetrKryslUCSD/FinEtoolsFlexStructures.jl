@@ -1,7 +1,9 @@
+"""
+Twisting of a circle into shape with two turns
+G. Rebel; Finite Rotation Shell Theory including Drill Rotations and its 
+Finite Element Implementation; PhD Thesis, Delft University Press (1998).
+"""
 module twisting_circle_examples
-# Twisting of a circle into shape with two turns
-# G. Rebel; Finite Rotation Shell Theory including Drill Rotations and its 
-# Finite Element Implementation; PhD Thesis, Delft University Press (1998).
 
 using FinEtools
 using FinEtoolsDeforLinear
