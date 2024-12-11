@@ -1,6 +1,8 @@
-##  Modal analysis of the L-frame of Argyris.
-# Eigenvector 1 frequency 11.2732  [Hz]
-#   Eigenvector 2 frequency 30.5269  [Hz]
+"""
+Modal analysis of the L-frame of Argyris.
+    Eigenvector 1 frequency 11.2732  [Hz]
+    Eigenvector 2 frequency 30.5269  [Hz]
+"""
 module argyr_l_frame_modal_examples
 
 using FinEtools
@@ -21,7 +23,7 @@ using VisualStructures: plot_points, plot_nodes, plot_midline, render, plot_spac
 using PlotlyJS
 using JSON
 
-function argyr_l_frame_modal()
+function argyr_l_frame_modal(visualize = false)
     # Parameters:
     E=71240.0;#MPa
     nu=0.31;# Poisson ratio
@@ -77,21 +79,23 @@ function argyr_l_frame_modal()
     println("Reference: $reffs [Hz]")
 
     # Visualize vibration modes
-    scattersysvec!(dchi, v[:, 1])
-    update_rotation_field!(Rfield0, dchi)
-    tbox = plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 L]])
-    plots = cat(tbox, plot_nodes(fens),
-        plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-        dims = 1)
-    layout = default_layout_3d()
-    layout[:scene][:aspectratio] = space_aspectratio(fens.xyz)
-    layout[:scene][:aspectmode] = "manual"
-    render(plots; layout = layout)
-
+    if visualize
+        scattersysvec!(dchi, v[:, 1])
+        update_rotation_field!(Rfield0, dchi)
+        tbox = plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 L]])
+        plots = cat(tbox, plot_nodes(fens),
+                    plot_solid(fens, fes;
+                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+                    dims = 1)
+        layout = default_layout_3d()
+        layout[:scene][:aspectratio] = space_aspectratio(fens.xyz)
+        layout[:scene][:aspectmode] = "manual"
+        render(plots; layout = layout)
+    end
     return true
 end # argyr_l_frame_modal
 
-function argyr_l_frame_modal_anim()
+function argyr_l_frame_modal_anim(visualize = false)
     # Parameters:
     E=71240.0;#MPa
     nu=0.31;# Poisson ratio
@@ -147,27 +151,28 @@ function argyr_l_frame_modal_anim()
     println("Reference: $reffs [Hz]")
 
     # Visualize vibration modes
-    mode = 2
-    tbox = plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 1.1*L]])
-    tenv0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
-    plots = cat(tbox, tenv0; dims = 1)
-    layout = default_layout_3d()
-    layout[:scene][:camera][:eye] = Dict(:x=>1.02, :y=> 1.02, :z=> 0.836)
-    layout[:scene][:camera][:center] = Dict(:x=>0.058, :y=>0.065, :z=>-0.122)
-    pl = render(plots; layout = layout, title = "Mode $(mode)")
-    Rfield1 = deepcopy(Rfield0)
-    scale = L/3  /  maximum(v[:, mode])
-    for xscale in scale.*sin.(collect(0:1:72).*(2*pi/21))
-        scattersysvec!(dchi, xscale.*v[:, mode])
+    if visualize
+        mode = 2
+        tbox = plot_space_box([[-L/2 -L/2 0]; [L/2 L/2 1.1*L]])
+        tenv0 = plot_solid(fens, fes; x = geom0.values, u = 0.0.*dchi.values[:, 1:3], R = Rfield0.values, facecolor = "rgb(125, 155, 125)", opacity = 0.3);
+        plots = cat(tbox, tenv0; dims = 1)
+        layout = default_layout_3d()
+        layout[:scene][:camera][:eye] = Dict(:x=>1.02, :y=> 1.02, :z=> 0.836)
+        layout[:scene][:camera][:center] = Dict(:x=>0.058, :y=>0.065, :z=>-0.122)
+        pl = render(plots; layout = layout, title = "Mode $(mode)")
         Rfield1 = deepcopy(Rfield0)
-        update_rotation_field!(Rfield1, dchi)
-        tenv1 = plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield1.values, facecolor = "rgb(25, 255, 25)");
-        plots = cat(tbox, tenv0, tenv1; dims = 1)
-        react!(pl, plots, pl.plot.layout)
-        sleep(0.115)
+        scale = L/3  /  maximum(v[:, mode])
+        for xscale in scale.*sin.(collect(0:1:72).*(2*pi/21))
+            scattersysvec!(dchi, xscale.*v[:, mode])
+            Rfield1 = deepcopy(Rfield0)
+            update_rotation_field!(Rfield1, dchi)
+            tenv1 = plot_solid(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield1.values, facecolor = "rgb(25, 255, 25)");
+            plots = cat(tbox, tenv0, tenv1; dims = 1)
+            react!(pl, plots, pl.plot.layout)
+            sleep(0.115)
+        end
+        savejson(pl, "plots.json")
     end
-    savejson(pl, "plots.json")
-
     return true
 end # argyr_l_frame_modal_anim
 

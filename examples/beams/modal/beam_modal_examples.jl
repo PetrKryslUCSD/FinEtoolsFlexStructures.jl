@@ -1,7 +1,9 @@
-##  Simply-supported/clamped beam modal analysis. Corotational beam
-# 
-# Vibration analysis of beam which is simply supported in one plane, and clamped in another. 
-# The results are compared with analytical expressions.
+"""
+Simply-supported/clamped beam modal analysis. Corotational beam
+
+Vibration analysis of beam which is simply supported in one plane, and clamped in another. 
+The results are compared with analytical expressions.
+"""
 module beam_modal_examples
 
 using FinEtools

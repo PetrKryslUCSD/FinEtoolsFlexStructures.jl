@@ -87,7 +87,8 @@ function test(N = 18)
     # R0031(3): Three-layer sandwich shell under normal pressure loading
     # lists 0.123'' = 3.1242 mm
     @show maxdisp = maximum(dchi.values[:, 3]) ./ phun("mm") 
-
+    @show maxdisp = maximum(dchi.values[:, 3]) ./ phun("in")
+    
     true
 end
 
