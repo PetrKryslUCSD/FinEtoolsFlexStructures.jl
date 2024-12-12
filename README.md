@@ -27,7 +27,7 @@
 
 ## News
 
-- 12/10/2024: Update to Julia 1.11. Update examples.
+- 12/10/2024: Update to Julia 1.11. Reorganize and update examples.
 - 05/27/2024: Fix documentation of test module.
 - 02/25/2024: Update for FinEtools 8.
 
