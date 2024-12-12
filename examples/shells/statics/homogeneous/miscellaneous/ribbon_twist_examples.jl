@@ -1,4 +1,6 @@
-# Simply supported square plate with uniform distributed load
+"""
+Twist a ribbon
+"""
 module ribbon_twist_examples
 
 using FinEtools

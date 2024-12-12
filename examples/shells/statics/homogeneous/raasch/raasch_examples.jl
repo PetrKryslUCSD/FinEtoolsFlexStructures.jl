@@ -26,8 +26,6 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
-
-
 function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1)
     # The physical quantities are provided in english units, dimensions in inches.10
     E = 3300.0;
@@ -41,7 +39,7 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
     # formul = FEMMShellT3DSGMTModule
     @show formul
 
-    if input == ""
+    if input  == ""
         fens, fes = T3block(210.0, 20.0, nL, nW)
         fens.xyz = xyz3(fens)
         for k in 1:count(fens)
