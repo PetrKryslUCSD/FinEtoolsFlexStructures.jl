@@ -310,7 +310,7 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     @info "FV12 free vibration, formulation=$(formul)"
-    @info "1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668."
+    @info "Reference frequencies: 1.622, 2.360, 2.922, 4.190, 4.190,  7.356, 7.356, 7.668."
     for n in [2, 4, 8, 16, 32, 64]
         _execute_dsg_model(formul, n, false)
     end
