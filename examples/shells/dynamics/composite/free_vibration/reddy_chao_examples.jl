@@ -1,5 +1,5 @@
 """
-Vibration analysis of cross-ply square plate
+Vibration analysis of anisotropic layered square plates
 
 Reference values: ? [Hz]
 From: J.N. REDDY and W.C. CHAO 
@@ -17,47 +17,61 @@ using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 function _execute(formul, n, visualize)
+    CM = CompositeLayupModule
     # Material I
-    E_1 = E_2
-    E = 207*phun("GPa")
-    nu = 0.3;
-    rho= 7850*phun("KG/M^3");
-    L0 = 2.54 * phun("m")
-    B0 = 1.27 * phun("m")
-    thickness = 12.7*phun("mm");
+    rho = 2250*phun("KG/M^3")
+    E2 = 3*phun("GPa")
+    E1 = E2 * 25
+    G12 = E2 * 0.5
+    G13 = G12
+    G23 = E2 * 0.2
+    nu12 = 0.25
+    Material_I = (rho, E1, E2, nu12, G12, G13, G23)
+    # Material II
+    rho = 2250*phun("KG/M^3")
+    E2 = 3*phun("GPa")
+    E1 = E2 * 40
+    G12 = E2 * 0.6
+    G13 = G12
+    G23 = E2 * 0.5
+    nu12 = 0.25
+    Material_II = (rho, E1, E2, nu12, G12, G13, G23)
+
+    Material = Material_II
+   
+    L0 = 0.3 * phun("m")
+    thickness = L0 / 5
+    nondimensionalised_frequency = function(om) 
+        rho = Material[1]
+        E2 = Material[3]
+        om * L0^2 / thickness * sqrt(rho/E2) 
+    end
 
     # Report
     @info "Mesh: $n elements per side"
 
-    tolerance = B0/n/1000
-    X = [0.0 0.0 0.0;
-        B0 0.0 0.0;
-        B0 B0 0.0;
-        B0 2*B0 0.0;
-        0.0 2*B0 0.0;
-        0.0 B0 0.0;
-    ]
-    l2fens = FENodeSet(X);
-    conn = [1 2; 6 3; 5 4; 2 3; 3 4; 5 6; 6 1]
-    l2fes = FESetL2(conn);
-    nLayers = 5
-    ex = function (x, k)
-        x[3] += k*L0/nLayers
-        x
-    end
-    fens,fes = Q4extrudeL2(l2fens, l2fes, nLayers, ex); # Mesh
+    tolerance = L0/n/1000
+   
+    fens,fes = Q4block(L0, L0, n, n); # Mesh
+    fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
-    for r in 1:n
-        fens, fes = T3refine(fens, fes)
-    end
-    @show count(fens)
-    vtkwrite("dbcs.vtu", fens, fes)
+    
+    vtkwrite("reddy_chao_n=$n.vtu", fens, fes)
 
-    mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
+    mater = CM.lamina_material(Material...)
+    plies = CM.Ply[
+        CM.Ply("ply_0", mater, thickness / 4, 0),
+        CM.Ply("ply_90", mater, thickness / 2, 90),
+        CM.Ply("ply_0", mater, thickness / 4, 0),
+    ]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("Reddy_Chao_3-ply", plies, mcsys)
+
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
@@ -75,8 +89,8 @@ function _execute(formul, n, visualize)
 
     # Apply EBC's
     # simple support
-    l1 = selectnode(fens; box = Float64[-Inf Inf -Inf Inf 0.0 0.0], inflate = tolerance)
-    for i in [1, 2, 3, 4, 5, 6]
+    l1 = connectednodes(meshboundary(fes))
+    for i in [ 3, ]
         setebc!(dchi, l1, true, i)
     end
     
@@ -93,16 +107,18 @@ function _execute(formul, n, visualize)
 
     # Solve
     OmegaShift = 0.0*2*pi
-    neigvs = 4
+    neigvs = 10
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
-    fs = real(sqrt.(complex(d)))/(2*pi)
-    @show fs
+    oms = real(sqrt.(complex(d)))
+    fs = oms ./(2*pi)
+    @info "Frequencies: $fs [Hz]"
+    @info "Nondimensional angular frequencies\n  $(nondimensionalised_frequency.(oms))"
         
     # Visualization
     if visualize
         U = v[:, 4]
-        scattersysvec!(dchi, (L0/4)/maximum(abs.(U)).*U)
+        scattersysvec!(dchi, (L0*4)/maximum(abs.(U)).*U)
         update_rotation_field!(Rfield0, dchi)
         plots = cat(plot_space_box([[0 0 0]; [L0 L0 L0]]),
                     #plot_nodes(fens),
@@ -116,9 +132,9 @@ end
 
 function test_convergence()
     formul = FEMMShellT3FFModule
-    @info "Double Cell Box Vibration"
-    for n in [1, 2, 3, 4]
-        _execute(formul, n, false)
+    @info "Reddy-Chao plate vibration"
+    for n in [100]
+        _execute(formul, n, true)
     end
     return true
 end
