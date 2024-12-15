@@ -1,5 +1,5 @@
 """
-From Barbero's Finite Element Analysis using Abaqus ... book Example 3.1
+From Barbero's Finite Element Analysis using Abaqus ... book. Example 3.1
 
 Consider a simply supported square plate ax = ay = 2000 mm, laminated
 with AS4D/9310 (Table 3.1) in a [0/90]n configuration. The total laminate thickness is

@@ -1,8 +1,10 @@
-
+"""
+From Barbero's Finite Element Analysis using Abaqus ... book. Example 3.7
+Here we actually solve the original benchmark:
+R0031(3): Three-layer sandwich shell under normal pressure loading
+"""
 module nafems_r0031_3_examples
-# From Barbero's Finite Element Analysis using Abaqus ... book Example 3.7
-# Here we actually solve original benchmark:
-# R0031(3): Three-layer sandwich shell under normal pressure loading
+
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!
