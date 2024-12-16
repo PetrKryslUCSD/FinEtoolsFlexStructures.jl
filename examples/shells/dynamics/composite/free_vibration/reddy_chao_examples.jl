@@ -21,7 +21,7 @@ using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute(formul, n, visualize)
+function _execute(formul, aspect, n, visualize)
     CM = CompositeLayupModule
     # Material I
     rho = 2250*phun("KG/M^3")
@@ -42,10 +42,10 @@ function _execute(formul, n, visualize)
     nu12 = 0.25
     Material_II = (rho, E1, E2, nu12, G12, G13, G23)
 
-    Material = Material_II
+    @show Material = Material_II
    
     L0 = 0.3 * phun("m")
-    thickness = L0 / 5
+    thickness = L0 / aspect
     nondimensionalised_frequency = function(om) 
         rho = Material[1]
         E2 = Material[3]
@@ -53,6 +53,7 @@ function _execute(formul, n, visualize)
     end
 
     # Report
+    @info "Aspect: $aspect"
     @info "Mesh: $n elements per side"
 
     tolerance = L0/n/1000
@@ -90,7 +91,7 @@ function _execute(formul, n, visualize)
     # Apply EBC's
     # simple support
     l1 = connectednodes(meshboundary(fes))
-    for i in [ 3, ]
+    for i in [1, 2, 3, ]
         setebc!(dchi, l1, true, i)
     end
     
@@ -133,8 +134,10 @@ end
 function test_convergence()
     formul = FEMMShellT3FFModule
     @info "Reddy-Chao plate vibration"
-    for n in [100]
-        _execute(formul, n, true)
+    for aspect in [2, 5, 10, 25, 50]
+        for n in [100]
+            _execute(formul, aspect, n, false)
+        end
     end
     return true
 end
