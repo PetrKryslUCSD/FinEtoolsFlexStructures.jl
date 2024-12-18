@@ -16,12 +16,13 @@ using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute(formul, aspect, n, refndom, visualize)
+function _execute(aspect, n, refndom, visualize)
+    formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     # Material from section 2.1
     rho = 2000*phun("KG/M^3")
@@ -56,17 +57,16 @@ function _execute(formul, aspect, n, refndom, visualize)
 
     mater = CM.lamina_material(Material...)
     plies = CM.Ply[
-        CM.Ply("ply_0", mater, thickness / 3, 0),
-        CM.Ply("ply_90", mater, thickness / 3, 90),
-        CM.Ply("ply_0", mater, thickness / 3, 0),
+        CM.Ply("ply_0", mater, thickness / 4, 0),
+        CM.Ply("ply_90", mater, thickness / 2, 90),
+        CM.Ply("ply_0", mater, thickness / 4, 0),
     ]
     mcsys = CM.cartesian_csys((1, 2, 3))
     layup = CM.CompositeLayup("boscolo_3-ply", plies, mcsys)
-
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
     associate = formul.associategeometry!
     stiffness = formul.stiffness
@@ -123,12 +123,11 @@ end
 
 
 function test_convergence()
-    formul = FEMMShellT3FFModule
     @info "Boscolo-Banerjee plate vibration"
     refndoms = [5.500, 9.395, 10.854, 15.143, 17.660, 18.071]
     for (aspect, refndom) in zip([2, 4, 5, 10, 20, 25], refndoms)
-        for n in [50]
-            _execute(formul, aspect, n, refndom, false)
+        for n in [25]
+            _execute(aspect, n, refndom, false)
         end
     end
     return true
