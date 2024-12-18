@@ -16,12 +16,13 @@ using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
-using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute(formul, aspect, n, visualize)
+function _execute(aspect, n, visualize)
+    formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     # Material I
     rho = 2250*phun("KG/M^3")
@@ -76,7 +77,7 @@ function _execute(formul, aspect, n, visualize)
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
     associate = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass
@@ -132,11 +133,10 @@ end
 
 
 function test_convergence()
-    formul = FEMMShellT3FFModule
     @info "Reddy-Chao plate vibration"
     for aspect in [2, 5, 10, 25, 50]
         for n in [100]
-            _execute(formul, aspect, n, false)
+            _execute(aspect, n, false)
         end
     end
     return true
