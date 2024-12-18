@@ -7,6 +7,13 @@ Dynamic stiffness formulation for composite Mindlin plates for exact modal
 analysis of structures. Part II: Results and applications
 M. Boscolo, J.R. Banerjee
 Computers and Structures 96-97 (2012) 74–83
+
+Compare also with 
+Benchmark of Frequency Domain Methods for Composite 
+Materials with Damage using LS-DYNA® 
+M-G Bae, S. Lee, 
+13th International LS-DYNA Users Conference,
+Table 3 for the layup [0/90/90/0].
 """
 module boscolo_examples
 
