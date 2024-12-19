@@ -9,7 +9,7 @@ using FinEtools.FTypesModule:
 using LinearAlgebra: norm, Transpose, mul!, I
 using FinEtoolsDeforLinear.MatDeforLinearElasticModule: tangentmoduli!
 using FinEtoolsDeforLinear
-using FinEtoolsFlexStructures.TransformerModule: TransformerQtEQ
+using FinEtoolsFlexStructures.TransformerModule: TransformerQEQt, TransformerQtEQ
 
 """
     cartesian_csys(axes)
@@ -39,6 +39,7 @@ function cartesian_csys(axes)
         end
         return csmatout
     end
+    # TO DO: checked the axes argument for correctness
     return CSys(3, 3, cartesian!)
 end
 
@@ -71,7 +72,7 @@ function Ply(name, material::M, thickness, angle) where {M}
     # First we extract the full three dimensional stiffness matrix of the
     # material
     D = fill(0.0, 6, 6)
-    # What if the material changes composition from point to point? What do we
+    # TO DO What if the material changes composition from point to point? What do we
     # do now?
     t::FFlt, dt::FFlt, loc::FFltMat, label::FInt = 0.0, 0.0, [0.0 0.0 0.0], 0
     tangentmoduli!(material, D, t, dt, loc, label)
@@ -83,13 +84,13 @@ function Ply(name, material::M, thickness, angle) where {M}
     Dps[1:2, 1:2] =
         D[1:2, 1:2] - (reshape(D[1:2, 3], 2, 1) * reshape(D[3, 1:2], 1, 2)) / D[3, 3]
     ix = [1, 2, 4]
-    for i = 1:3
+    for i in 1:3
         Dps[3, i] = Dps[i, 3] = D[4, ix[i]]
     end
     # And we also extract the transverse shear matrix
     Dts = fill(0.0, 2, 2)
     ix = [5, 6]
-    for i = 1:2
+    for i in 1:2
         Dts[i, i] = D[ix[i], ix[i]]
     end
     return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
@@ -182,9 +183,9 @@ end
 
 Create a composite layup.
 
-Provide the name, the array of plies, and the coordinate system that defines the
-orientation of the composite layup. The first base spector of this coordinate
-system is the reference direction for the layup.
+Provide the name, the array of plies (`Ply`), and the coordinate system that
+defines the orientation of the composite layup. The first base vector of this
+coordinate system is the reference direction for the layup.
 """
 function CompositeLayup(name, plies, mcsys)
     offset = 0.0
@@ -194,7 +195,7 @@ end
 """
     thickness(cl::CompositeLayup)
 
-Compute the thickness of the layup (some of the thicknesses of the plies).
+Compute the thickness of the layup (sum of the thicknesses of the plies).
 """
 function thickness(cl::CompositeLayup)
     return sum(p.thickness for p in cl.plies)
@@ -215,17 +216,17 @@ function laminate_stiffnesses!(cl::CompositeLayup, A, B, D)
     B .= zero(eltype(A))
     D .= zero(eltype(A))
     Dps = deepcopy(A)
-    Tbar = deepcopy(A)
-    tf = TransformerQtEQ(Dps)
+    T = deepcopy(A)
+    tf = TransformerQEQt(Dps)
     # Transform into the composite layup coordinate system.
     layup_thickness = thickness(cl)
     zs = -layup_thickness / 2 - cl.offset
     for p in cl.plies
         ze = zs + p.thickness
-        plane_stress_Tbar_matrix!(Tbar, p.angle / 180 * pi)
+        plane_stress_T_matrix!(T, p.angle / 180 * pi)
         # Transform the plane stress matrix into the layup coordinates
         @. Dps = p._Dps
-        Dps = tf(Dps, Tbar)
+        Dps = tf(Dps, T)
         # Compute the in-plane stiffness
         @. A += (ze - zs) * Dps
         # Compute the extension-bending coupling stiffness
@@ -272,6 +273,8 @@ end
     laminate_inertia!(cl::CompositeLayup)
 
 Compute the laminate inertia.
+
+Return the mass density and the moment of inertia density.
 """
 function laminate_inertia!(cl::CompositeLayup)
     layup_thickness = sum(p.thickness for p in cl.plies)
@@ -295,12 +298,24 @@ end
 Compute the transformation matrix of engineering strain components FROM the
 LAYUP coordinate system TO the PLY coordinate system.
 
+The components of the engineering strain vector transform as
+```math
+\\epsilon^\\prime = \\bar{T} \\epsilon
+```
+where ``\\epsilon`` is the engineering strain vector in the layup coordinate
+system, and ``\\epsilon^\\prime`` is the engineering strain vector in the ply
+coordinate system. 
+
+From the work expression
+```math
+{\\sigma^\\prime}^T \\epsilon^\\prime = {\\sigma}^T \\epsilon
+```
+we conclude ``\\bar{T} = T^{-T}``.
+
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
 `m`, `n` = cosine and sine of the angle
 
-The nomenclature is from Barbero, Finite element analysis of composite materials
-using Abaqus (2013).
 """
 function plane_stress_Tbar_matrix!(Tbarm::Array{T,2}, angle) where {T}
     m = cos(angle)
@@ -328,21 +343,20 @@ end
     plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, angle) where {T}
     plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, m, n) where {T}
 
-Compute the transformation matrix of the stress vector components FROM the
-LAYUP coordinate system TO the PLY coordinate system.
+Compute the transformation matrix of the stress vector components FROM the LAYUP
+coordinate system TO the PLY coordinate system.
 
 The components of the stress vector transform as
 ```math
 \\sigma^\\prime = T^{-1} \\sigma
 ```
 where ``\\sigma`` is the stress vector in the layup coordinate system, and
-``sigma^\\prime`` is the stress vector in the ply coordinate system. 
+``\\sigma^\\prime`` is the stress vector in the ply coordinate system. 
 
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
+`m`, `n` = cosine and sine of the angle
 
-The nomenclature is from Barbero, Finite element analysis of composite materials
-using Abaqus (2013).
 """
 function plane_stress_Tinv_matrix!(Tinvm::Array{T,2}, angle) where {T}
     m = cos(angle)
@@ -369,8 +383,8 @@ end
 Compute the transformation matrix of stress vector components FROM the PLY
 coordinate system TO the LAYUP coordinate system.
 
-Their components of the stress vector transform as
-```math
+The components of the stress vector transform as
+```math 
 \\sigma = T  \\sigma^\\prime
 ```
 where ``\\sigma`` is the stress vector in the layup coordinate system, and
@@ -379,9 +393,8 @@ where ``\\sigma`` is the stress vector in the layup coordinate system, and
 # Arguments
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
+`m`, `n` = cosine and sine of the angle
 
-The nomenclature is from Barbero, Finite element analysis of composite materials
-using Abaqus (2013).
 """
 function plane_stress_T_matrix!(Tm::Array{T,2}, angle) where {T}
     # We are using here the fact that the inverse rotation is given by the
@@ -401,6 +414,7 @@ LAYUP coordinate system TO the PLY coordinate system.
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
 `m`, `n` = cosine and sine of the angle
+
 """
 function transverse_shear_T_matrix!(Tm::Array{T,2}, angle) where {T}
     m = cos(angle)
@@ -409,7 +423,8 @@ function transverse_shear_T_matrix!(Tm::Array{T,2}, angle) where {T}
 end
 
 function transverse_shear_T_matrix!(Tm::Array{T,2}, m, n) where {T}
-    # Barbero, Introduction, a^T in equation 5.26
+    # The nomenclature is from Barbero's Introduction to Composite Materials Design [3 ed.] (2015).
+    # a^T in equation 5.26
     Tm[1, 1] = m
     Tm[1, 2] = -n
     Tm[2, 1] = +n

@@ -101,15 +101,15 @@ function test()
             cos(angle) -sin(angle)
             sin(angle) cos(angle)
         ]
-        Tinvm = fill(0.0, 3, 3)
-        CM.plane_stress_Tinv_matrix!(Tinvm, angle)
-        sigv = Tinvm * [sigp[1, 1]; sigp[2, 2]; sigp[1, 2]]
+        Tm = fill(0.0, 3, 3)
+        CM.plane_stress_T_matrix!(Tm, angle)
+        sigv = Tm * [sigp[1, 1]; sigp[2, 2]; sigp[1, 2]]
         sig = Rm * sigp * Rm'
         @test abs(sig[1, 1] - sigv[1]) < 10^-7
         @test abs(sig[2, 2] - sigv[2]) < 10^-7
         @test abs(sig[1, 2] - sigv[3]) < 10^-7
         CM.plane_stress_Tbar_matrix!(Tbarm, angle)
-        @test norm(Tbarm' - Tinvm) < mtol
+        @test norm(Tbarm' - inv(Tm)) < mtol
     end
     true
 end
@@ -285,7 +285,7 @@ function test()
     Tinvm = fill(0.0, 3, 3)
     for dangle in [-55] # see Barbero, Introduction to composite materials, Example 5.3
         angle = dangle / 180 * pi
-        CM.plane_stress_T_matrix!(Tm, angle)
+        CM.plane_stress_Tinv_matrix!(Tm, angle)
         @test norm(
             Tm - [
                 0.32898992833716556 0.6710100716628343 -0.9396926207859083
@@ -299,33 +299,6 @@ end
 end
 using .mlayup8
 mlayup8.test()
-
-# module mlayup9
-# using LinearAlgebra: norm, Transpose, mul!, I
-# using FinEtools
-# using FinEtools.DeforModelRedModule
-# using FinEtoolsFlexStructures.CompositeLayupModule
-# using Test
-# function test()
-#     CM = CompositeLayupModule
-#     mtol = 1.0e-15
-#     R = [1 0 0; 0 1 0; 0 0 2]
-#     Tme = fill(0.0, 3, 3)
-#     Tm = fill(0.0, 3, 3)
-#     Tinvm = fill(0.0, 3, 3)
-#     for dangle in [5 34 68 73 535 0 90 45 -135. -87]
-#         angle = dangle/180*pi
-#         CM.plane_stress_T_matrix_eng!(Tme, angle)
-#         CM.plane_stress_Tbar_matrix!(Tm, angle)
-#         # Verify the identity above equation 5.54 in Barbero
-#         @test norm(inv(Tm') - Tme) < mtol
-#     end
-#     true
-# end
-# end
-# using .mlayup9
-# mlayup9.test()
-
 
 module mlayup10
 using LinearAlgebra: norm, Transpose, mul!, I
@@ -360,6 +333,28 @@ end
 using .mlayup10
 mlayup10.test()
 
+module mlayup_bas1
+using LinearAlgebra: norm, Transpose, mul!, I
+using FinEtools
+using FinEtoolsDeforLinear
+using FinEtoolsFlexStructures.CompositeLayupModule
+using Test
+function test()
+    CM = CompositeLayupModule
+    Tm = fill(0.0, 3, 3)
+    Tbarm = fill(0.0, 3, 3)
+    CM.plane_stress_Tinv_matrix!(Tm, -55 / 180 * pi)
+    Ttrue = [
+        0.329 0.671 -0.940
+        0.671 0.329 0.940
+        0.470 -0.470 -0.342
+    ]
+    @test norm(Tm - Ttrue) < 1.0e-3 * norm(Ttrue)
+    true
+end
+end
+using .mlayup_bas1
+mlayup_bas1.test()
 
 module mlayup11
 using LinearAlgebra: norm, Transpose, mul!, I
@@ -376,7 +371,7 @@ function test()
     angle = 45.0
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     CM = CompositeLayupModule
-    # From Barbero's Introduction ... book Example 5.6
+    # From Barbero's  	Introduction to Composite Materials Design [3 ed.]  Example 5.6
     ply1 = CM.Ply("ply1", mater, 1.0, -55.0)
     cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
     cl.plies[1]._Dps .= [20.874 3.260 0; 3.260 11.898 0; 0 0 3.789]
