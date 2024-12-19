@@ -65,16 +65,17 @@ function _execute(aspect, n, refndom, visualize)
     mater = CM.lamina_material(Material...)
     plies = CM.Ply[
         CM.Ply("ply_0", mater, thickness / 4, 0),
-        CM.Ply("ply_90", mater, thickness / 2, 90),
+        CM.Ply("ply_90", mater, thickness / 4, 90),
+        CM.Ply("ply_90", mater, thickness / 4, 90),
         CM.Ply("ply_0", mater, thickness / 4, 0),
     ]
     mcsys = CM.cartesian_csys((1, 2, 3))
-    layup = CM.CompositeLayup("boscolo_3-ply", plies, mcsys)
+    layup = CM.CompositeLayup("boscolo_3-0/90/90/0", plies, mcsys)
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
-    # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
+    femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
     associate = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass
@@ -131,6 +132,7 @@ end
 
 function test_convergence()
     @info "Boscolo-Banerjee plate vibration"
+    @info "Reference from Table 3, DySAP"
     refndoms = [5.500, 9.395, 10.854, 15.143, 17.660, 18.071]
     for (aspect, refndom) in zip([2, 4, 5, 10, 20, 25], refndoms)
         for n in [25]
