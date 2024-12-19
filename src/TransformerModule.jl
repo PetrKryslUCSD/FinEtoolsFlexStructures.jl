@@ -11,9 +11,9 @@ using FinEtools.FTypesModule:
 """
     TransformerQtEQ
 
-TransformerQtEQ of element matrices.
+TransformerQtEQ of square symmetric matrices.
 
-A callable object: computes `Q^T * E * Q`, where `E` the element stiffness
+A callable object: computes `Q^T * E * Q`, where `E` a symmetric
 matrix, and `Q` is the transformation matrix. Both are assumed to be square.
 
 Buffers the intermediate result. Hence no allocation is incurred.
@@ -41,6 +41,39 @@ Perform the transformation on the matrix `E` with the transformation matrix
         return E
     end
 
+
+"""
+    TransformerQEQt
+
+TransformerQEQt of square symmetric matrices.
+
+A callable object: computes `Q * E * Q^T`, where `E` a metric stiffness
+matrix, and `Q` is the transformation matrix. Both are assumed to be square.
+
+Buffers the intermediate result. Hence no allocation is incurred.
+"""
+struct TransformerQEQt{T}
+    _buff::Matrix{T}
+    function TransformerQEQt(Q::Matrix{T}) where {T}
+        _buff = fill(zero(eltype(Q)), size(Q)...)
+        return new{T}(_buff)
+    end
+end
+
+"""
+    (o::TransformerQEQt)(E, Q)
+
+Perform the transformation on the matrix `E` with the transformation matrix
+`Q`: `Ebar = Q * E * Q^T`.
+"""
+(o::TransformerQEQt)(E, Q) =
+    let
+        @assert size(o._buff) == size(Q)
+        @assert size(E) == size(Q)
+        mul!(o._buff, E, Transpose(Q))
+        mul!(E, Q, o._buff)
+        return E
+    end
 
 """
     Layup2ElementAngle{T}
