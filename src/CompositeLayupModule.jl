@@ -258,7 +258,7 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
         # Transform the plane stress matrix into the layup coordinates
         @. Dts = p._Dts
         Dts = tf(Dts, T)
-        # Compute the transverse shear stiffness The correction factor
+        # Compute the transverse shear stiffness. The correction factor
         # accounting for the parabolic distribution of the shear stress is due to
         # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
         # Materials, 2008
@@ -303,7 +303,6 @@ The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
 """
 function plane_stress_Tbar_matrix!(Tbarm::Array{T,2}, angle) where {T}
-    # We are using here the relation between Tbar and T: Tbar = T^-T
     m = cos(angle)
     n = sin(angle)
     return plane_stress_Tbar_matrix!(Tbarm, m, n)
@@ -330,11 +329,17 @@ end
     plane_stress_Tinv_matrix!(Tinvm::Array{T, 2}, m, n) where {T}
 
 Compute the transformation matrix of the stress vector components FROM the
-LAYOUT coordinate system TO the PLY coordinate system.
+LAYUP coordinate system TO the PLY coordinate system.
+
+The components of the stress vector transform as
+```math
+\\sigma^\\prime = T^{-1} \\sigma
+```
+where ``\\sigma`` is the stress vector in the layup coordinate system, and
+``sigma^\\prime`` is the stress vector in the ply coordinate system. 
 
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
-`m`, `n` = cosine and sine of the angle
 
 The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
@@ -348,12 +353,12 @@ end
 function plane_stress_Tinv_matrix!(Tinvm, m, n)
     Tinvm[1, 1] = (m^2)
     Tinvm[1, 2] = (n^2)
-    Tinvm[1, 3] = -2 * (m * n)
+    Tinvm[1, 3] = 2 * (m * n)
     Tinvm[2, 1] = (n^2)
     Tinvm[2, 2] = (m^2)
-    Tinvm[2, 3] = 2 * (m * n)
-    Tinvm[3, 1] = (m * n)
-    Tinvm[3, 2] = -(m * n)
+    Tinvm[2, 3] = -2 * (m * n)
+    Tinvm[3, 1] = -(m * n)
+    Tinvm[3, 2] = (m * n)
     Tinvm[3, 3] = (m^2 - n^2)
     return Tinvm
 end
@@ -362,11 +367,18 @@ end
     plane_stress_T_matrix!(Tm::Array{T, 2}, angle) where {T}
 
 Compute the transformation matrix of stress vector components FROM the PLY
-coordinate system TO the LAYOUT coordinate system.
+coordinate system TO the LAYUP coordinate system.
 
+Their components of the stress vector transform as
+```math
+\\sigma = T  \\sigma^\\prime
+```
+where ``\\sigma`` is the stress vector in the layup coordinate system, and
+``\\sigma^\\prime`` is the stress vector in the ply coordinate system. 
+
+# Arguments
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
-`m`, `n` = cosine and sine of the angle
 
 The nomenclature is from Barbero, Finite element analysis of composite materials
 using Abaqus (2013).
@@ -384,7 +396,7 @@ end
     transverse_shear_T_matrix!(Tm::Array{T, 2}, m, n) where {T}
 
 Compute the transformation matrix for the transverse shear stresses  FROM the
-LAYOUT coordinate system TO the PLY coordinate system.
+LAYUP coordinate system TO the PLY coordinate system.
 
 `angle` = angle (in radians) between the first basis vector of the layup
     coordinate system and the first basis vector of the ply coordinate system
