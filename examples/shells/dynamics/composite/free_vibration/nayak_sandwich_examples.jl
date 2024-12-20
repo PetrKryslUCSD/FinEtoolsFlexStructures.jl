@@ -33,17 +33,17 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_m
 function _execute(n, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    # Material Face
+    # Material Face: aluminum
     rho = 2770*phun("KG/M^3")
     E2 = 68.9*phun("GPa")
     E1 = E2
     # Shear moduli not given in the article
-    G12 = E2 * 0.5
+    G12 = E2 / 2 / (1 + 0.34)
     G13 = G12
-    G23 = E2 * 0.5
+    G23 = G12
     nu12 = 0.3
     Material_Face = (rho, E1, E2, nu12, G12, G13, G23)
-    # Material Core
+    # Material Core: aluminum honeycomb
     rho = 122*phun("KG/M^3")
     G12 = 0.134*phun("GPa")
     G13 = G12
