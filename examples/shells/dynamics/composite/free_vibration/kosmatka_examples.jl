@@ -242,7 +242,7 @@ function test_convergence()
     ns = 2 * [4, 8, 16]
     results = []
     for n in ns
-        fs = _execute_clamped_rectangular(n, :a, reffs, false)
+        fs = _execute_clamped_rectangular(n, :b, reffs, false)
         push!(results, fs)
     end
     @info "Extrapolation:"
@@ -251,6 +251,7 @@ function test_convergence()
         e = richextrapol([q1[j], q2[j], q3[j]], 1.0 ./ Float64.(ns))
         @info "$j: $e"
     end
+    @info "Reference (not in the limit): \n $reffs"
     return true
 end
 
