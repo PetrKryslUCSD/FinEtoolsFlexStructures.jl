@@ -27,8 +27,9 @@
 
 ## News
 
-- 12/15/2024: Reorganize examples into separate homogeneous and layered shell folders.
-- 12/10/2024: Update to Julia 1.11. Reorganize and update examples.
+- 12/19/2024: Add benchmark examples for laminated composites.
+- 12/19/2024: Fix transformation bug in composite implementation. 
+
 
 
 [Past news](#past-news)
@@ -124,6 +125,8 @@ pictures and time collections (useful for animations) are supported this way.
 
 ## <a name="past-news"></a>Past news
 
+- 12/15/2024: Reorganize examples into separate homogeneous and layered shell folders.
+- 12/10/2024: Update to Julia 1.11. Reorganize and update examples.
 - 05/27/2024: Fix documentation of test module.
 - 02/25/2024: Update for FinEtools 8.
 - 12/30/2023: Update for Julia 1.10.
