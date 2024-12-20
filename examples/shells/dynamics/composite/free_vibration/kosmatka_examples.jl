@@ -9,7 +9,7 @@ module kosmatka_examples
 using Arpack
 using LinearAlgebra
 using FinEtools
-using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
+using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked, richextrapol
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -222,10 +222,10 @@ function _execute_clamped_rectangular(n, orientation, reffs, visualize)
             sleep(1.5)
         end
     end
-    nothing
+    return fs
 end
 
-function test_convergence()
+function test_mesh()
     @info "Kosmatka plate vibration"
     reffs = [70.0, 271.0, 433.8, 888.3, 1196.5, 1370.9, 1730.3, 1737.1]
     for n in [4]
@@ -236,7 +236,28 @@ function test_convergence()
 end
 
 
+function test_convergence()
+    @info "Kosmatka plate vibration: approach to the limit"
+    reffs = [70.0, 271.0, 433.8, 888.3, 1196.5, 1370.9, 1730.3, 1737.1]
+    ns = 2 * [4, 8, 16]
+    results = []
+    for n in ns
+        fs = _execute_clamped_rectangular(n, :a, reffs, false)
+        push!(results, fs)
+    end
+    @info "Extrapolation:"
+    q1, q2, q3 = results[1:3]
+    for j in 1:length(reffs)
+        e = richextrapol([q1[j], q2[j], q3[j]], 1.0 ./ Float64.(ns))
+        @info "$j: $e"
+    end
+    return true
+end
+
 function allrun()
+    println("#####################################################")
+    println("# test_mesh ")
+    test_mesh()
     println("#####################################################")
     println("# test_convergence ")
     test_convergence()
