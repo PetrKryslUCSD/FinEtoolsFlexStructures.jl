@@ -27,10 +27,9 @@
 
 ## News
 
+- 12/22/2024: Add vibration examples for angle-ply laminated composites.
 - 12/19/2024: Add benchmark examples for laminated composites.
 - 12/19/2024: Fix transformation bug in composite implementation. 
-
-
 
 [Past news](#past-news)
 
