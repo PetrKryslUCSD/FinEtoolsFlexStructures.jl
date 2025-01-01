@@ -169,3 +169,5 @@ I implemented, even though this is based on the central point.
 #     @show nodal_rotation_magnitude,     nodal_rotation_normal_magnitude
 #     return true
 # end
+
+-- Should we use fields suitable for beam analysis, or should we use fields trimmed to the size of truss matrices?

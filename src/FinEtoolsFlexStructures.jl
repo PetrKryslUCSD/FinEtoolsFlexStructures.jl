@@ -40,6 +40,8 @@ include("FEMMPointGroundedSpringModule.jl")
 include("FEMMShellT3FFModule.jl")
 include("FEMMShellT3FFCompModule.jl")
 
+include("FEMMCorotTrussModule.jl")
+
 # Enable LSP look-up in test modules.
 if false include("../test/runtests.jl") end
 
