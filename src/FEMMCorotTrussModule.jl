@@ -417,7 +417,7 @@ function stiffness(
         L0, F0 = local_frame!(F0, ecoords0)
         Lt, Ft = local_frame!(Ft, ecoords1)
         _transfmat!(Te, Ft)
-        @show local_stiffness!(elmat, E, A[i], Lt)
+        local_stiffness!(elmat, E, A[i], Lt)
         mul!(elmatTe, elmat, Transpose(Te))
         mul!(elmat, Te, elmatTe)
         gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
