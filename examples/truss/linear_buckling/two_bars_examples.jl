@@ -1,3 +1,19 @@
+"""
+Analysis of Geometrically 
+Nonlinear Structures 
+Second Edition 
+
+by 
+Robert Levy 
+Technion-Israel Institute of Technology, 
+Haifa, Israel 
+
+and 
+William R. Spillers 
+New Jersey Institute of Technology, 
+
+Two bar buckling example on page 12
+"""
 module two_bars_examples
 
 using FinEtools
@@ -127,10 +143,10 @@ function force_1_trimmed(direction = 2, visualize = false)
     L =   30.0; # Length of the bar
     b =  0.5; # width
     h =  0.5; # height
-    P = 1000
+    P = 10
     neigvs = 2;
 
-    reffs = [48.5475, 124.1839]
+    reffs = [Inf, E*b*h]
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> b, s -> h, s -> [0.0, -1.0, 0.0])
@@ -141,8 +157,7 @@ function force_1_trimmed(direction = 2, visualize = false)
     push!(members, frame_member([-L 0 0; -L L 0; ], n, cs))
     push!(members, frame_member([-L L 0; 0 L 0; ], n, cs))
     fens, fes = merge_members(members; tolerance = L / 10000);
-@show fens
-    
+
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, E, nu)
 
@@ -201,9 +216,9 @@ function force_1_trimmed(direction = 2, visualize = false)
     d,v = eigen(Matrix(Kg[fr, fr]), Matrix(K[fr, fr]))
     @show Matrix(K[fr, fr])
     @show Matrix(Kg[fr, fr])
-    fs = 1.0 ./ (d) 
+    fs = P ./ (d) 
     println("Buckling factors: $fs [ND]")
-    println("Reference: $(E*b*h) [ND]")
+    println("Reference: $(reffs) [ND]")
 
     # Visualize vibration modes
     if visualize
