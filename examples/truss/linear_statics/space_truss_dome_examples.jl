@@ -13,6 +13,8 @@ William R. Spillers
 New Jersey Institute of Technology, 
 
 Space truss dome in section 2.4.2
+
+Vertical deflection at the crown: -.20641184e+00 in
 """
 module space_truss_dome_examples
 
