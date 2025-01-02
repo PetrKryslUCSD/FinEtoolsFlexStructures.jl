@@ -41,14 +41,14 @@ using JSON
 
 # Comparison with reference solution.
 
-izzelna_ux =[    0.0317    0.6048
--0.0628    0.6048
-8.7273   34.7095
+izzelna_ux =[0 0
+0.0628    0.6048
+8.7273   44.7095
 16.6668   85.8664
 23.7557  134.8918
-32.6404  213.7587
-37.8389  264.9157
-41.7141  318.2041
+32.6404  203.7587
+37.8389  254.9157
+41.7141  308.2041
 44.9277  382.1503
 47.9523  446.0965
 50.4098  510.0426
@@ -56,7 +56,7 @@ izzelna_ux =[    0.0317    0.6048
 53.9069  657.1188
 53.9069  657.1188];
 
-izzelna_uy =[-0.1574    0.6048
+izzelna_uy =[0 0
 0.0317    2.7364
 1.1659   73.0772
 2.7727  132.7603
@@ -70,7 +70,7 @@ izzelna_uy =[-0.1574    0.6048
 14.6820  657.1188
 14.5875  657.1188];
 
-izzelna_uz =[   -0.5354    2.7364
+izzelna_uz =[0 0
 -0.2519    2.7364
 -1.1970   51.7618
 -2.2367   90.1295
@@ -109,9 +109,7 @@ function curved_cantilever()
     end
     clampedn = [1]
     tipn = [nel+1];
-    
-    tolerance = radius/nel/100;
-    
+        
     # Material properties
     material = MatDeforElastIso(DeforModelRed3D, 0.0, E, nu, 0.0)
     
@@ -251,7 +249,6 @@ function curved_cantilever_thin()
     u1 = deepcopy(u0)
     Rfield1 = deepcopy(Rfield0)
     rhs = gathersysvec(dchi);
-    TMPv = deepcopy(rhs)
     utol = 1e-13*nfreedofs(dchi);
     
     # tbox = plot_space_box([[0.0*radius 0.0*radius 0.0*radius]; [1.15*radius 0.75*radius 2.0*radius]])
