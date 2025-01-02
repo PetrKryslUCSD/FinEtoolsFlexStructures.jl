@@ -122,7 +122,7 @@ function solve(visualize=false)
     q = zeros(3)
     q[3] = -P
     fi = ForceIntensity(q)
-    @show F = distribloads(lfemm, geom0, dchi, fi, 3)
+    F = distribloads(lfemm, geom0, dchi, fi, 3)
 
     # Solve the static problem
     fr = freedofs(dchi)
