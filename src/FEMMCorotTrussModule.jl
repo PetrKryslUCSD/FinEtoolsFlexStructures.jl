@@ -209,23 +209,21 @@ end
 natural_forces!(L0, Lt, E, A) = (Lt - L0) / L0 * E * A
 
 """
-    local_forces!(FL, L0, Lt, PN)
+    local_forces!(FL, PN)
 
 Compute forces through which the element acts on the nodes in the
 local coordinate system.
 
 # Arguments
-`PN` = axial force;
-`L0`= initial length of the element,
-`Lt`= current length of the element,
+`PN` = axial force.
 
 # Outputs
 FL = vector of forces acting on the nodes in the local coordinate system
 """
-function local_forces!(FL, L0, Lt, PN)
+function local_forces!(FL, PN)
     FL .= 0.0
-    FL[1] = PN
-    FL[4] = -PN
+    FL[1] = -PN
+    FL[4] = +PN
     return FL
 end
 
@@ -509,26 +507,22 @@ function restoringforce(
     fes = self.integdomain.fes
     ecoords0, ecoords1, edisp1, dofnums =
         self._ecoords0, self._ecoords1, self._edisp1, self._dofnums
-    F0, Ft, FtI, FtJ, Te = self._F0, self._Ft, self._FtI, self._FtJ, self._Te
-    R1I, R1J = self._RI, self._RJ
-    elmat, elmatTe = self._elmat, self._elmatTe
-    aN, dN, DN, PN, LF = self._aN, self._dN, self._DN, self._PN, self._LF
+    F0, Ft, Te = self._F0, self._Ft, self._Te
     elvec = self._elvec
+    FL = deepcopy(elvec)
     E = self.material.E
-    G = E / 2 / (1 + self.material.nu)
-    A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
+    A = properties(fes)
     startassembly!(assembler, nalldofs(dchi))
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
         gathervalues_asmat!(u1, edisp1, fes.conn[i])
         ecoords1 .= ecoords0 .+ edisp1
-        fill!(elmat, 0.0) # Initialize element matrix
         L0, F0 = local_frame!(Ft, ecoords0)
         Lt, Ft = local_frame!(Ft, ecoords1)
         _transfmat!(Te, Ft)
-        PN = natural_forces!(PN, E, G, A[i], I2[i], I3[i], J[i], A2s[i], A3s[i], L1, dN, DN)
-        local_forces!(LF, PN, L1, aN)
-        mul!(elvec, Te, -LF)
+        PN = natural_forces!(L0, Lt, E, A[i])
+        local_forces!(FL, PN)
+        mul!(elvec, Te, -FL)
         gatherdofnums!(dchi, dofnums, fes.conn[i]) # degrees of freedom
         assemble!(assembler, elvec, dofnums)
     end # Loop over elements
