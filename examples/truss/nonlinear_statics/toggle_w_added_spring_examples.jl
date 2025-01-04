@@ -43,10 +43,13 @@ function solve(visualize=false)
     area = 1.0
     P = 100
     
-    maxstep = 5
-    optiter = 5
+    maxstep = 13
+    fixed_step = false
+    # maxstep = 30
+    # fixed_step = true
+    optit = 2
     maxit = 3
-    fixed_step = true
+    rtol = 1e-5
     analytical(w) = E * area * (H + w) * (2 * (H + w) * w - w^2) / (2 * W^3)
 
     # Cross-sectional properties
@@ -71,6 +74,7 @@ function solve(visualize=false)
     geom0 = NodalField(fens.xyz)
     u0 = NodalField(zeros(size(fens.xyz, 1), 3))
     Rfield0 = initial_Rfield(fens)
+    Rfield1 = deepcopy(Rfield0) # not used by the truss mechanics, but it needs to be present
     dchi = NodalField(zeros(size(fens.xyz, 1), 3))
 
     # Apply EBC's
@@ -100,96 +104,79 @@ function solve(visualize=false)
     
     # Auxiliary Variables 
     u1 = deepcopy(u0)
-    R = fill(0.0, length(fr))
-    rtol = 1e-5
-
-    
-    maxFactor = 1.0e20
-    totalFactor = 1.0
-    factor = 1.0
-    Da = fill(0.0, length(fr))
-    Da1 = fill(0.0, length(fr))
-    Daprev = fill(0.0, length(fr))
-    Dlamprev = 0.0
+    step_length_scaling = 1.0
+    dchiv = fill(0.0, length(fr))
+    dchiv1 = fill(0.0, length(fr))
+    dchivprev = fill(0.0, length(fr))
+    dellamprev = 0.0
     lam = 1.0
-    Dlam1 = 0.0
+    dellam1 = 0.0
 
     tip_displacement = Float64[0.0]
     actual_lams = Float64[0.0]
     
     step = 1
-    while true
+    while step < maxstep
         u0.values[:] .= u1.values[:]
         applyebc!(dchi) # Apply boundary conditions
         
-        # Predictor
         println("Step: $step")
-        println("========================================")
+        println("===========================================================")
         if step == 1    
-            K = stiffness(femm, geom0, u1, Rfield0, dchi) + geostiffness(femm, geom0, u1, Rfield0, dchi)
-            Da1 .= K[fr, fr] \ F
-            @show Dlam1  = lam
+            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
+            dchiv1 .= K[fr, fr] \ F
+            dellam1 = lam
         else
-            Da1   .= factor * Daprev
-           @show  Dlam1  = factor * Dlamprev
-           @show  lam += Dlam1
+            dchiv1 .= step_length_scaling * dchivprev
+            dellam1 = step_length_scaling * dellamprev
+            lam += dellam1
         end
-        dchi = scattersysvec!(dchi, Da1); 
+        dchi = scattersysvec!(dchi, dchiv1); 
         u1.values[:]  .= u0.values[:] .+ dchi.values[:];   # increment displacement
         
-        Da .=  Da1
-        Dlam = Dlam1
+        dchiv .=  dchiv1
+        dellam = dellam1
         
         error = 1.0
         iter = 0
         while error > rtol
             iter += 1
-            Fr = restoringforce(femm, geom0, u1, Rfield0, dchi)[fr]       # Internal forces
-            K = stiffness(femm, geom0, u1, Rfield0, dchi) + geostiffness(femm, geom0, u1, Rfield0, dchi)
-            @show d1 = K[fr, fr] \ F
-            @show lam
-            @show d2 = K[fr, fr] \ (lam .* F + Fr)
+            Fr = restoringforce(femm, geom0, u1, Rfield1, dchi)[fr]       # Internal forces
+            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
+            d1 = K[fr, fr] \ F
+            d2 = K[fr, fr] \ (lam .* F + Fr)
                         
-            @show ddlam = -dot(Da1, d2) / dot(Da1, d1)
-            dda = ddlam*d1 + d2
+            dellamcorr = -dot(dchiv1, d2) / dot(dchiv1, d1)
+            dchivcorr = dellamcorr*d1 + d2
             
-            Dlam += ddlam
-            @show lam += ddlam
+            dellam += dellamcorr
+            lam += dellamcorr
       
-            Da += dda
-            # a  += dda
+            dchiv += dchivcorr
 
-            R = lam*F + Fr 
-
-            error  = norm(R) / norm(lam*F)
-            println("    Iteration $iter ........... : $error")
+            error  = norm(lam*F + Fr) / norm(lam*F)
+            @info "Iter $iter, balance error $error"
 
             if !fixed_step
-                factor = (1 / 2)^(0.25 * (iter - optiter))
-                totalFactor *= factor
+                step_length_scaling = (1 / 2)^((iter - optit) / 4)
             end
-            factor = if totalFactor > maxFactor
-                1.0
-            else
-                factor
-            end
+            
+            dchivprev = dchiv
+            dellamprev  = dellam
 
-            Daprev = Da
-            Dlamprev  = Dlam
-
-            dchi = scattersysvec!(dchi, dda); 
+            dchi = scattersysvec!(dchi, dchivcorr); 
             u1.values[:]  .+= dchi.values[:];   # increment displacement
             
             if iter > maxit
                 break
             end
         end
+
+        # Store output from step
         push!(actual_lams, lam)
         push!(tip_displacement, u1.values[loaded[1], 2])
+
         step += 1
-        if step > maxstep
-            break
-        end
     end
     
     tip_displacement = vec(tip_displacement)
