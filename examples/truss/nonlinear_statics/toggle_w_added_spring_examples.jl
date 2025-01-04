@@ -1,5 +1,6 @@
 """
-
+Two-bar toggle.
+Path-tracing simulation.
 """
 module toggle_w_added_spring_examples
 
