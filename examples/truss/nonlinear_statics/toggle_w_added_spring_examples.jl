@@ -43,9 +43,10 @@ function solve(visualize=false)
     area = 1.0
     P = 100
     
-    maxstep = 7
+    maxstep = 5
     optiter = 5
     maxit = 3
+    fixed_step = true
     analytical(w) = E * area * (H + w) * (2 * (H + w) * w - w^2) / (2 * W^3)
 
     # Cross-sectional properties
@@ -110,7 +111,7 @@ function solve(visualize=false)
     Da1 = fill(0.0, length(fr))
     Daprev = fill(0.0, length(fr))
     Dlamprev = 0.0
-    lam = 3.0
+    lam = 1.0
     Dlam1 = 0.0
 
     tip_displacement = Float64[0.0]
@@ -118,18 +119,20 @@ function solve(visualize=false)
     
     step = 1
     while true
+        u0.values[:] .= u1.values[:]
         applyebc!(dchi) # Apply boundary conditions
         
         # Predictor
-        println("Load: $lam")
+        println("Step: $step")
+        println("========================================")
         if step == 1    
             K = stiffness(femm, geom0, u1, Rfield0, dchi) + geostiffness(femm, geom0, u1, Rfield0, dchi)
             Da1 .= K[fr, fr] \ F
-            Dlam1  = lam
+            @show Dlam1  = lam
         else
             Da1   .= factor * Daprev
-            Dlam1  = factor * Dlamprev
-            lam += Dlam1
+           @show  Dlam1  = factor * Dlamprev
+           @show  lam += Dlam1
         end
         dchi = scattersysvec!(dchi, Da1); 
         u1.values[:]  .= u0.values[:] .+ dchi.values[:];   # increment displacement
@@ -147,9 +150,8 @@ function solve(visualize=false)
             @show lam
             @show d2 = K[fr, fr] \ (lam .* F + Fr)
                         
-            ddlam = -dot(Da1, d2) / dot(Da1, d1)
-            @show ddlam
-            @show dda = ddlam*d1 + d2
+            @show ddlam = -dot(Da1, d2) / dot(Da1, d1)
+            dda = ddlam*d1 + d2
             
             Dlam += ddlam
             @show lam += ddlam
@@ -161,19 +163,23 @@ function solve(visualize=false)
 
             error  = norm(R) / norm(lam*F)
             println("    Iteration $iter ........... : $error")
-      
-            factor = (1/2)^(0.25*(iter-optiter))
-            totalFactor *= factor
 
-            @show factor = if totalFactor > maxFactor; 1.0; else factor; end
+            if !fixed_step
+                factor = (1 / 2)^(0.25 * (iter - optiter))
+                totalFactor *= factor
+            end
+            factor = if totalFactor > maxFactor
+                1.0
+            else
+                factor
+            end
 
             Daprev = Da
             Dlamprev  = Dlam
 
             dchi = scattersysvec!(dchi, dda); 
             u1.values[:]  .+= dchi.values[:];   # increment displacement
-            @show u1.values[:]
-
+            
             if iter > maxit
                 break
             end
