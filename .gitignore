@@ -13,3 +13,5 @@
 docs/build/
 .vscode/
 *.bak
+*.code-workspace
+
