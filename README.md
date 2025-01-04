@@ -27,6 +27,8 @@
 
 ## News
 
+- 01/04/2024: Add a Riks path-tracing solver.
+- 01/01/2024: Add a nonlinear corotational truss element. 
 - 12/22/2024: Add vibration examples for angle-ply laminated composites.
 - 12/19/2024: Add benchmark examples for laminated composites.
 - 12/19/2024: Fix transformation bug in composite implementation. 
