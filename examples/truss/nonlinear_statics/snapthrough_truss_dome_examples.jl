@@ -58,13 +58,12 @@ function solve(visualize=false)
     ] * phun("in")
     area = 0.0155 * phun("in^2")
     P = 220.46 / 10 * phun("lbf")
-    maxstep = 15
-    fixed_step = true
-    # maxstep = 30
-    # fixed_step = true
-    optit = 5
-    maxit = 3
+    P = 220.46 / 1 * phun("lbf")
+    maxstep = 360
+    maxit = 30
     rtol = 1e-5
+    disp_mag = x[1, 3] # vertical coordinate of the crown
+    step_length = 0.3
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> sqrt(area), s -> sqrt(area), s -> [0.0, 0.0, -1.0])
@@ -138,13 +137,12 @@ function solve(visualize=false)
 
     # Auxiliary Variables 
     u1 = deepcopy(u0)
-    step_length_scaling = 1.0
     dchiv = fill(0.0, length(fr))
-    dchiv1 = fill(0.0, length(fr))
+    chivc = fill(0.0, length(fr))
     dchivprev = fill(0.0, length(fr))
-    dellamprev = 0.0
-    lam = 0.1
-    dellam1 = 0.0
+
+    lam = 0.0
+    lamprev = 0.0
 
     tip_displacement = Float64[0.0]
     actual_lams = Float64[0.0]
@@ -154,60 +152,64 @@ function solve(visualize=false)
         u0.values[:] .= u1.values[:]
         applyebc!(dchi) # Apply boundary conditions
 
-        println("Step: $step")
+        println("Step: $step, starting from load parameter $lam")
         println("===========================================================")
-        if step == 1
-            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
-            dchiv1 .= K[fr, fr] \ F
-            @show dellam1 = lam
-        else
-            dchiv1 .= step_length_scaling * dchivprev
-            dellam1 = step_length_scaling * dellamprev
-            lam += dellam1
+
+        K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
+        chivc .= K[fr, fr] \ F
+        @show lam, lamprev
+        @show dellam1 = step_length / sqrt(dot(chivc, chivc) / disp_mag^2 + 1)
+        @show dircoeff = dellam1 * (dot(chivc, dchivprev) / disp_mag^2 + (lam - lamprev))
+        if dircoeff < 0.0
+            dellam1 = -dellam1
         end
-        dchi = scattersysvec!(dchi, dchiv1)
-        u1.values[:] .= u0.values[:] .+ dchi.values[:]   # increment displacement
+        lamprev = lam
+        lam += dellam1
 
-        dchiv .= dchiv1
-        dellam = dellam1
-
+        dchiv .= dchivprev 
+        u1.values[:] .= u0.values[:] .+ dchi.values[:]   # increment displacement7
+        
+        converged = true
         error = 1.0
         iter = 0
-        while error > rtol
+        while true
             iter += 1
             Fr = restoringforce(femm, geom0, u1, Rfield1, dchi)[fr]       # Internal forces
-            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
-            d1 = K[fr, fr] \ F
-            d2 = K[fr, fr] \ (lam .* F + Fr)
+            res = lam * F + Fr
+        
+            error = norm(res) / norm(lam * F)
+            @info "Iter $iter, lam = $lam, bal. error $error"
 
-            @show dellamcorr = -dot(dchiv1, d2) / dot(dchiv1, d1)
-            dchivcorr = dellamcorr * d1 + d2
-
-            dellam += dellamcorr
-            lam += dellamcorr
-
-            @show lam
-
-            dchiv += dchivcorr
-
-            error = norm(lam * F + Fr) / norm(lam * F)
-            @info "Iter $iter, balance error $error"
-
-            if !fixed_step
-                step_length_scaling = (1 / 2)^((iter - optit) / 4)
+            if error < rtol
+                break
             end
 
-            dchivprev = dchiv
-            dellamprev = dellam
+            K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
+            chivc .= K[fr, fr] \ F
+            ddchiv = K[fr, fr] \ res
 
-            dchi = scattersysvec!(dchi, dchivcorr)
-            u1.values[:] .+= dchi.values[:]   # increment displacement
+            mu = - (dot(chivc, ddchiv) / disp_mag^2) / (dot(chivc, chivc) / disp_mag^2 + 1)
+            
+            lam += mu
+
+            dchiv .+= ddchiv + mu .* chivc
+
+            dchi = scattersysvec!(dchi, dchiv)
+            u1.values[:] .= u0.values[:] .+ dchi.values[:]   # increment displacement
 
             if iter > maxit
+                converged = false
                 break
             end
         end
+        
+        if !converged
+            @error "Nonlinear iteration did not converge"
+            break
+        end
 
+        dchivprev .= dchiv
+        
         # Store output from step
         push!(actual_lams, lam)
         push!(tip_displacement, u1.values[1, 3])
@@ -218,7 +220,7 @@ function solve(visualize=false)
     tip_displacement = vec(tip_displacement)
     plots = cat(
         # scatter(;x=vec(tip_displacement) ./ phun("mm"), y=analytical.(tip_displacement), mode="lines", line_color = "rgb(0, 0, 0)", name="Analytical"),
-        scatter(; x=tip_displacement ./ phun("in"), y=actual_lams, mode="markers", line_color="rgb(255, 0, 0)", name="FEA"),
+        scatter(; x=tip_displacement ./ phun("in"), y=actual_lams, mode="lines+markers", line_color="rgb(255, 0, 0)", name="FEA"),
         dims=1)
     layout = Layout(width=700, height=500,
         xaxis=attr(title="Tip displacement [in]"),
