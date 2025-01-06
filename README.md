@@ -29,6 +29,7 @@
 
 ## News
 
+- 01/06/2024: Update tutorials.
 - 01/04/2024: Add a Riks path-tracing solver.
 - 01/01/2024: Add a nonlinear corotational truss element. 
 - 12/22/2024: Add vibration examples for angle-ply laminated composites.
@@ -63,8 +64,6 @@ When running a tutorial with graphical plotting in VSCode, make sure to turn off
 (uncheck) "Julia: Use Plot Pane" in the  Preferences. Otherwise the animations
 will not work.
 
-Charts and such are plotted with Gnuplot. Please make sure you have that
-installed in such a place that Julia  REPL can find it.
 
 ## Examples
 
