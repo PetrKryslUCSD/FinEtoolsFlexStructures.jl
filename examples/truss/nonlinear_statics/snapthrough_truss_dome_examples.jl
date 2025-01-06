@@ -123,26 +123,26 @@ function solve(visualize=false)
     tip_displacement = Float64[0.0]
     actual_lams = Float64[0.0]
 
+    totiter = 0
     step = 1
     while step <= maxstep
         u0.values[:] .= u1.values[:]
         applyebc!(dchi) # Apply boundary conditions
 
-        println("Step: $step, starting from load parameter $lam")
-        println("===========================================================")
+        @info("Step: $step, starting from load parameter $lam")
+        
 
         K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
         chivc1 .= K[fr, fr] \ F
-        @show lam, lamprev
-        @show dellam1 = step_length / sqrt(dot(chivc1, chivc1) / disp_mag^2 + 1)
-        @show dircoeff = dellam1 * (dot(chivc1, dchivprev) / disp_mag^2 + (lam - lamprev))
+        dellam1 = step_length / sqrt(dot(chivc1, chivc1) / disp_mag^2 + 1)
+        dircoeff = dellam1 * (dot(chivc1, dchivprev) / disp_mag^2 + (lam - lamprev))
         if dircoeff < 0.0
             dellam1 = -dellam1
         end
         lamprev = lam
         lam += dellam1
 
-        dchiv .= dchivprev 
+        dchiv .= dellam1 .* chivc1 
         dchi = scattersysvec!(dchi, dchiv)
         u1.values[:] .= u0.values[:] .+ dchi.values[:]   # increment displacement7
         
@@ -185,6 +185,8 @@ function solve(visualize=false)
             break
         end
 
+        totiter += iter
+
         dchivprev .= dchiv
         
         # Store output from step
@@ -193,6 +195,9 @@ function solve(visualize=false)
 
         step += 1
     end
+
+    @info "Total number of iterations: $totiter"
+    @info("===========================================================")
 
     tip_displacement = vec(tip_displacement)
     plots = cat(
