@@ -59,10 +59,10 @@ function solve(visualize=false)
     area = 0.0155 * phun("in^2")
     P = 220.46 / 10 * phun("lbf")
     P = 220.46 / 1 * phun("lbf")
-    maxstep = 1800
+    maxstep = 1600
     maxit = 30
     rtol = 1e-9
-    disp_mag = x[1, 3] / 5 # vertical coordinate of the crown
+    disp_mag = x[1, 3] / 10 # vertical coordinate of the crown
     step_length = 0.1
 
     # Cross-sectional properties
@@ -212,6 +212,8 @@ function solve(visualize=false)
         radius = 20 * phun("in")
         plots = cat(plot_space_box([[-radius -radius -radius]; [radius radius radius]]),
             plot_nodes(fens),
+            plot_solid(fens, fes;
+                x=geom0.values, u=0.0 .* u1.values[:, 1:3], facecolor="rgb(0, 0, 0)"),
             plot_solid(fens, fes;
                 x=geom0.values, u=u1.values[:, 1:3],);
             dims=1)
