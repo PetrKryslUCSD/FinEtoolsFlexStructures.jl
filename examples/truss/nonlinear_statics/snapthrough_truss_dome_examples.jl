@@ -9,8 +9,7 @@ Space truss dome in section 2.4.2
 
 Vertical deflection at the crown: -.20641184e+00 in (linear analysis)
 
-In nonlinear analysis we consider loading which is just one tenth of the force
-considered for the linear analysis. We reach  displacement obtained in linear
+In nonlinear analysis we reach  displacement obtained in linear
 analysis for just about sixty percent of the loading (loading parameter ~6). The
 limit point is considerably below 1.0. Therefore the structure would not be able
 withstand buckling.
@@ -57,13 +56,12 @@ function solve(visualize=false)
         .17047200e02 .98425000e1 0.0 # 13
     ] * phun("in")
     area = 0.0155 * phun("in^2")
-    P = 220.46 / 10 * phun("lbf")
-    P = 220.46 / 1 * phun("lbf")
-    maxstep = 1600
-    maxit = 30
+    P = 220.46 * phun("lbf")
+    maxstep = 600
+    maxit = 20
     rtol = 1e-9
     disp_mag = x[1, 3] / 10 # vertical coordinate of the crown
-    step_length = 0.1
+    step_length = 0.3
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> sqrt(area), s -> sqrt(area), s -> [0.0, 0.0, -1.0])
@@ -145,6 +143,7 @@ function solve(visualize=false)
         lam += dellam1
 
         dchiv .= dchivprev 
+        dchi = scattersysvec!(dchi, dchiv)
         u1.values[:] .= u0.values[:] .+ dchi.values[:]   # increment displacement7
         
         converged = true
