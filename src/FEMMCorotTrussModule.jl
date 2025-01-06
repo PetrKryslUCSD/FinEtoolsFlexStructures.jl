@@ -147,14 +147,14 @@ Compute the local geometric stiffness matrix.
 function local_geometric_stiffness!(SM, PN, L)
     N = PN[1]
     fill!(SM, 0.0)
-    for i in [2, 3, 5, 6]
-        SM[i, i] = N / L
-    end
-    for i in [5, 6]
-        for j in [2, 3]
-            SM[i, j] = SM[j, i] = -N / L
-        end
-    end
+    SM[2, 2] = N / L
+    SM[2, 5] = -N / L
+    SM[3, 3] = N / L
+    SM[3, 6] = -N / L
+    SM[5, 5] = N / L
+    SM[5, 2] = -N / L
+    SM[6, 6] = N / L
+    SM[6, 3] = -N / L
     return SM
 end
 
