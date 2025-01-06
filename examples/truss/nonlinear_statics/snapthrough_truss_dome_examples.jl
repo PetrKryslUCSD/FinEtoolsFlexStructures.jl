@@ -59,11 +59,11 @@ function solve(visualize=false)
     area = 0.0155 * phun("in^2")
     P = 220.46 / 10 * phun("lbf")
     P = 220.46 / 1 * phun("lbf")
-    maxstep = 360
+    maxstep = 1800
     maxit = 30
-    rtol = 1e-5
-    disp_mag = x[1, 3] # vertical coordinate of the crown
-    step_length = 0.3
+    rtol = 1e-9
+    disp_mag = x[1, 3] / 5 # vertical coordinate of the crown
+    step_length = 0.1
 
     # Cross-sectional properties
     cs = CrossSectionRectangle(s -> sqrt(area), s -> sqrt(area), s -> [0.0, 0.0, -1.0])
@@ -72,30 +72,7 @@ function solve(visualize=false)
     n = 1
     members = []
     for j in (
-        [1, 2],
-        [1, 3],
-        [1, 4],
-        [1, 5],
-        [1, 6],
-        [1, 7],
-        [6, 12],
-        [7, 12],
-        [7, 13],
-        [2, 13],
-        [2, 8],
-        [3, 8],
-        [3, 9],
-        [4, 9],
-        [4, 10],
-        [5, 10],
-        [5, 11],
-        [6, 11],
-        [2, 3],
-        [3, 4],
-        [4, 5],
-        [5, 6],
-        [6, 7],
-        [7, 2]
+        [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [6, 12], [7, 12], [7, 13], [2, 13], [2, 8], [3, 8], [3, 9], [4, 9], [4, 10], [5, 10], [5, 11], [6, 11], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 2]
     )
         push!(members, frame_member(x[j, :], n, cs))
     end
@@ -139,6 +116,7 @@ function solve(visualize=false)
     u1 = deepcopy(u0)
     dchiv = fill(0.0, length(fr))
     chivc = fill(0.0, length(fr))
+    chivc1 = fill(0.0, length(fr))
     dchivprev = fill(0.0, length(fr))
 
     lam = 0.0
@@ -148,7 +126,7 @@ function solve(visualize=false)
     actual_lams = Float64[0.0]
 
     step = 1
-    while step < maxstep
+    while step <= maxstep
         u0.values[:] .= u1.values[:]
         applyebc!(dchi) # Apply boundary conditions
 
@@ -156,10 +134,10 @@ function solve(visualize=false)
         println("===========================================================")
 
         K = stiffness(femm, geom0, u1, Rfield1, dchi) + geostiffness(femm, geom0, u1, Rfield1, dchi)
-        chivc .= K[fr, fr] \ F
+        chivc1 .= K[fr, fr] \ F
         @show lam, lamprev
-        @show dellam1 = step_length / sqrt(dot(chivc, chivc) / disp_mag^2 + 1)
-        @show dircoeff = dellam1 * (dot(chivc, dchivprev) / disp_mag^2 + (lam - lamprev))
+        @show dellam1 = step_length / sqrt(dot(chivc1, chivc1) / disp_mag^2 + 1)
+        @show dircoeff = dellam1 * (dot(chivc1, dchivprev) / disp_mag^2 + (lam - lamprev))
         if dircoeff < 0.0
             dellam1 = -dellam1
         end
@@ -177,7 +155,7 @@ function solve(visualize=false)
             Fr = restoringforce(femm, geom0, u1, Rfield1, dchi)[fr]       # Internal forces
             res = lam * F + Fr
         
-            error = norm(res) / norm(lam * F)
+            error = norm(res) / norm(F)
             @info "Iter $iter, lam = $lam, bal. error $error"
 
             if error < rtol
@@ -188,7 +166,7 @@ function solve(visualize=false)
             chivc .= K[fr, fr] \ F
             ddchiv = K[fr, fr] \ res
 
-            mu = - (dot(chivc, ddchiv) / disp_mag^2) / (dot(chivc, chivc) / disp_mag^2 + 1)
+            mu = - (dot(ddchiv, chivc1) / disp_mag^2) / (dot(chivc, chivc1) / disp_mag^2 + 1)
             
             lam += mu
 
@@ -204,7 +182,7 @@ function solve(visualize=false)
         end
         
         if !converged
-            @error "Nonlinear iteration did not converge"
+            @warn "Nonlinear iteration did not converge"
             break
         end
 
@@ -220,10 +198,10 @@ function solve(visualize=false)
     tip_displacement = vec(tip_displacement)
     plots = cat(
         # scatter(;x=vec(tip_displacement) ./ phun("mm"), y=analytical.(tip_displacement), mode="lines", line_color = "rgb(0, 0, 0)", name="Analytical"),
-        scatter(; x=tip_displacement ./ phun("in"), y=actual_lams, mode="lines+markers", line_color="rgb(255, 0, 0)", name="FEA"),
+        scatter(; x=tip_displacement ./ disp_mag, y=actual_lams, mode="lines+markers", line_color="rgb(255, 0, 0)", name="FEA"),
         dims=1)
     layout = Layout(width=700, height=500,
-        xaxis=attr(title="Tip displacement [in]"),
+        xaxis=attr(title="Tip displacement [ND]"),
         yaxis=attr(title="Load parameter [ND]"))
     pl = plot(plots, layout)
     display(pl)
@@ -246,7 +224,7 @@ end # force_1
 function allrun()
     println("#####################################################")
     println("# solve ")
-    solve(false)
+    solve(true)
     return true
 end # function allrun
 
