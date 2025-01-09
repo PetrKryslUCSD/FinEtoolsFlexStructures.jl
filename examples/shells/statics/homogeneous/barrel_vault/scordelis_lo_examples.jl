@@ -219,7 +219,7 @@ function test_convergence(ns = [32, 64, 128])
 end
 
 function test_convergence_w_units(ns = [32, 64, 128])
-    @info "Scordelis-Lo shell"
+    @info "Scordelis-Lo shell: variant with explicit physical units"
     for n in ns
         _execute_model_w_units(n, false)
     end
@@ -230,6 +230,8 @@ function allrun()
     println("#####################################################")
     println("# test_convergence ")
     test_convergence()
+    println("#####################################################")
+    println("# test_convergence_w_units ")
     test_convergence_w_units()
     return true
 end # function allrun
