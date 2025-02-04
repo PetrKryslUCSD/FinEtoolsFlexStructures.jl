@@ -106,27 +106,70 @@ mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3},CS<:CSys,M} <
     _associatedgeometry::Bool
     _normals::FFltMat
     _normal_valid::Vector{Bool}
-    # The attributes below are buffers used in various operations.
-    _loc::FFltMat
-    _J0::FFltMat
-    _ecoords::FFltMat
-    _edisp::FFltVec
-    _ecoords_e::FFltMat
-    _edisp_e::FFltVec
-    _dofnums::FIntMat
-    _E_G::FFltMat
-    _A_Es::Vector{FFltMat} # transformation nodal-element matrices  
-    _nvalid::Vector{Bool}
-    _T::FFltMat  # element transformation matrix
-    _elmat::FFltMat
-    _gradN_e::FFltMat
-    _Bm::FFltMat
-    _Bb::FFltMat
-    _Bs::FFltMat
-    _DpsBmb::FFltMat
-    _DtBs::FFltMat
 end
 
+# Prepare functions to return buffers of various sorts
+
+function _loc(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 1, 3)
+end
+
+function _J0(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 3, 2)
+end
+
+function _ecoords(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn, 3)
+end
+
+function _edisp(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn * __ndof)
+end
+
+function _ecoords_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn, 2)
+end
+
+function _edisp_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn * __ndof)
+end
+
+function _gradN_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn, 2)
+end
+
+function _dofnums(it::Type{IT}) where {IT<:Integer}
+    return fill(zero(it), 1, __nn * __ndof)
+end
+
+function _Bs(ft::Type{T}) where {T<:Real}
+    _Bm = fill(zero(ft), 3, __nn * __ndof)
+    _Bb = fill(zero(ft), 3, __nn * __ndof)
+    _Bs = fill(zero(ft), 2, __nn * __ndof)
+    _DpsBmb = similar(_Bm)
+    _DtBs = similar(_Bs)
+    return _Bm, _Bb, _Bs, _DpsBmb, _DtBs
+end
+
+function _E_G(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 3, 3)
+end
+
+function _A_Es(ft::Type{T}) where {T<:Real}
+    return [fill(zero(ft), 3, 3), fill(zero(ft), 3, 3), fill(zero(ft), 3, 3)]
+end
+
+function _nvalid()
+    return fill(false, 3)
+end
+
+function _T(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn * __ndof, __nn * __ndof)
+end
+
+function _elmat(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __nn * __ndof, __nn * __ndof)
+end
 
 """
     FEMMShellT3FF(
@@ -150,26 +193,7 @@ function FEMMShellT3FF(
     end
     _normals = fill(0.0, _nnmax, 3)
     _normal_valid = fill(true, _nnmax)
-    # Alocate the buffers
-    _loc = fill(0.0, 1, 3)
-    _J0 = fill(0.0, 3, 2)
-    _ecoords = fill(0.0, __nn, 3)
-    _edisp = fill(0.0, __nn * __ndof)
-    _ecoords_e = fill(0.0, __nn, 2)
-    _edisp_e = fill(0.0, __nn * __ndof)
-    _dofnums = zeros(FInt, 1, __nn * __ndof)
-    _E_G = fill(0.0, 3, 3)
-    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]
-    _nvalid = fill(false, 3)
-    _T = fill(0.0, __nn * __ndof, __nn * __ndof)
-    _elmat = fill(0.0, __nn * __ndof, __nn * __ndof)
-    _gradN_e = fill(0.0, __nn, 2)
-    _Bm = fill(0.0, 3, __nn * __ndof)
-    _Bb = fill(0.0, 3, __nn * __ndof)
-    _Bs = fill(0.0, 2, __nn * __ndof)
-    _DpsBmb = similar(_Bm)
-    _DtBs = similar(_Bs)
-
+    
     @assert delegateof(integdomain.fes) === FESetShellT3()
 
     return FEMMShellT3FF(
@@ -187,24 +211,6 @@ function FEMMShellT3FF(
         false,
         _normals,
         _normal_valid,
-        _loc,
-        _J0,
-        _ecoords,
-        _edisp,
-        _ecoords_e,
-        _edisp_e,
-        _dofnums,
-        _E_G,
-        _A_Es,
-        _nvalid,
-        _T,
-        _elmat,
-        _gradN_e,
-        _Bm,
-        _Bb,
-        _Bs,
-        _DpsBmb,
-        _DtBs,
     )
 end
 
@@ -328,15 +334,15 @@ function _shell_material_stiffness(material)
     return Dps, Dt
 end
 
-struct NodalTriadsE
-    r::FFltVec
-    nk_e::FFltVec
-    nk::FFltVec
-    f3_e::FFltVec
+struct NodalTriadsE{FT<:Real}
+    r::Vector{FT}
+    nk_e::Vector{FT}
+    nk::Vector{FT}
+    f3_e::Vector{FT}
 end
 
-function NodalTriadsE()
-    NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
+function NodalTriadsE(ft::Type{T}) where {T<:Real}
+    NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
 end
 
 (o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
@@ -374,12 +380,12 @@ end
     return A_Es, nvalid
 end
 
-struct TransfmatGToA
-    Tblock::FFltMat
+struct TransfmatGToA{FT<:Real}
+    Tblock::Matrix{FT}
 end
 
-function TransfmatGToA()
-    TransfmatGToA(fill(0.0, 3, 3))
+function TransfmatGToA(ft::Type{T}) where {T<:Real}
+    TransfmatGToA(fill(zero(ft), 3, 3))
 end
 
 (o::TransfmatGToA)(T, A_Es, E_G) = begin
@@ -393,7 +399,7 @@ end
     # Output
     # - `T` = transformation matrix, input in the global basis, output in the
     #   nodal basis
-    T .= 0.0
+    T .= zero(eltype(T))
     for i = 1:__nn
         mul!(o.Tblock, transpose(A_Es[i]), transpose(E_G))
         offset = (i - 1) * __ndof
@@ -418,7 +424,7 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
 
-    T .= 0.0
+    T .= zero(eltype(T))
     for i = 1:__nn
         roffst = (i - 1) * __ndof
         iA_E = A_Es[i]
@@ -514,7 +520,7 @@ end
 
 function _Bsmat!(Bs, ecoords_e, Ae)
     # Compute the linear transverse shear strain-displacement matrix.
-    Bs .= 0.0 # Zero out initially, then add the three contributions  
+    Bs .= zero(eltype(Bs)) # Zero out initially, then add the three contributions  
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
@@ -525,7 +531,7 @@ end
 
 function _Bmmat!(Bm, gradN)
     # Compute the linear membrane strain-displacement matrix.
-    fill!(Bm, 0.0)
+    fill!(Bm, zero(eltype(Bm)))
     for i = 1:__nn
         Bm[1, 6*(i-1)+1] = gradN[i, 1]
         Bm[2, 6*(i-1)+2] = gradN[i, 2]
@@ -538,7 +544,7 @@ function _Bbmat!(Bb, gradN)
     # Compute the linear, displacement independent, curvature-displacement/rotation
     # matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and
     # rotations are in a local coordinate system.
-    fill!(Bb, 0.0)
+    fill!(Bb, zero(eltype(Bb)))
     for i = 1:__nn
         Bb[1, 6*(i-1)+5] = gradN[i, 1]
         Bb[2, 6*(i-1)+4] = -gradN[i, 2]
@@ -556,13 +562,15 @@ In this case it means evaluate the nodal normals.
 """
 function associategeometry!(self::FEMMShellT3FF, geom::NodalField{FFlt})
     threshold_angle = self.threshold_angle
-    J0 = self._J0
-    E_G = self._E_G
+    # Determine the floating type to be used for all intermediate buffers
+    FT = promote_type(eltype(geom.values), typeof(self.integdomain.otherdimension([0.0 0.0], self.integdomain.fes.conn[1], [1/3 1/3])))
+    J0 = _J0(FT)
+    E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
     nnormal = fill(0.0, 3)
 
     # Compute the normals at the nodes
-    for el = 1:count(self.integdomain.fes)
+    for el in eachindex(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         J0[:, 1] = geom.values[j, :] - geom.values[i, :]
         J0[:, 2] = geom.values[k, :] - geom.values[i, :]
@@ -584,7 +592,7 @@ function associategeometry!(self::FEMMShellT3FF, geom::NodalField{FFlt})
     # amount from the element normals, zero out the nodal normal to indicate
     # that the nodal normal should not be used at that vertex. 
     ntolerance = 1 - sqrt(1 - sin(threshold_angle / 180 * pi)^2)
-    for el = 1:count(self.integdomain.fes)
+    for el in eachindex(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         _compute_J!(J0, geom.values[[i, j, k], :])
         for n in [i, j, k]
@@ -630,19 +638,21 @@ function stiffness(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
+    # Determine the floating type to be used for all intermediate buffers
+    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
+    dofnums = _dofnums(eltype(dchi.dofnums)) 
+    E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
+    elmat = _elmat(FT)
     transformwith = TransformerQtEQ(elmat)
-    _nodal_triads_e! = NodalTriadsE()
-    _transfmat_g_to_a! = TransfmatGToA()
-    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
+    _nodal_triads_e! = NodalTriadsE(FT)
+    _transfmat_g_to_a! = TransfmatGToA(FT)
+    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
     Dt .*= scf
-    ipc = [1.0 / 3 1.0 / 3]
+    ipc = [(1.0 / 3) (1.0 / 3)]
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
     mult_el_size = self.mult_el_size
@@ -652,7 +662,7 @@ function stiffness(
         nalldofs(dchi),
         nalldofs(dchi),
     )
-    for i = 1:count(fes) # Loop over elements
+    for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         _centroid!(centroid, ecoords)
         _compute_J!(J0, ecoords)
@@ -747,25 +757,24 @@ function mass(
 ) where {A<:AbstractSysmatAssembler,TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    label = self.integdomain.fes.label
-    normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
-    rho::FFlt = massdensity(self.material) # mass density
-    Dps, Dts = _shell_material_stiffness(self.material)
+    # Determine the floating type to be used for all intermediate buffers
+    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords = _ecoords(FT)
+    dofnums = _dofnums(eltype(dchi.dofnums)) 
+    ecoords_e, gradN_e = _ecoords_e(FT), _gradN_e(FT)
+    E_G = _E_G(FT)
+    elmat = _elmat(FT)
+    rho = massdensity(self.material) # mass density
     npe = nodesperelem(fes)
-    ndn = ndofs(dchi)
-    ipc = [1.0 / 3 1.0 / 3]
+    ipc = [(1.0 / 3) (1.0 / 3)]
     startassembly!(
         assembler,
         size(elmat)..., count(fes),
         nalldofs(dchi),
         nalldofs(dchi),
     )
-    for i = 1:count(fes) # Loop over elements
+    for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         _centroid!(centroid, ecoords)
         _compute_J!(J0, ecoords)
@@ -776,7 +785,6 @@ function mass(
         t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
         tmass = rho * (t * Ae) / 3
         rmass = rho * (t^3 / 12 * Ae) / 3
-        # end # Loop over quadrature points
         # Fill the elementwise matrix in the global basis.
         fill!(elmat, 0.0) # Initialize element matrix
         for k = 1:npe
@@ -850,20 +858,20 @@ function inspectintegpoints(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
-    _nodal_triads_e! = NodalTriadsE()
-    _transfmat_g_to_a! = TransfmatGToA()
-    transformwith = TransformerQtEQ(elmat)
+    # Determine the floating type to be used for all intermediate buffers
+    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
+    E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
+    edisp = _edisp(FT)
+    _nodal_triads_e! = NodalTriadsE(FT)
+    _transfmat_g_to_a! = TransfmatGToA(FT)
+    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     lla = Layup2ElementAngle()
-    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
     Dt .*= scf
-    ipc = [1.0 / 3 1.0 / 3]
+    ipc = [(1.0 / 3) (1.0 / 3)]
     mult_el_size = self.mult_el_size
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
