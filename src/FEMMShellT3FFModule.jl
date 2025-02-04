@@ -33,7 +33,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
 """
-    mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, CS<:CSys, M} <: AbstractFEMM
+    mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
 
 Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -94,17 +94,16 @@ These attributes of the FEMM can be set after it's been created.
 - `mult_el_size`: multiplier of the square of the element size, used to control
   transverse shear stiffness.
 """
-mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3},CS<:CSys,M} <:
-               AbstractFEMM
+mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
     mcsys::CS # updater of the material orientation matrix
     material::M # material object.
     transv_shear_formulation::FInt
-    drilling_stiffness_scale::Float64
-    threshold_angle::Float64
-    mult_el_size::Float64
+    drilling_stiffness_scale::T
+    threshold_angle::T
+    mult_el_size::T
     _associatedgeometry::Bool
-    _normals::FFltMat
+    _normals::Matrix{T}
     _normal_valid::Vector{Bool}
 end
 
@@ -184,14 +183,15 @@ function FEMMShellT3FF(
     integdomain::ID,
     mcsys::CS,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetT3},CS<:CSys,M}
+) where {ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M}
     _nnmax = 0
-    for j = 1:count(integdomain.fes)
+    for j in eachindex(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
             _nnmax = max(_nnmax, integdomain.fes.conn[j][k])
         end
     end
-    _normals = fill(0.0, _nnmax, 3)
+    _normals = fill(zero(T), _nnmax, 3)
+    @show typeof(_normals)
     _normal_valid = fill(true, _nnmax)
     
     @assert delegateof(integdomain.fes) === FESetShellT3()
@@ -205,20 +205,20 @@ function FEMMShellT3FF(
         # threshold_angle::Float64
         # mult_el_size::Float64
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B,
-        1.0,
-        30.0,
-        5 / 12 / 1.5,
+        T(1.0),
+        T(30.0),
+        T(5 / 12 / 1.5),
         false,
         _normals,
         _normal_valid,
     )
 end
 
-function isoparametric!(E_G::FFltMat, XYZ::FFltMat, J0::FFltMat, feid::FInt, qpid::FInt)
+function isoparametric!(E_G, XYZ, J0, feid, qpid)
     return _e_g!(E_G, J0)
 end
 
-function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, feid::FInt, qpid::FInt)
+function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0, feid, qpid)
     updatecsmat!(mcsys, reshape(XYZ, 1, 3), J0, feid, qpid)
     n[:] .= csmat(mcsys)[:, 3]
     return n
@@ -235,12 +235,12 @@ Constructor of the T3FF shell FEMM.
 function FEMMShellT3FF(
     integdomain::ID,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetT3},M}
-    return FEMMShellT3FF(integdomain, CSys(3, 3, isoparametric!), material)
+) where {ID<:IntegDomain{S} where {S<:FESetT3}, M}
+    return FEMMShellT3FF(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material)
 end
 
 """
-    make(integdomain, mcsys, material)
+    make(integdomain, material)
 
 Make a T3FF FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normals is used.
@@ -563,11 +563,11 @@ In this case it means evaluate the nodal normals.
 function associategeometry!(self::FEMMShellT3FF, geom::NodalField{FFlt})
     threshold_angle = self.threshold_angle
     # Determine the floating type to be used for all intermediate buffers
-    FT = promote_type(eltype(geom.values), typeof(self.integdomain.otherdimension([0.0 0.0], self.integdomain.fes.conn[1], [1/3 1/3])))
+    @show FT = promote_type(eltype(geom.values), typeof(self.integdomain.otherdimension([0.0 0.0], self.integdomain.fes.conn[1], [1/3 1/3])))
     J0 = _J0(FT)
     E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
-    nnormal = fill(0.0, 3)
+    nnormal = fill(zero(FT), 3)
 
     # Compute the normals at the nodes
     for el in eachindex(self.integdomain.fes)
