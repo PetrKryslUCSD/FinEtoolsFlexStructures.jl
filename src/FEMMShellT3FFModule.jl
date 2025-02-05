@@ -107,6 +107,8 @@ mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<
     _normal_valid::Vector{Bool}
 end
 
+_number_type(femm::FEMMShellT3FF{ID, T, CS}) where {ID, T, CS} = T
+
 # Prepare functions to return buffers of various sorts
 
 function _loc(ft::Type{T}) where {T<:Real}
@@ -191,7 +193,6 @@ function FEMMShellT3FF(
         end
     end
     _normals = fill(zero(T), _nnmax, 3)
-    @show typeof(_normals)
     _normal_valid = fill(true, _nnmax)
     
     @assert delegateof(integdomain.fes) === FESetShellT3()
@@ -562,8 +563,7 @@ In this case it means evaluate the nodal normals.
 """
 function associategeometry!(self::FEMMShellT3FF, geom::NodalField{FFlt})
     threshold_angle = self.threshold_angle
-    # Determine the floating type to be used for all intermediate buffers
-    @show FT = promote_type(eltype(geom.values), typeof(self.integdomain.otherdimension([0.0 0.0], self.integdomain.fes.conn[1], [1/3 1/3])))
+    FT = _number_type(self)
     J0 = _J0(FT)
     E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
@@ -638,8 +638,7 @@ function stiffness(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    # Determine the floating type to be used for all intermediate buffers
-    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    FT = _number_type(self)
     centroid, J0 = _loc(FT), _J0(FT)
     ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
     dofnums = _dofnums(eltype(dchi.dofnums)) 
@@ -757,8 +756,7 @@ function mass(
 ) where {A<:AbstractSysmatAssembler,TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    # Determine the floating type to be used for all intermediate buffers
-    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    FT = _number_type(self)
     centroid, J0 = _loc(FT), _J0(FT)
     ecoords = _ecoords(FT)
     dofnums = _dofnums(eltype(dchi.dofnums)) 
@@ -858,8 +856,7 @@ function inspectintegpoints(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    # Determine the floating type to be used for all intermediate buffers
-    FT = promote_type(eltype(geom0.values), typeof(self.integdomain.otherdimension([0.0 0.0], fes.conn[1], [1/3 1/3])))
+    FT = _number_type(self)
     centroid, J0 = _loc(FT), _J0(FT)
     ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
