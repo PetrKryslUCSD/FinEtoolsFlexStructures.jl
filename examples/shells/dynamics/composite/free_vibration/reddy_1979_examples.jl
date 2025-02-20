@@ -17,6 +17,7 @@ J.N.REDDY
 module reddy_1979_examples
 
 using Arpack
+using LinearAlgebra
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -33,12 +34,31 @@ nondimensionalised_frequency = function(m, a, thickness, om)
     om * a^2 / thickness * sqrt(rho/E2) 
 end
 
-function _execute(m, angle, n, reference, visualize)
+function _execute(mid, angle, n, reference, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     nplies = 4
     a = 1.0 * phun("m")
     thickness = a / 10
+    materials = []
+    # Material I
+    rho = 1200 * phun("KG/M^3")
+    E2 = 3 * phun("GPa")
+    E1 = E2 * 40
+    G12 = E2 * 0.6
+    G13 = G12
+    G23 = E2 * 0.5
+    nu12 = 0.25
+    push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
+    # Material II
+    rho = 1200 * phun("KG/M^3")
+    E2 = 3 * phun("GPa")
+    E1 = E2 * 25
+    G12 = E2 * 0.5
+    G13 = E2 * 0.2
+    G23 = E2 * 0.5
+    nu12 = 0.25
+    push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
        
     # Report
     @info "Mesh: $n elements per side"
@@ -49,10 +69,15 @@ function _execute(m, angle, n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    vtkwrite("reddy_1979_n=$n.vtu", fens, fes)
+    appshape = deepcopy(fens.xyz)
+    for j in axes(appshape, 1)
+        appshape[j, 3] = sin(pi*appshape[j, 1]/a)*sin(pi*appshape[j, 2]/a)
+        appshape[j, 1] = appshape[j, 2] = 0
+    end
+    vtkwrite("reddy_1979_n=$n.vtu", fens, fes, vectors = [("appshape", appshape)])
 
     plies = CM.Ply[
-        CM.Ply("ply_$k", CM.lamina_material(m...), thickness / nplies, (-1)^(k+1)*angle)
+        CM.Ply("ply_$k", CM.lamina_material(materials[mid]...), thickness / nplies, (-1)^(k+1)*angle)
         for k in 1:nplies
     ]
     # @show [p.angle for p in plies]
@@ -77,9 +102,14 @@ function _execute(m, angle, n, reference, visualize)
     # Apply EBC's
     # simple support
     l1 = connectednodes(meshboundary(fes))
-    for i in  [1, 2, 3, ] 
+    for i in  [3, ] 
         setebc!(dchi, l1, true, i)
     end
+    l1 = selectnode(fens, box=Float64[0, 0, 0, 0, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 2)
+    l1 = selectnode(fens, box=Float64[a, a, 0, 0, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 2)
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -93,13 +123,23 @@ function _execute(m, angle, n, reference, visualize)
 
     # Solve
     OmegaShift = (0.1*2*pi)^2
-    neigvs = 1
+    neigvs = 10
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
-    fs = oms ./(2*pi)
-    ndoms = nondimensionalised_frequency(m, a, thickness, oms)
-    @info "Nondimensional frequency: $(ndoms)  vs Reference: $(reference) "
+    proj = 0.0
+    bestfit = 0
+    for ev in 1:neigvs
+        U = v[:, ev]
+        scattersysvec!(dchi, U)
+        p = dot(dchi.values[:, 1:3][:], appshape[:])
+        if abs(p) > proj
+            proj = abs(p)
+            bestfit = ev
+        end
+    end
+    ndoms = nondimensionalised_frequency(materials[mid], a, thickness, oms)
+    @info "Nondimensional frequency ($bestfit): $(ndoms[bestfit])  vs Reference: $(reference) "
         
     # Visualization
     if visualize
@@ -118,7 +158,7 @@ function _execute(m, angle, n, reference, visualize)
             push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
             # vtkwrite("reddy_1979-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-        vtkwrite("reddy_1979-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
+        vtkwrite("reddy_1979-mid=$mid-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
@@ -131,25 +171,7 @@ function _execute(m, angle, n, reference, visualize)
 end
 
 
-materials = []
-# Material I
-rho = 1200*phun("KG/M^3")
-E2 = 3*phun("GPa")
-E1 = E2 * 40
-G12 = E2 * 0.6
-G13 = G12
-G23 = E2 * 0.5
-nu12 = 0.25
-push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
-# Material II
-rho = 1200*phun("KG/M^3")
-E2 = 3*phun("GPa")
-E1 = E2 * 25
-G12 = E2 * 0.5
-G13 = G12
-G23 = E2 * 0.2
-nu12 = 0.25
-push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
+
 
 function test()
     @info "Antisymmetric angle-ply laminated plate vibration"
@@ -159,12 +181,12 @@ function test()
         "1/0" => 14.193, "1/30" => 17.689, "1/45" => 18.609,
         "2/0" => 10.358, "2/30" => 12.739, "2/45" => 13.303,
     )
-    for (j, m) in enumerate(materials)
-        @info "Material: $j"
+    for mid in [1, 2]
+        @info "Material: $mid"
         for angle in [0, 30, 45, ]
             @info "Angle: $angle"
             for n in [10, 20, 40, ]
-                _execute(m, angle, n, reference["$j/$angle"], true)
+                _execute(mid, angle, n, reference["$mid/$angle"], true)
             end
         end
     end
