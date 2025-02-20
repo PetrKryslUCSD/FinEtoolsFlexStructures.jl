@@ -1,7 +1,11 @@
 """
 Vibration analysis of antisymmetric angle ply square plates
 
-Reference values: 
+Layup [th/-th/th/-th], where th = 0, 30, 45.
+Aspect Ratio 10.
+Two different materials of the plies.
+
+Reference values: Table 2 for all angles; also Table 6 (th=45), Table 7 (th=30)
 Journal of Sound and Vibration (1979) 66(4), 565-576
 FREE VIBRATION OF ANTISYMMETRIC,
 ANGLE -PLY LAMINATED PLATES INCLUDING
@@ -48,10 +52,8 @@ function _execute(m, angle, n, reference, visualize)
     vtkwrite("reddy_1979_n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
-        CM.Ply("ply_1", CM.lamina_material(m...), thickness / nplies, angle)
-        CM.Ply("ply_2", CM.lamina_material(m...), thickness / nplies, -angle)
-        CM.Ply("ply_3", CM.lamina_material(m...), thickness / nplies, angle)
-        CM.Ply("ply_4", CM.lamina_material(m...), thickness / nplies, -angle)
+        CM.Ply("ply_$k", CM.lamina_material(m...), thickness / nplies, (-1)^(k+1)*angle)
+        for k in 1:nplies
     ]
     # @show [p.angle for p in plies]
     mcsys = CM.cartesian_csys((1, 2, 3))
@@ -96,7 +98,8 @@ function _execute(m, angle, n, reference, visualize)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
     fs = oms ./(2*pi)
-    @info "Nondimensional frequency: $(nondimensionalised_frequency(m, a, thickness, oms))  vs Reference: $(reference) "
+    ndoms = nondimensionalised_frequency(m, a, thickness, oms)
+    @info "Nondimensional frequency: $(ndoms)  vs Reference: $(reference) "
         
     # Visualization
     if visualize
@@ -112,10 +115,10 @@ function _execute(m, angle, n, reference, visualize)
         for ev in 1:neigvs
             U = v[:, ev]
             scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
-            push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
+            push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
             # vtkwrite("reddy_1979-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-            vtkwrite("reddy_1979-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+        vtkwrite("reddy_1979-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
@@ -149,7 +152,7 @@ nu12 = 0.25
 push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
 
 function test()
-    @info "Symmetric angle-ply laminated plate vibration"
+    @info "Antisymmetric angle-ply laminated plate vibration"
     @info "Number of plies: 4"
     @info "Reference from Reddy 1979. Table 2 "
     reference = Dict(
