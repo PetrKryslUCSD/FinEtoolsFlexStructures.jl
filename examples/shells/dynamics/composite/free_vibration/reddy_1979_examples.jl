@@ -5,6 +5,8 @@ Layup [th/-th/th/-th], where th = 0, 30, 45.
 Aspect Ratio 10.
 Two different materials of the plies.
 
+Decent agreement can be obtained with material II, but not with material I.
+
 Reference values: Table 2 for all angles; also Table 6 (th=45), Table 7 (th=30)
 Journal of Sound and Vibration (1979) 66(4), 565-576
 FREE VIBRATION OF ANTISYMMETRIC,
@@ -46,7 +48,7 @@ function _execute(mid, angle, n, reference, visualize)
     E2 = 3 * phun("GPa")
     E1 = E2 * 40
     G12 = E2 * 0.6
-    G13 = G12
+    G13 = E2 * 0.6
     G23 = E2 * 0.5
     nu12 = 0.25
     push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
