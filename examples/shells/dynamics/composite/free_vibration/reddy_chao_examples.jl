@@ -1,7 +1,9 @@
 """
 Vibration analysis of anisotropic layered square plates
 
-Reference values: ? [Hz]
+Layup [0/90/0] (thicknesses t/4, t/2, t/4).
+
+Reference values: Table 6 (page 163)
 From: J.N. REDDY and W.C. CHAO 
 A COMPARISON OF CLOSED-FORM AND FINITE-ELEMENT SOLUTIONS 
 OF THICK LAMINATED ANISOTROPIC RECTANGULAR PLATES,
