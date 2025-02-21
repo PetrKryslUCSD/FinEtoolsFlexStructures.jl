@@ -198,7 +198,7 @@ function test()
         @info "Material: $mid"
         for angle in [0, 30, 45, ]
             @info "Angle: $angle"
-            for n in [10, 20, 40, ]
+            for n in [10, 20, 40, 80]
                 _execute(mid, angle, n, reference["$mid/$angle"], true)
             end
         end
