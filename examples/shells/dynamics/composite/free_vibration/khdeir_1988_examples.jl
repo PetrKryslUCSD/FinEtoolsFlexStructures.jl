@@ -6,17 +6,17 @@ Aspect Ratio 10.
 
 The boundary condition is assumed 
 
-- simply supported (SS-2). Very good agreement.
-- free floating plate. Atrocious disagreement.
+- simply supported (SS-2). 
+- free floating plate. 
 
 Reference values: 
-Joumal of Sound and Vibration (1988) 122(2),377-388
-
+A. A. KHDEIR
 FREE VIBRATION OF ANTISYMMETRIC ANGLE-PLY 
 LAMINATED PLATES INCLUDING VARIOUS 
 BOUNDARY CONDITIONS
+Joumal of Sound and Vibration (1988) 122(2),377-388
 
-A. A. KHDEIR
+Very good agreement.
 """
 module khdeir_1988_examples
 
@@ -63,13 +63,6 @@ function _execute_ss(nplies, angle, n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    appshape = deepcopy(fens.xyz)
-    for j in axes(appshape, 1)
-        appshape[j, 3] = sin(pi*appshape[j, 1]/a)*sin(pi*appshape[j, 2]/a)
-        appshape[j, 1] = appshape[j, 2] = 0
-    end
-    vtkwrite("reddy_1979_n=$n.vtu", fens, fes, vectors = [("appshape", appshape)])
-
     plies = CM.Ply[
         CM.Ply("ply_$k", CM.lamina_material(material...), thickness / nplies, (-1)^(k+1)*angle)
         for k in 1:nplies
@@ -128,19 +121,8 @@ function _execute_ss(nplies, angle, n, reference, visualize)
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
-    proj = 0.0
-    bestfit = 0
-    for ev in 1:neigvs
-        U = v[:, ev]
-        scattersysvec!(dchi, U)
-        p = dot(dchi.values[:, 1:3][:], appshape[:])
-        if abs(p) > proj
-            proj = abs(p)
-            bestfit = ev
-        end
-    end
     ndoms = nondimensionalised_frequency(material, a, thickness, oms)
-    @info "Nondim. freq. ($bestfit): $(ndoms[bestfit])  vs ref: $(reference): $(ndoms[bestfit]/reference*100) %"
+    @info "Nondim. freq.: $(ndoms[1])  vs ref: $(reference): $(ndoms[1]/reference*100) %"
         
     # Visualization
     if visualize
@@ -157,7 +139,7 @@ function _execute_ss(nplies, angle, n, reference, visualize)
             U = v[:, ev]
             scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
             push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
-            # vtkwrite("reddy_1979-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+            # vtkwrite("khdeir_1988-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
         vtkwrite("khdeir_1988-SS-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
             # update_rotation_field!(Rfield0, dchi)
@@ -225,13 +207,6 @@ function _execute_ff(nplies, angle, n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    appshape = deepcopy(fens.xyz)
-    for j in axes(appshape, 1)
-        appshape[j, 3] = sin(pi*appshape[j, 1]/a)*sin(pi*appshape[j, 2]/a)
-        appshape[j, 1] = appshape[j, 2] = 0
-    end
-    vtkwrite("reddy_1979_n=$n.vtu", fens, fes, vectors = [("appshape", appshape)])
-
     plies = CM.Ply[
         CM.Ply("ply_$k", CM.lamina_material(material...), thickness / nplies, (-1)^(k+1)*angle)
         for k in 1:nplies
@@ -256,7 +231,20 @@ function _execute_ff(nplies, angle, n, reference, visualize)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # FF - free floating plate
+    # FF - simply supported along two edges, free along the other two
+    l1 = connectednodes(meshboundary(fes))
+    for i in  [6] 
+        setebc!(dchi, l1, true, i)
+    end
+    l1 = selectnode(fens, box=Float64[0, 0, -Inf, Inf, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 3)
+    setebc!(dchi, l1, true, 4)
+    l1 = selectnode(fens, box=Float64[a, a, -Inf, Inf, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 3)
+    setebc!(dchi, l1, true, 4)
+    applyebc!(dchi)
     numberdofs!(dchi);
 
     # Assemble the system matrix
@@ -275,7 +263,7 @@ function _execute_ff(nplies, angle, n, reference, visualize)
     oms = real(sqrt.(complex(d)))
     proj = 0.0
     ndoms = nondimensionalised_frequency(material, a, thickness, oms)
-    @info "Nondim. freq.: $(ndoms[7])  vs ref: $(reference): $(ndoms[7]/reference*100) %"
+    @info "Nondim. freq.: $(ndoms[2])  vs ref: $(reference): $(ndoms[2]/reference*100) %"
         
     # Visualization
     if visualize
@@ -292,9 +280,9 @@ function _execute_ff(nplies, angle, n, reference, visualize)
             U = v[:, ev]
             scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
             push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
-            # vtkwrite("reddy_1979-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+            # vtkwrite("khdeir_1988-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-        vtkwrite("khdeir_1988-FF-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
+        vtkwrite("khdeir_1988-FF-a=$angle-np=$(nplies)-n=$n-modes.vtu", fens, fes; vectors=vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
@@ -309,7 +297,7 @@ end
 function test_ff()
     @info "Antisymmetric angle-ply laminated plate vibration"
     
-    @info "Reference from KHDEIR 1988. Table 1, FF boundary condition "
+    @info "Reference from KHDEIR 1988. Table 1, FF boundary condition along two edges"
     reference = Dict(
         "2/30" => 6.95,
         "4/30" => 9.61,
