@@ -1,16 +1,21 @@
 """
 Vibration analysis of anisotropic layered square plates
 
-Reference values: ? [Hz]
+Plates clamped around the circumference.
+
+Reference values: 
+Practical Analysis of COMPOSITE LAMINATES
+J.N. Reddy, A . Miravete
+CRC Press 1995
 Table 5.6-14 
 Effect of ply angle (``\\theta``) and number of layers (n) 
 on dimensionless fundamental frequency, ZJ, of 
 antisymmetric angle-play (``\\theta``/ ``-\\theta``/``\\theta``/ ... /``-\\theta``) 
 square plates {a/h = 10).
 
-SOMETHING WRONG: The reference values are not matching with the results. 
+SOMETHING WRONG: The reference values are not matching with the results (6%-24% errors). 
 """
-module angle_ply_examples
+module redmir_angle_ply_examples
 
 using Arpack
 using FinEtools
@@ -26,7 +31,7 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_m
 function _execute(angle, n, nplies, refndom, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
-    # Material from section 2.1
+    # Material from Eq (5.6-2)
     rho = 1600*phun("KG/M^3")
     E2 = 3*phun("GPa")
     E1 = E2 * 40
@@ -36,12 +41,11 @@ function _execute(angle, n, nplies, refndom, visualize)
     nu12 = 0.25
     Material = (rho, E1, E2, nu12, G12, G13, G23)
     aspect = 10
+    @assert nplies == 2 || nplies == 10
        
     a = 1.0 * phun("m")
     thickness = a / aspect
     nondimensionalised_frequency = function(om) 
-        rho = Material[1]
-        E2 = Material[3]
         om * a^2 / thickness * sqrt(rho/E2) 
     end
 
@@ -83,18 +87,9 @@ function _execute(angle, n, nplies, refndom, visualize)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # simple support along two sides
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in  [3, ] 
-        setebc!(dchi, l1, true, i)
-    end
-    l1 = selectnode(fens; box = Float64[a a -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in  [3, ] 
-        setebc!(dchi, l1, true, i)
-    end
-    # one side is clamped
-    l1 = selectnode(fens; box = Float64[-Inf Inf a a -Inf Inf], inflate = tolerance)
-    for i in  [1, 2, 3, 4, 5, 6] 
+    # Clamped circumference
+    l1 = connectednodes(meshboundary(fes))
+    for i in  1:6
         setebc!(dchi, l1, true, i)
     end
     # the remaining side is free
@@ -111,13 +106,14 @@ function _execute(angle, n, nplies, refndom, visualize)
 
     # Solve
     OmegaShift = (0.1*2*pi)^2
-    neigvs = 9
+    neigvs = 1
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
     fs = oms ./(2*pi)
     # @info "Frequencies: $fs [Hz]"
-    @info "Nondimensional angular frequency  $(nondimensionalised_frequency.(oms)) vs ref $(refndom)"
+    ndoms = nondimensionalised_frequency.(oms)
+    @info "Nondim. freq.: $(ndoms)  vs ref: $(refndom): $(ndoms/refndom*100) %"
         
     # Visualization
     if visualize
@@ -150,20 +146,20 @@ end
 
 
 function test_convergence()
-    @info "angle_ply plate vibration"
-    @info "Reference from Miravete, Reddy Table 5.6-14"
+    @info "Angle Ply plate vibration (CC)"
+    @info "Reference from Reddy, Miravete Table 5.6-14"
     reference = (
-    (angle = 30, nplies = 2, fundamental = 12.68),
-    (angle = 30, nplies = 10, fundamental = 18.51),
-    (angle = 45, nplies = 2, fundamental = 13.04),
-    (angle = 45, nplies = 10, fundamental = 19.38),
-    (angle = 60, nplies = 2, fundamental = 12.68),
-    (angle = 60, nplies = 10, fundamental = 18.51),
+    (angle = 30, nplies = 2, fundamental = 14.41),
+    (angle = 30, nplies = 10, fundamental = 19.81),
+    (angle = 45, nplies = 2, fundamental = 15.63),
+    (angle = 45, nplies = 10, fundamental = 21.25),
+    (angle = 60, nplies = 2, fundamental = 16.57),
+    (angle = 60, nplies = 10, fundamental = 21.21),
     )
-    n = 10
+    n = 100
     for ref in reference
-            _execute(ref.angle, n, ref.nplies, ref.fundamental, true)
-        end
+        _execute(ref.angle, n, ref.nplies, ref.fundamental, true)
+    end
     
     return true
 end
