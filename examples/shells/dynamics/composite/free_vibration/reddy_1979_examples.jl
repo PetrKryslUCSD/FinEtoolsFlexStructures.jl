@@ -5,9 +5,11 @@ Layup [th/-th/th/-th], where th = 0, 30, 45.
 Aspect Ratio 10.
 Two different materials of the plies.
 
-The boundary condition is assumed SS-2
+The boundary condition is assumed SS-2.
 
-Decent agreement can be obtained with material II, but not with material I.
+Material II is weird: G13 != G12.
+
+We can get to within 3% off the reference values.
 
 Reference values: Table 2 for all angles; also Table 6 (th=45), Table 7 (th=30)
 Journal of Sound and Vibration (1979) 66(4), 565-576
@@ -60,7 +62,7 @@ function _execute(mid, angle, n, reference, visualize)
     E1 = E2 * 25
     G12 = E2 * 0.5
     G13 = E2 * 0.2
-    G23 = E2 * 0.5
+    G23 = E2 * 0.2
     nu12 = 0.25
     push!(materials, (rho, E1, E2, nu12, G12, G13, G23))
        
@@ -106,17 +108,21 @@ function _execute(mid, angle, n, reference, visualize)
     # Apply EBC's
     # simple support
     l1 = connectednodes(meshboundary(fes))
-    for i in  [3, ] 
+    for i in  [3, 6] 
         setebc!(dchi, l1, true, i)
     end
     l1 = selectnode(fens, box=Float64[0, 0, -Inf, Inf, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 4)
     l1 = selectnode(fens, box=Float64[a, a, -Inf, Inf, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 4)
     l1 = selectnode(fens, box=Float64[-Inf, Inf, 0, 0, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 2)
+    setebc!(dchi, l1, true, 5)
     l1 = selectnode(fens, box=Float64[-Inf, Inf, a, a, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 2)
+    setebc!(dchi, l1, true, 5)
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -146,7 +152,7 @@ function _execute(mid, angle, n, reference, visualize)
         end
     end
     ndoms = nondimensionalised_frequency(materials[mid], a, thickness, oms)
-    @info "Nondimensional frequency ($bestfit): $(ndoms[bestfit])  vs Reference: $(reference) "
+    @info "Nondim. freq. ($bestfit): $(ndoms[bestfit])  vs ref: $(reference): $(ndoms[bestfit]/reference*100) %"
         
     # Visualization
     if visualize
