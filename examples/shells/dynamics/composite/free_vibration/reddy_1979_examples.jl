@@ -107,10 +107,13 @@ function _execute(mid, angle, n, reference, visualize)
     for i in  [3, ] 
         setebc!(dchi, l1, true, i)
     end
-    l1 = selectnode(fens, box=Float64[0, 0, 0, 0, 0, 0], inflate=tolerance)
+    l1 = selectnode(fens, box=Float64[0, 0, -Inf, Inf, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 1)
+    l1 = selectnode(fens, box=Float64[a, a, -Inf, Inf, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    l1 = selectnode(fens, box=Float64[-Inf, Inf, 0, 0, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 2)
-    l1 = selectnode(fens, box=Float64[a, a, 0, 0, 0, 0], inflate=tolerance)
+    l1 = selectnode(fens, box=Float64[-Inf, Inf, a, a, 0, 0], inflate=tolerance)
     setebc!(dchi, l1, true, 2)
     applyebc!(dchi)
     numberdofs!(dchi);
