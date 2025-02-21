@@ -5,6 +5,8 @@ Layup [th/-th/th/-th], where th = 0, 30, 45.
 Aspect Ratio 10.
 Two different materials of the plies.
 
+The boundary condition is assumed SS-2
+
 Decent agreement can be obtained with material II, but not with material I.
 
 Reference values: Table 2 for all angles; also Table 6 (th=45), Table 7 (th=30)
