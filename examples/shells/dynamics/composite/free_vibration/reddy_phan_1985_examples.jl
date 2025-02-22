@@ -1,8 +1,8 @@
 """
-Vibration analysis of antisymmetric angle ply square plates
+Vibration analysis of antisymmetric angle ply square plates.
 
 Layup [th/-th] or [th/-th/th/-th/th/-th/th/-th], where th = 45.
-Aspect Ratio variable.
+Aspect ratio variable.
 Material: E1/ E2 = 40, G23 = 0*5E2, G12 = G13 = 0*6E, v = 0.25.
 
 Reference values: Table 4
@@ -11,10 +11,6 @@ STABILITY AND VIBRATION OF ISOTROPIC, ORTHOTROPIC
 AND LAMINATED PLATES ACCORDING TO A 
 HIGHER-ORDER SHEAR DEFORMATION THEORY 
 J. N. REDDY AND N. D. PHAN 
-
-===========================================================
-Can't get sufficiently close to these reference values!!!
-===========================================================
 
 """
 module reddy_phan_1985_examples
@@ -41,18 +37,26 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     angle = 45
-    a = 1.0 * phun("m")
-    thickness = a / aspect
-    @assert nplies == 2  || nplies == 8
-    rho = 1200 * phun("KG/M^3")
-    E2 = 3 * phun("GPa")
+    # a = 1.0 * phun("m")
+    # rho = 1200 * phun("KG/M^3")
+    # E2 = 3 * phun("GPa")
+    # E1 = E2 * 40
+    # G12 = E2 * 0.6
+    # G13 = G12
+    # G23 = E2 * 0.5
+    # nu12 = 0.25
+    a = 10.0 * phun("m")
+    rho = 1 * phun("KG/M^3")
+    E2 = 1 * phun("Pa")
     E1 = E2 * 40
     G12 = E2 * 0.6
     G13 = G12
     G23 = E2 * 0.5
     nu12 = 0.25
-    material = (rho, E1, E2, nu12, G12, G13, G23)
-       
+    @show material = (rho, E1, E2, nu12, G12, G13, G23)
+    thickness = a / aspect
+    @assert nplies == 2  || nplies == 8
+    
     # Report
     @info "Mesh: $n elements per side"
 
@@ -88,11 +92,23 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # simple support
+    # simple support as described in the paper (SS-2)
     l1 = connectednodes(meshboundary(fes))
-    for i in  [1, 2, 3, ] 
+    for i in  [3, 6] 
         setebc!(dchi, l1, true, i)
     end
+    l1 = selectnode(fens, box=Float64[0, 0, -Inf, Inf, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 4)
+    l1 = selectnode(fens, box=Float64[a, a, -Inf, Inf, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 1)
+    setebc!(dchi, l1, true, 4)
+    l1 = selectnode(fens, box=Float64[-Inf, Inf, 0, 0, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 2)
+    setebc!(dchi, l1, true, 5)
+    l1 = selectnode(fens, box=Float64[-Inf, Inf, a, a, 0, 0], inflate=tolerance)
+    setebc!(dchi, l1, true, 2)
+    setebc!(dchi, l1, true, 5)
     applyebc!(dchi)
     numberdofs!(dchi);
 
@@ -105,14 +121,15 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
 
     # Solve
-    OmegaShift = (0.1*2*pi)^2
+    OmegaShift = (0.0*2*pi)^2
     neigvs = 1
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
+    @info "Omega = $(oms[1])"
     fs = oms ./(2*pi)
     ndoms = nondimensionalised_frequency(material, a, thickness, oms)
-    @info "Nondimensional frequency: $(ndoms)  vs Reference: $(reference) "
+    @info "Nondim freq: $(ndoms[1])  vs Reference: $(reference) ($(ndoms[1]/reference*100))"
         
     # Visualization
     if visualize
@@ -148,7 +165,7 @@ end
 
 function test_angle()
     @info "Antisymmetric angle-ply laminated plate vibration"
-    @info "Reference from Reddy, Chao 1985.  "
+    @info "Reference from Reddy, Phan 1985.  "
     reference = Dict(
         "nplies=2, a/h=5" => 10.335,
         "nplies=2, a/h=10" => 13.044,
@@ -160,7 +177,7 @@ function test_angle()
         "nplies=8, a/h=100" => 25.176
     )
     for nplies in [2, 8]
-        @info "Number of plies: $nplies"
+        @info "-----------------------------------------\nNumber of plies: $nplies"
         for aspect in [5, 10, 20, 100]
             @info "Aspect: $aspect"
             for n in [10, 20, 40,]
