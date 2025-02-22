@@ -66,7 +66,7 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    vtkwrite("reddy_phan_1985_nplies=$(nplies)-aspect=$(aspect)-n=$n.vtu", fens, fes)
+    # vtkwrite("reddy_phan_1985_nplies=$(nplies)-aspect=$(aspect)-n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
         CM.Ply("ply_$k", CM.lamina_material(material...), thickness / nplies, (-1)^(k+1)*angle)
@@ -133,30 +133,14 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
         
     # Visualization
     if visualize
-        # U = v[:, 4]
-        # scattersysvec!(dchi, (a*4)/maximum(abs.(U)).*U)
-        # update_rotation_field!(Rfield0, dchi)
-        # plots = cat(plot_space_box([[0 0 0]; [a a a]]),
-        #             #plot_nodes(fens),
-        #             plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-        #             dims = 1)
-        # pl = render(plots)
         vectors = []
         for ev in 1:neigvs
             U = v[:, ev]
             scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
             push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
-            # vtkwrite("reddy_1979-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-        vtkwrite("reddy_1979-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors=vectors)
-            # update_rotation_field!(Rfield0, dchi)
-            # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
-            #     plot_nodes(fens),
-            #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-            #     dims = 1)
-            # pl = render(plots; title="$(ev)")
-        # end
-    end
+        vtkwrite("reddy_phan_1985-ah=$(aspect)-a=$angle-np=$(nplies)-n=$(n)-modes.vtu", fens, fes; vectors=vectors)
+     end
     nothing
 end
 
