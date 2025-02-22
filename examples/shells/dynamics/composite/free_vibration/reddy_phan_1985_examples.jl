@@ -53,7 +53,7 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     G13 = G12
     G23 = E2 * 0.5
     nu12 = 0.25
-    @show material = (rho, E1, E2, nu12, G12, G13, G23)
+    material = (rho, E1, E2, nu12, G12, G13, G23)
     thickness = a / aspect
     @assert nplies == 2  || nplies == 8
     
@@ -126,7 +126,7 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
     d[:] = d .- OmegaShift;
     oms = real(sqrt.(complex(d)))
-    @info "Omega = $(oms[1])"
+    # @info "Omega = $(oms[1])"
     fs = oms ./(2*pi)
     ndoms = nondimensionalised_frequency(material, a, thickness, oms)
     @info "Nondim freq: $(ndoms[1])  vs Reference: $(reference) ($(ndoms[1]/reference*100))"
