@@ -7,6 +7,7 @@ module clamped_circular_plate_udl_resultant_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtools.RotationUtilModule: cross3!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
@@ -98,8 +99,7 @@ function _execute(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, visuali
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/center_w, digits = 4)*100)%"
 

@@ -46,7 +46,7 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     # G23 = E2 * 0.5
     # nu12 = 0.25
     a = 10.0 * phun("m")
-    rho = 1 * phun("KG/M^3")
+    rho = 1e-4 * phun("KG/M^3")
     E2 = 1 * phun("Pa")
     E1 = E2 * 40
     G12 = E2 * 0.6
@@ -134,12 +134,17 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     # Visualization
     if visualize
         vectors = []
+        scalars = []
         for ev in 1:neigvs
             U = v[:, ev]
             scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
             push!(vectors, ("mode_$ev-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, 1:3])))
+            for j in 1:6
+                push!(scalars, ("mode_$ev[:,$j]-$(round(ndoms[ev]; sigdigits=4))", deepcopy(dchi.values[:, j])))
+            end
         end
-        vtkwrite("reddy_phan_1985-ah=$(aspect)-a=$angle-np=$(nplies)-n=$(n)-modes.vtu", fens, fes; vectors=vectors)
+        vtkwrite("reddy_phan_1985-ah=$(aspect)-a=$angle-np=$(nplies)-n=$(n)-modes.vtu",
+             fens, fes; vectors=vectors, scalars = scalars)
      end
     nothing
 end

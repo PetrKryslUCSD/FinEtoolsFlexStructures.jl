@@ -30,6 +30,7 @@ module hemisphere_open_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -132,8 +133,7 @@ function _execute_w_approx_normals(n = 8, visualize = true, drilling_stiffness_m
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     resultpercent =  dchi.values[nl, 1][1]/analyt_sol*100
     @info "Solution: $(round(resultpercent, digits = 4))% ($analyt_sol)"
 
@@ -268,8 +268,7 @@ function _execute_w_exact_normals(n = 8, visualize = true, drilling_stiffness_mu
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     resultpercent =  dchi.values[nl, 1][1]/analyt_sol*100
         @info "Solution: $(round(resultpercent, digits = 4))% ($analyt_sol)"
 

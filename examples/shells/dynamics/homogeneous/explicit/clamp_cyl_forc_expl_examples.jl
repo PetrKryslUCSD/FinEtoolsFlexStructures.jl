@@ -61,7 +61,7 @@ L = 0.8
 omegaf = 2*pi*10^4
 tend = 15 * 2*pi/omegaf
 
-cylindrical!(csmatout::FFltMat, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt) = begin
+cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
     r = vec(XYZ); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
@@ -156,7 +156,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     cpointdof = dchi.dofnums[cpoint, 3]
     cpointdof6 = dchi.dofnums[cpoint, 6]
     
-    function computetrac!(forceout::FFltVec, XYZ::FFltMat, tangents::FFltMat, fe_label::FInt)
+    function computetrac!(forceout, XYZ, tangents, feid, qpid)
         dx = XYZ[1] - fens.xyz[qpoint, 1]
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
@@ -170,7 +170,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
     end
 
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
-    fi = ForceIntensity(FFlt, 6, computetrac!);
+    fi = ForceIntensity(Float64, 6, computetrac!);
     Fmag = distribloads(lfemm, geom0, dchi, fi, 2);
 
     function force!(F, t)

@@ -4,6 +4,7 @@ Pinched cylinder with diagphram supports and concentrated force
 module pinched_cylinder_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
@@ -89,8 +90,7 @@ function _execute(n = 2, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     @show n,  dchi.values[nl, 3]/analyt_sol*100
 
     # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)

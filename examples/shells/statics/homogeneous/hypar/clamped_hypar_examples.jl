@@ -26,6 +26,7 @@ module clamped_hypar_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -103,8 +104,7 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     targetu = dchi.values[nl, 3][1]
     @info "Displacement Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
     @info "Strain Energy Solution: $(U'*K*U/2)"

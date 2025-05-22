@@ -95,14 +95,13 @@ function _execute(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 
     nl = selectnode(fens; box = Float64[L L 0 0 0 0], tolerance = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
-    v = FFlt[0, 0, 0, 0, 0, 0]
+    v = Float64[0, 0, 0, 0, 0, 0]
     v[dir] = force
     fi = ForceIntensity(v);
     F = distribloads(lfemm, geom0, dchi, fi, 3);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     result = dchi.values[nl, dir][1]
     @show result/uex*100
 

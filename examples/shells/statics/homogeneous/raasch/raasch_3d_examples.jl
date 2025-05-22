@@ -20,6 +20,7 @@ module raasch_3d_examples
 
 using LinearAlgebra, Statistics
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtools.AlgoBaseModule: richextrapol
@@ -93,8 +94,7 @@ function _execute(visualize = true, nL = 9, nW = 1, nT = 4)
     
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(u0, U[:])
+    solve_blocked!(dchi, K, F)
     nl = selectnode(fens; box = Float64[0 Inf -16 -16 0 20], inflate = tolerance)
     targetu =  mean(u0.values[nl, 3])
     @info "Solution (input $(input)): $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 6)*100)%"

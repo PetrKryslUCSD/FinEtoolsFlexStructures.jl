@@ -82,8 +82,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     @show n, dchi.values[nl, 3]/analyt_sol*100
 
     # Visualization

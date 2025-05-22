@@ -20,6 +20,7 @@ module scordelis_lo_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -100,8 +101,7 @@ function _execute_model(n = 8, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
     @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
@@ -190,8 +190,7 @@ function _execute_model_w_units(n = 8, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
     @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 

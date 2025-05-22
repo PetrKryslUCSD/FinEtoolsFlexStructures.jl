@@ -2,6 +2,7 @@
 module simply_supp_rect_plate_conc_resultant_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -83,8 +84,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     @show dchi.values[nl, 3]/analyt_sol*100
 
     # Generate a graphical display of resultants

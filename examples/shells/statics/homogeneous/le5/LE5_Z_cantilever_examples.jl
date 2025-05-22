@@ -20,6 +20,7 @@ module LE5_Z_cantilever_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -114,8 +115,7 @@ function _execute_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = t
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     targetu =  minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
     @info "Target: $(round.(targetu, digits=8))"
 
@@ -286,8 +286,7 @@ function _execute_model_alt(formul, ignore = "", nrefs = 0, visualize = true)
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     targetu =  minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
     @info "Target: $(round.(targetu, digits=8))"
 

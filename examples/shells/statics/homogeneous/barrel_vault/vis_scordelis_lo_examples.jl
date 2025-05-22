@@ -23,6 +23,7 @@ module vis_scordelis_lo_examples
 
 using LinearAlgebra
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -109,8 +110,7 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     result =   dchi.values[nl, 3][1]
     @info "Solution: $(result), $(round(result/analyt_sol*100, digits = 4))%"
 

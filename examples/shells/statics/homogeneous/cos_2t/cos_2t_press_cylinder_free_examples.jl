@@ -113,8 +113,8 @@ function _execute(formul, n = 8, thickness = R/100, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
     strainenergy = 1/2 * U' * K * U
     @info "Strain Energy: $(round(strainenergy, digits = 9))"
 

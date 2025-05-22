@@ -98,8 +98,7 @@ function _execute(n = 2, visualize = true)
 
     # @infiltrate
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     resultpercent =  dchi.values[nl, 1][1]*100
     @info "Solution: $(round(resultpercent/analyt_sol, digits = 4))%"
 

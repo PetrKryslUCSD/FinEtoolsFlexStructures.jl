@@ -2,6 +2,7 @@
 module cook_membrane_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -72,8 +73,7 @@ function _execute(n = 8, visualize = true)
     F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     # Solve
-    U = K\F
-    scattersysvec!(dchi, U[:])
+    solve_blocked!(dchi, K, F)
     
     l1 = selectnode(fens; box = [mid_edge[1] mid_edge[1] mid_edge[2] mid_edge[2] -Inf Inf], inflate = tolerance)
     resultpercent = dchi.values[l1, 2][1]/convutip*100
