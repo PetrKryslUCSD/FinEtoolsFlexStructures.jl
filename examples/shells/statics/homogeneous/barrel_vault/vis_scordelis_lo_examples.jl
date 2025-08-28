@@ -101,16 +101,19 @@ function _execute_dsg_model(formul, n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*25 sin(40/360*2*pi)*25 L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     result =   dchi.values[nl, 3][1]
     @info "Solution: $(result), $(round(result/analyt_sol*100, digits = 4))%"
 

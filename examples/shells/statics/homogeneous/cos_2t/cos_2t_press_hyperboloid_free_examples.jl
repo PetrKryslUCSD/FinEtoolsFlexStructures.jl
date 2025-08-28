@@ -119,19 +119,20 @@ function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, di
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     # nl = selectnode(fens; box = Float64[R R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     
     fi = ForceIntensity(Float64, 6, computetrac!);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
-    strainenergy = 1/2 * U' * K * U
+    strainenergy = 1/2 * Uf' * Ff
     @info "Strain Energy: $(round(strainenergy, digits = 9))"
 
     # Generate a graphical display of resultants
@@ -160,7 +161,7 @@ function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, di
 
     # Visualization
     if visualize
-        scattersysvec!(dchi, (Length/8)/maximum(abs.(U)).*U)
+        scattersysvec!(dchi, (Length/8)/maximum(abs.(Uf)).*Uf)
         update_rotation_field!(Rfield0, dchi)
         plots = cat(plot_space_box([[0 0 -Length/2]; [Length/2 Length/2 Length/2]]),
             #plot_nodes(fens),

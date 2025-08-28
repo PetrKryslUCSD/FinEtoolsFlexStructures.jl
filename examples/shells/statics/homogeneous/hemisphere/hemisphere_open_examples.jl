@@ -116,24 +116,27 @@ function _execute_w_approx_normals(n = 8, visualize = true, drilling_stiffness_m
     associategeometry!(femm, geom0)
     total_normals, invalid_normals = num_normals(femm)
     @assert invalid_normals == 0
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 R R 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[R R 0 0 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
 
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     resultpercent =  dchi.values[nl, 1][1]/analyt_sol*100
     @info "Solution: $(round(resultpercent, digits = 4))% ($analyt_sol)"
 
@@ -251,24 +254,27 @@ function _execute_w_exact_normals(n = 8, visualize = true, drilling_stiffness_mu
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 R R 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[0, -1, 0, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[R R 0 0 0 0], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[1, 0, 0, 0, 0, 0]);
-    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
 
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     resultpercent =  dchi.values[nl, 1][1]/analyt_sol*100
         @info "Solution: $(round(resultpercent, digits = 4))% ($analyt_sol)"
 

@@ -2,6 +2,7 @@
 module bent_strip_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -64,15 +65,18 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(Float64[0, 0, -q, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     @show minimum(dchi.values[:, 3])/analyt_sol*100
 
     # Visualization
@@ -96,7 +100,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     end
     vtkwrite("bent_strip_examples-q.vtu", fens, fes; scalars = scalars)
 
-    scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+    scattersysvec!(dchi, (L/4)/maximum(abs.(Uf)).*Uf)
     update_rotation_field!(Rfield0, dchi)
     plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
         #plot_nodes(fens),

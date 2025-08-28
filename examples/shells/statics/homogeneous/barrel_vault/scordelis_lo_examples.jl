@@ -4,13 +4,13 @@ analysis of shells.
 
 The candidate element's usefulness in irregular geometries (and most practical
 cases involve a high degree of geometric irregularity) is tested. As would be
-expected,the irregular mesh results are not as good as those provided by a
-regular meshwith the same number of variables. 
+expected, the irregular mesh results are not as good as those provided by a
+regular mesh with the same number of variables. 
 
 Problem description
 
 The physical basis of the problem is a deeply arched roof supported only
-bydiaphragms at its curved edges (an aircraft hanger), deforming under its own
+by diaphragms at its curved edges (an aircraft hanger), deforming under its own
 weight. It is interesting to observe that the geometry is such that the
 centerpoint of the roof moves upward under the self-weight(downwardly directed)
 load. Perhaps this is one reason why the problem is not straightforward
@@ -92,16 +92,19 @@ function _execute_model(n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*25 sin(40/360*2*pi)*25 L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+    Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
     @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
@@ -181,16 +184,19 @@ function _execute_model_w_units(n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[sin(40/360*2*pi)*R sin(40/360*2*pi)*R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(Float64[0, 0, q, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
     @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 

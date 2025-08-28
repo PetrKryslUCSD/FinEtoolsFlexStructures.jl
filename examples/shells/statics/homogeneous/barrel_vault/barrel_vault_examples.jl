@@ -10,7 +10,7 @@ regular meshwith the same number of variables.
 Problem description
 
 The physical basis of the problem is a deeply arched roof supported only
-bydiaphragms at its curved edges (an aircraft hanger), deforming under its own
+by diaphragms at its curved edges (an aircraft hanger), deforming under its own
 weight. It is interesting to observe that the geometry is such that the
 centerpoint of the roof moves upward under the self-weight(downwardly directed)
 load. Perhaps this is one reason why the problem is not straightforward

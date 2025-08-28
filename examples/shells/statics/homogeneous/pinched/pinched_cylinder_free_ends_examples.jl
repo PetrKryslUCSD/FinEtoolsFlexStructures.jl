@@ -95,17 +95,20 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 L/2 L/2 -Inf Inf], inflate = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[0, 0, -P/4, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     @show n,  dchi.values[nl, 3]/analyt_sol*100
 
     # Visualization

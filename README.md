@@ -29,12 +29,8 @@
 
 ## News
 
-- 01/06/2024: Update tutorials.
-- 01/04/2024: Add a Riks path-tracing solver.
-- 01/01/2024: Add a nonlinear corotational truss element. 
-- 12/22/2024: Add vibration examples for angle-ply laminated composites.
-- 12/19/2024: Add benchmark examples for laminated composites.
-- 12/19/2024: Fix transformation bug in composite implementation. 
+- 08/28/2025: Update examples.
+
 
 [Past news](#past-news)
 
@@ -127,6 +123,12 @@ pictures and time collections (useful for animations) are supported this way.
 
 ## <a name="past-news"></a>Past news
 
+- 01/06/2024: Update tutorials.
+- 01/04/2024: Add a Riks path-tracing solver.
+- 01/01/2024: Add a nonlinear corotational truss element. 
+- 12/22/2024: Add vibration examples for angle-ply laminated composites.
+- 12/19/2024: Add benchmark examples for laminated composites.
+- 12/19/2024: Fix transformation bug in composite implementation. 
 - 12/15/2024: Reorganize examples into separate homogeneous and layered shell folders.
 - 12/10/2024: Update to Julia 1.11. Reorganize and update examples.
 - 05/27/2024: Fix documentation of test module.

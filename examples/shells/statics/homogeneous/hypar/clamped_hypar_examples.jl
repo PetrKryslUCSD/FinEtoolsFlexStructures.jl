@@ -87,7 +87,7 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[L/2 L/2 0 0 -Inf Inf], inflate = tolerance)
@@ -101,13 +101,16 @@ function _execute(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32,
     # end
     # fi = ForceIntensity(Float64, 6, computeforce!)
     fi = ForceIntensity(Float64[0, 0, -g, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+    Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     targetu = dchi.values[nl, 3][1]
     @info "Displacement Solution: $(round(targetu/analyt_sol, digits = 4)*100)%"
-    @info "Strain Energy Solution: $(U'*K*U/2)"
+    @info "Strain Energy Solution: $(Uf'*Ff/2)"
 
         # Visualization
     if visualize

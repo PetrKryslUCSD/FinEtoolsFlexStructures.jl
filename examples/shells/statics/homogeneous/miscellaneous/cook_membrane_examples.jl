@@ -62,7 +62,7 @@ function _execute(n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     bfes = meshboundary(fes)
@@ -70,10 +70,13 @@ function _execute(n = 8, visualize = true)
     loadbdry = subset(bfes, nl)
     lfemm = FEMMBase(IntegDomain(loadbdry, GaussRule(1, 2)))
     fi = ForceIntensity(Float64[0, magn, 0, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
 
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     
     l1 = selectnode(fens; box = [mid_edge[1] mid_edge[1] mid_edge[2] mid_edge[2] -Inf Inf], inflate = tolerance)
     resultpercent = dchi.values[l1, 2][1]/convutip*100

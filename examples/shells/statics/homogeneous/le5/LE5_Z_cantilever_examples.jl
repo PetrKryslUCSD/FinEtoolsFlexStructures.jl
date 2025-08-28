@@ -100,7 +100,7 @@ function _execute_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = t
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
     
     # Load
     nl = selectnode(fens; box = Float64[10.0 10.0 1.0 1.0 0 0], tolerance = tolerance)
@@ -111,11 +111,14 @@ function _execute_model(formul, input = "nle5xf3c.inp", nrefs = 0, visualize = t
     loadbdry2 = FESetP1(reshape(nl, 1, 1))
     lfemm2 = FEMMBase(IntegDomain(loadbdry2, PointRule()))
     fi2 = ForceIntensity(Float64[0, 0, -0.6e6, 0, 0, 0]);
-    F = distribloads(lfemm1, vassem, geom0, dchi, fi1, 3) + distribloads(lfemm2, vassem, geom0, dchi, fi2, 3);
+    Ff = distribloads(lfemm1, vassem, geom0, dchi, fi1, 3) + distribloads(lfemm2, vassem, geom0, dchi, fi2, 3);
 
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+    Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     targetu =  minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
     @info "Target: $(round.(targetu, digits=8))"
 
@@ -262,7 +265,7 @@ function _execute_model_alt(formul, ignore = "", nrefs = 0, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
     
     # Load
     # bfes = meshboundary(fes)
@@ -282,11 +285,14 @@ function _execute_model_alt(formul, ignore = "", nrefs = 0, visualize = true)
     loadbdry2 = FESetP1(reshape(nl, 1, 1))
     lfemm2 = FEMMBase(IntegDomain(loadbdry2, PointRule()))
     fi2 = ForceIntensity(Float64[0, 0, -0.6e6, 0, 0, 0]);
-    F = distribloads(lfemm1, vassem, geom0, dchi, fi1, 3) + distribloads(lfemm2, vassem, geom0, dchi, fi2, 3);
+    Ff = distribloads(lfemm1, vassem, geom0, dchi, fi1, 3) + distribloads(lfemm2, vassem, geom0, dchi, fi2, 3);
 
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     targetu =  minimum(dchi.values[:, 3]), maximum(dchi.values[:, 3])
     @info "Target: $(round.(targetu, digits=8))"
 

@@ -60,23 +60,26 @@ function _execute_dsg_model(formul, n = 2, LW_ratio = 2.0, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     nl = selectnode(fens; box = Float64[L L 0 0 -Inf Inf], tolerance = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[0, 0, -1, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
     nl = selectnode(fens; box = Float64[L L W W -Inf Inf], tolerance = tolerance)
     loadbdry = FESetP1(reshape(nl, 1, 1))
     lfemm = FEMMBase(IntegDomain(loadbdry, PointRule()))
     fi = ForceIntensity(Float64[0, 0, +1, 0, 0, 0]);
-    F += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    Ff += distribloads(lfemm, vassem, geom0, dchi, fi, 3);
 
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
 

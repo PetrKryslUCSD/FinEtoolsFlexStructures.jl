@@ -109,19 +109,20 @@ function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the fixed edge
     # nl = selectnode(fens; box = Float64[R R L/2 L/2 -Inf Inf], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     
     fi = ForceIntensity(Float64, 6, computetrac!);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
     
     # Solve
-    solve_blocked!(dchi, K, F)
+    Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
-    strainenergy = 1/2 * U' * K * U
+    strainenergy = 1/2 * Uf' * Ff
     @info "Strain Energy: $(round(strainenergy, digits = 9))"
 
     # Generate a graphical display of resultants
