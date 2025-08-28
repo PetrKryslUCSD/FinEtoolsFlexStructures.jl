@@ -114,19 +114,22 @@ function _execute(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, v
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
-    K = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Load
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(1, 2)))
     fi = ForceIntensity(Float64[0, 0, 0.05, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
-    @assert  isapprox(sum(F), 1.0)
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 3);
+    @assert  isapprox(sum(Ff), 1.0)
     
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    
     nl = selectnode(fens; box = Float64[97.96152422706632 97.96152422706632 -16 -16 0 20], inflate = 1.0e-6)
     targetu =  mean(dchi.values[nl, 3])
     @info "Solution: $(round(targetu, digits=8)),  $(round(targetu/ref_sol, digits = 4)*100)%"

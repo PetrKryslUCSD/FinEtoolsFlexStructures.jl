@@ -83,18 +83,21 @@ function _execute(visualize = true, nL = 9, nW = 1, nT = 4)
 
     # Assemble the system matrix
     associategeometry!(femm, geom)
-    K = stiffness(femm, massem, geom, u0);
+    Kff = stiffness(femm, massem, geom, u0);
 
     # Load
     bfes = meshboundary(fes)
     l1 = selectelem(fens, bfes, box = [0 Inf -16 -16 0 20], inflate = tolerance)
     lfemm = FEMMBase(IntegDomain(subset(bfes, l1), GaussRule(2, 2)))
     fi = ForceIntensity(Float64[0, 0, 0.05/thickness, 0, 0, 0]);
-    F = distribloads(lfemm, vassem, geom, u0, fi, 2);
+    Ff = distribloads(lfemm, vassem, geom, u0, fi, 2);
     
     # @infiltrate
     # Solve
-    solve_blocked!(dchi, K, F)
+    Uf = Kff \ Ff
+    scattersysvec!(u0, Uf, DOF_KIND_FREE)
+    U = gathersysvec(u0, DOF_KIND_ALL)
+    
     nl = selectnode(fens; box = Float64[0 Inf -16 -16 0 20], inflate = tolerance)
     targetu =  mean(u0.values[nl, 3])
     @info "Solution (input $(input)): $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 6)*100)%"

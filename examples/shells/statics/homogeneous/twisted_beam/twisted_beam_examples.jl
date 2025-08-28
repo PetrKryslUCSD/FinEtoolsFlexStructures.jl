@@ -32,6 +32,7 @@ Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically
 module twisted_beam_examples
 
 using FinEtools
+using FinEtools.AlgoBaseModule: solve_blocked!, DOF_KIND_FREE, DOF_KIND_ALL
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
