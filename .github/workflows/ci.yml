@@ -23,12 +23,12 @@ jobs:
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v4
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@v2
         env:
           cache-name: cache-artifacts
         with:
@@ -38,18 +38,18 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v4
-      - uses: julia-actions/julia-runtest@v4
-      - uses: julia-actions/julia-processcoverage@v4
-      - uses: codecov/codecov-action@v4
+      - uses: julia-actions/julia-buildpkg@v2
+      - uses: julia-actions/julia-runtest@v2
+      - uses: julia-actions/julia-processcoverage@v2
+      - uses: codecov/codecov-action@v2
         with:
           file: lcov.info
   docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v4
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v2
         with:
           version: '1.11'
       - run: julia -e "using Pkg; Pkg.activate(\"docs\"); Pkg.instantiate(); include(\"docs/make.jl\")"
