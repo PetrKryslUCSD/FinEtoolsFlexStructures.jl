@@ -45,9 +45,9 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     # G13 = G12
     # G23 = E2 * 0.5
     # nu12 = 0.25
-    a = 10.0 * phun("m")
-    rho = 1e-4 * phun("KG/M^3")
-    E2 = 1 * phun("Pa")
+    a = 1.0 * phun("m")
+    rho = 1000 * phun("KG/M^3")
+    E2 = 1000 * phun("MPa")
     E1 = E2 * 40
     G12 = E2 * 0.6
     G13 = G12
@@ -129,7 +129,7 @@ function _execute_angle(nplies, aspect, n, reference, visualize)
     # @info "Omega = $(oms[1])"
     fs = oms ./(2*pi)
     ndoms = nondimensionalised_frequency(material, a, thickness, oms)
-    @info "Nondim freq: $(ndoms[1])  vs Reference: $(reference) ($(ndoms[1]/reference*100))"
+    @info "Frequency: $(fs[1]). Nondim freq: $(ndoms[1])  vs Reference: $(reference) ($(ndoms[1]/reference*100))"
         
     # Visualization
     if visualize
@@ -159,15 +159,17 @@ function test_angle()
         "nplies=2, a/h=5" => 10.335,
         "nplies=2, a/h=10" => 13.044,
         "nplies=2, a/h=20" => 14.179,
+        "nplies=2, a/h=50" => 14.561,
         "nplies=2, a/h=100" => 14.618,
         "nplies=8, a/h=5" => 12.892,
         "nplies=8, a/h=10" => 19.289, 
         "nplies=8, a/h=20" => 23.259,
+        "nplies=8, a/h=50" => 24.909,
         "nplies=8, a/h=100" => 25.176
     )
     for nplies in [2, 8]
         @info "-----------------------------------------\nNumber of plies: $nplies"
-        for aspect in [5, 10, 20, 100]
+        for aspect in [5, 10, 20, 50, 100]
             @info "Aspect: $aspect"
             for n in [10, 20, 40,]
                 _execute_angle(nplies, aspect, n, reference["nplies=$nplies, a/h=$aspect"], true)
