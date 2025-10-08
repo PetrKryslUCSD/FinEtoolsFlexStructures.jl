@@ -29,7 +29,7 @@
 
 ## News
 
-- 08/28/2025: Update examples.
+- 08/28/2025: Update examples. Update workflows.
 
 
 [Past news](#past-news)
