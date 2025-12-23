@@ -11,14 +11,25 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
 
-function _execute_dsg_model(formul, n = 2, visualize = true)
-    E = 30e6;
-    nu = 0.3;
-    force = 40;
-    thickness = 0.1;
+function _execute_model(formul, n = 2, visualize = true)
+    # E = 30e6;
+    # nu = 0.3;
+    # force = 40;
+    thickness = 0.001;
     L= 10;
     # analytical solution for the vertical deflection under the load
-    analyt_sol=-0.0168;
+    # analyt_sol=-0.01689e6;
+    E = 1.0;
+    nu = 0.0;
+    D = E * thickness^3 / 12 / (1 - nu^2)
+    # The reference solution comes from CMAME 
+    # A TRIANGULAR BENDING ELEMENT BASED ON 
+    # AN ENERGY-ORTHOGONAL FREE FORMULATION
+    # Felippa, Bergan, 1986.
+    # Table 3
+    # w_c = -0.01160084 * P * L^2 / D;
+    force = 1.0 / (0.01160084 * (L^2 / D))
+    analyt_sol = -1.0
 
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
@@ -86,7 +97,11 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
-    @show n, dchi.values[nl, 3]/analyt_sol*100
+    # @show n, dchi.values[nl, 3]/analyt_sol*100
+    targetu =  dchi.values[nl, 3][1]
+    @info "$n el, Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 6)*100)%"
+    epsrel = abs(targetu - analyt_sol) / abs(analyt_sol)
+    @info "Digits of accuracy: $(-log10(epsrel))"
 
     # Visualization
     if !visualize
@@ -107,8 +122,8 @@ function test_convergence()
     @info "Simply supported square plated with concentrated force,"
     @info " formulation=$(formul)"
 
-    for n in [2, 4, 8, 16, 32, 64]
-        _execute_dsg_model(formul, n, false)
+    for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
+        _execute_model(formul, n, false)
     end
     return true
 end
