@@ -13,6 +13,9 @@ between a reference node on which the load is prescribed and the nodes located
 on the free end. The distributed nodal loads on the free end are equivalent to
 a uniformly distributed load of 8.7563 N/m (0.05 lb/in). 
 
+Note: There are at least two versions: one with nu = 0.35 and one with nu = 0.3.
+Beware!
+
 """
 module raasch_examples
 
