@@ -1,4 +1,6 @@
 # Simply supported square plate with uniform distributed load
+# Note: In order to get fast convergence, the hard SS needs 
+# to be adopted.
 module simply_supp_square_plate_udl_examples
 
 using FinEtools
@@ -10,6 +12,7 @@ using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+
 
 
 
@@ -28,7 +31,10 @@ function _execute_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true
     D = E*thickness^3/12/(1-nu^2)
     p = 1.0*tL_ratio
     # analytical solution for the vertical deflection under the load
-    analyt_sol=-4.062e-3*p*L^4/D;
+    # analytical solution for the vertical deflection under the load
+    # From A Triangular Plate Bending Element Based on an Energy-Orthogonal Free, 
+    # by Felippa and Bergan, 1986, Table 3. 
+    analyt_sol=-4.06235e-3*p*L^4/D;
 
     tolerance = L/n/1000
     fens, fes = T3block(L/2,L/2,n,n);
@@ -157,8 +163,11 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     D = E*thickness^3/12/(1-nu^2)
     p = 1.0*tL_ratio
     # analytical solution for the vertical deflection under the load
-    analyt_sol=-4.062e-3*p*L^4/D;
-
+    # analytical solution for the vertical deflection under the load
+    # From A Triangular Plate Bending Element Based on an Energy-Orthogonal Free, 
+    # by Felippa and Bergan, 1986, Table 3. 
+    analyt_sol=-4.06235e-3*p*L^4/D;
+   
     tolerance = L/n/1000
     fens, fes = T3block(L,L,n,n);
     fens.xyz = xyz3(fens)
@@ -185,22 +194,22 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # edges parallel to Y
+    # edges parallel to Y, hard simple support (rotation orthogonal to edge = 0)
     l1 = selectnode(fens; box = Float64[-L/2 -L/2 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,6]
+    for i in [1,2,3,4,6]
         setebc!(dchi, l1, true, i)
     end
     l1 = selectnode(fens; box = Float64[+L/2 +L/2 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,6]
+    for i in [1,2,3,4,6]
         setebc!(dchi, l1, true, i)
     end
-    # edges parallel to X
+    # edges parallel to X, hard simple support (rotation orthogonal to edge = 0)
     l1 = selectnode(fens; box = Float64[-Inf Inf -L/2 -L/2 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,6]
+    for i in [1,2,3,5,6]
         setebc!(dchi, l1, true, i)
     end
     l1 = selectnode(fens; box = Float64[-Inf Inf +L/2 +L/2 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,6]
+    for i in [1,2,3,5,6]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -221,7 +230,8 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     solve_blocked!(dchi, K, F)
     targetu =  dchi.values[nl, 3][1]
     @info "Target: $(round(targetu, digits=8)),  $(round(targetu/analyt_sol, digits = 4)*100)%"
-
+    epsrel = abs(targetu - analyt_sol) / abs(analyt_sol)
+    @info "Digits of accuracy: $(-log10(epsrel))"
     # Visualization
     if visualize
         U = gathersysvec(dchi)
@@ -264,12 +274,12 @@ end
 
 function test_convergence_full()
     formul = FEMMShellT3FFModule
-    tL_ratio = 0.001
+    tL_ratio = 0.00001
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $tL_ratio formulation=$(formul)"
-    for n in [32,  ]
-    # for n in [2, 4, 8, 16, 32, 64]
-        _execute_full_model(formul, n, tL_ratio, true)
+    # for n in [32,  ]
+    for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
+        _execute_full_model(formul, n, tL_ratio, false)
     end
     return true
 end
