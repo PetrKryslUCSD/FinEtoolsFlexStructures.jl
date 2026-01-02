@@ -155,7 +155,7 @@ function test_convergence_quarter()
     return true
 end
 
-function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
+function _execute_full_model(formul, n = 2, tL_ratio = 0.01, simple_support = :hard, visualize = true)
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -194,22 +194,26 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # edges parallel to Y, hard simple support (rotation orthogonal to edge = 0)
+    # edges parallel to Y, soft support: rotations in plane are free; hard simple support: rotation orthogonal to edge = 0
+    dof = [1,2,3,6]
+    simple_support == :hard && (dof = [1,2,3,4,6])
     l1 = selectnode(fens; box = Float64[-L/2 -L/2 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,4,6]
+    for i in dof
         setebc!(dchi, l1, true, i)
     end
     l1 = selectnode(fens; box = Float64[+L/2 +L/2 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,4,6]
+    for i in dof
         setebc!(dchi, l1, true, i)
     end
-    # edges parallel to X, hard simple support (rotation orthogonal to edge = 0)
+    # edges parallel to X, soft support: rotations in plane are free; hard simple support: rotation orthogonal to edge = 0
+    dof = [1,2,3,6]
+    simple_support == :hard && (dof = [1,2,3,5,6])
     l1 = selectnode(fens; box = Float64[-Inf Inf -L/2 -L/2 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,5,6]
+    for i in dof
         setebc!(dchi, l1, true, i)
     end
     l1 = selectnode(fens; box = Float64[-Inf Inf +L/2 +L/2 -Inf Inf], inflate = tolerance)
-    for i in [1,2,3,5,6]
+    for i in dof
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -252,22 +256,45 @@ function _execute_full_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
         #     push!(scalars, ("en$nc", fld.values))
         # end
         # vtkwrite("scordelis_lo_examples-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        # scalars = []
+        # for nc in 1:2
+        #     fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+        #     push!(scalars, ("q$nc", fld.values))
+        #     fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+        #     push!(scalars, ("eq$nc", fld.values))
+        # end
+        # vtkwrite("simply_supp_square_plate_udl-full-n=$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+
+        ocsys = CSys(3)
+        scalars = []
+        for nc in 1:3
+            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+            push!(scalars, ("m$nc", fld.values))
+        end
+        vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        scalars = []
+        for nc in 1:3
+            fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys=ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+            push!(scalars, ("n$nc", fld.values))
+        end
+        vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-n.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
-            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
-            push!(scalars, ("q$nc", fld.values))
-            fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
-            push!(scalars, ("eq$nc", fld.values))
+            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("q$nc", fld.values))
         end
-        vtkwrite("simply_supp_square_plate_udl-full-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
 
-        scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
-        update_rotation_field!(Rfield0, dchi)
-        plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
-        #plot_nodes(fens),
-            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-            dims = 1)
-        pl = render(plots)
+        # scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
+        # update_rotation_field!(Rfield0, dchi)
+        # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+        # #plot_nodes(fens),
+        #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+        #     dims = 1)
+        # pl = render(plots)
     end
     return true
 end
@@ -275,11 +302,12 @@ end
 function test_convergence_full()
     formul = FEMMShellT3FFModule
     tL_ratio = 0.00001
+    tL_ratio = 0.001
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $tL_ratio formulation=$(formul)"
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
-        _execute_full_model(formul, n, tL_ratio, false)
+        _execute_full_model(formul, n, tL_ratio, :soft, true)
     end
     return true
 end
@@ -290,7 +318,7 @@ function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001, 0.000
     for n in [2, 4, 8, 16, 32, 64]
         for tL_ratio in tL_ratios
             @info "thickness/length = $tL_ratio formulation=$(formul)"
-            _execute_full_model(formul, n, tL_ratio, false)
+            _execute_full_model(formul, n, tL_ratio, :soft, false)
         end
     end
     return true
