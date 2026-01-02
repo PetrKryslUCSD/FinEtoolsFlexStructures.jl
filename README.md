@@ -29,6 +29,7 @@
 
 ## News
 
+- 01/31/2026: Update versions.
 - 08/28/2025: Update examples. Update workflows.
 
 
