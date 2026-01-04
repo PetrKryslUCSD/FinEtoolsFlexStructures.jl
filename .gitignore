@@ -12,6 +12,8 @@
 *.sublime-workspace
 docs/build/
 .vscode/
+examples/.vscode/
 *.bak
 *.code-workspace
+.idea/
 
