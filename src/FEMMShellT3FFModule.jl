@@ -64,7 +64,7 @@ The treatment of the transformation between the element and nodal coordinates
 is carried out using a clean alternative to the publication
 
 [3] Finite Elements in Analysis and Design 30 (1998) 235—242
-The treatment of shell normals in ﬁnite element analysis
+The treatment of shell normals in finite element analysis
 Richard H. MacNeal, Charles T. Wilson, Robert L. Harder, Claus C. Hoﬀ
 The MacNeal-Schwendler Corporation, 815 Colorado Blvd., Los Angeles, CA 90041, USA
 

@@ -16,12 +16,13 @@ using ..FinEtoolsFlexStructures.FESetL2BeamModule: FESetL2Beam, cat
 Mesh of a generally curved beam member given by the location of the
 vertices of the spline curve.
 
+`xyz` = array of vertex locations, one vertex per row
 `nL` = number of elements
 """
 function frame_member(xyz, nL, crosssection; label = 0)
     npts = size(xyz, 1)
     s = fill(0.0, npts)
-    for j = 2:npts
+    for j in 2:npts
         s[j] = s[j-1] + norm(xyz[j, :] - xyz[j-1, :])
     end
     k = npts < 4 ? npts - 1 : 3
@@ -60,7 +61,7 @@ function frame_member(xyz, nL, crosssection; label = 0)
     _A3s = fill(0.0, N)
     _x1x2_vector = [[0.0, 0.0, 1.0] for i = 1:N]
     _dimensions = [[0.0] for i = 1:N]
-    for i = 1:N
+    for i in 1:N
         par = crosssection.parameters(smid[i] / stot)
         _A[i] = par.A
         _I1[i] = par.I1
