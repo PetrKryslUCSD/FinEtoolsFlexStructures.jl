@@ -211,12 +211,7 @@ function stiffness(
     E = self.material.E
     G = E / 2 / (1 + self.material.nu)::Float64
     A, I1, I2, I3, J, A2s, A3s, x1x2_vector, dimensions = properties(fes)
-    startassembly!(
-        assembler,
-        size(elmat)..., count(fes),
-        nalldofs(dchi),
-        nalldofs(dchi),
-    )
+    startassembly!(assembler, size(elmat)..., count(fes), nalldofs(dchi), nalldofs(dchi))
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords0, fes.conn[i])
         h, F0 = initial_local_frame!(F0, ecoords0, x1x2_vector[i])
