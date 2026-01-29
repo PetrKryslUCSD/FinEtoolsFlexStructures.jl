@@ -21,6 +21,7 @@ using FinEtools.MatrixUtilityModule:
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 using ..CompositeLayupModule:
+    AbstractTransverseShearModel,
     CompositeLayup,
     thickness,
     laminate_stiffnesses!,
@@ -55,10 +56,10 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details about the homogeneous-shell refer to [`FinEtoolsFlexStructures.FEMMShellT3FFModule.FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
     integdomain::ID # integration domain data
     # Definitions of layups
-    layup_groups::Vector{Tuple{CompositeLayup,Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
+    layup_groups::Vector{Tuple{CompositeLayup{TSM},Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     # Configuration parameters
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
