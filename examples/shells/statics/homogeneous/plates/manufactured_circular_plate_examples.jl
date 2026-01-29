@@ -15,6 +15,7 @@ using FinEtoolsFlexStructures.FEMMShellT3FFModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using Targe2
 
 C = -1/48
 manufactured_solution_w(x, y) = C * (x^4 + y^4) 
@@ -39,6 +40,15 @@ function _execute(n = 2, t_radius_ratio = 0.01, mesh_procedure = :t3_nice, visua
         fens, fes = T3circlen(a, n);
     elseif mesh_procedure == :t3_poor
         fens, fes = T3circleseg(pi/2, a, n, n);
+    elseif mesh_procedure == :t3_targe2
+        commands = """
+   curve 1 circle center 0.0 0.0 radius $(a)
+   subregion 1  property 1 boundary 1
+   m-ctl-point constant $(a/n)
+   """
+        mesh = triangulate(commands)
+        fens = FENodeSet(mesh.xy)
+        fes = FESetT3(mesh.triconn)
     else
         @error "Unknown mesh procedure"
     end
@@ -104,8 +114,8 @@ function _execute(n = 2, t_radius_ratio = 0.01, mesh_procedure = :t3_nice, visua
     # Solve
     solve_blocked!(dchi, K, F)
     
-    targetu =  dchi.values[nl, 3][1]
-    @info "Target: $(round(targetu, digits=8)),  $(round(targetu/center_w, digits = 4)*100)%"
+    # targetu =  dchi.values[nl, 3][1]
+    # @info "Target: $(round(targetu, digits=8)),  $(round(targetu/center_w, digits = 4)*100)%"
 
     # Generate a graphical display of resultants
     cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
@@ -147,7 +157,7 @@ function test_convergence()
     @info "Simply supported square plate with uniform load,"
     @info "thickness/length = $t_radius_ratio "
     for n in [18, ]
-        _execute(n, t_radius_ratio, :t3_nice, false)
+        _execute(n, t_radius_ratio, :t3_targe2, false)
     end
     return true
 end

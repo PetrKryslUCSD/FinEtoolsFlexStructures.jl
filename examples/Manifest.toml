@@ -2,7 +2,7 @@
 
 julia_version = "1.12.4"
 manifest_format = "2.0"
-project_hash = "21ea322bb7e4b0d0554f490ddf7287b40bfd38c5"
+project_hash = "f24c92797b71d0d46150ccc4fb120d17d65866cc"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
@@ -290,9 +290,9 @@ version = "3.0.6"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-git-tree-sha1 = "8c87ec36edb20b5b0da6f422662323b107ac2366"
+git-tree-sha1 = "2490439c2af1506d1c73df166d1f39d12739f8b2"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "3.0.12"
+version = "3.1.0"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -712,6 +712,12 @@ deps = ["InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "S
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
+[[deps.REPLHistory]]
+deps = ["InteractiveUtils", "Pkg", "REPL", "Test"]
+git-tree-sha1 = "c12ad1c05b6f0e0f7b9d6b2f1623e2f0c2b52828"
+uuid = "a5566ce3-012c-4b09-85b8-62131f0c3f36"
+version = "0.2.0"
+
 [[deps.Random]]
 deps = ["SHA"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -852,6 +858,14 @@ version = "1.12.1"
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 version = "1.10.0"
+
+[[deps.Targe2]]
+deps = ["DelimitedFiles", "LinearAlgebra", "Printf", "REPLHistory", "Revise", "Statistics", "Test"]
+git-tree-sha1 = "aca14a334d130f07de3d7ea21a69567bade6a0fd"
+repo-rev = "main"
+repo-url = "https://github.com/PetrKryslUCSD/Targe2.jl.git"
+uuid = "f62361a0-daf5-40d4-849b-fa9ebeca3f63"
+version = "0.1.1"
 
 [[deps.TensorCore]]
 deps = ["LinearAlgebra"]
