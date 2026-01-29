@@ -73,7 +73,7 @@ function test()
     CM = CompositeLayupModule
     ply1 = CM.Ply("ply1", mater, thickness, 45.0)
     ply2 = CM.Ply("ply2", mater, thickness, -45.0)
-    cl = CM.CompositeLayup("sample", [ply1, ply2], CM.cartesian_csys((1, 2, 3)))
+    cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1, ply2], CM.cartesian_csys((1, 2, 3)))
     @test cl.plies[2].angle == -45
     true
 end
@@ -322,7 +322,7 @@ function test()
 
     for angle in [0.0 47.0 90.0 129.0 180.0]
         ply1 = CM.Ply("ply1", mater, thickness, angle)
-        cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
+        cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1], CM.cartesian_csys((1, 2, 3)))
         @test cl.plies[1].angle == angle
         A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         @test norm(A - Atrue) < 1.0e-15 * norm(Atrue)
@@ -373,7 +373,7 @@ function test()
     CM = CompositeLayupModule
     # From Barbero's  	Introduction to Composite Materials Design [3 ed.]  Example 5.6
     ply1 = CM.Ply("ply1", mater, 1.0, -55.0)
-    cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
+    cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1], CM.cartesian_csys((1, 2, 3)))
     cl.plies[1]._Dps .= [20.874 3.260 0; 3.260 11.898 0; 0 0 3.789]
     A = fill(0.0, 3, 3)
     B = fill(0.0, 3, 3)
@@ -437,7 +437,7 @@ function test()
                 0.0 0.0 7637.999999999999
             ],
         ) < 1.0e-15 * E2
-        cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
+        cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1], CM.cartesian_csys((1, 2, 3)))
         @test cl.plies[1].angle == angle
         A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("MPa")
@@ -486,7 +486,7 @@ function test()
                 0.0 0.0 7637.999999999999
             ],
         ) < 1.0e-15 * E2
-        cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
+        cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1], CM.cartesian_csys((1, 2, 3)))
         @test cl.plies[1].angle == angle
         A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
         # @show A./phun("MPa")
@@ -541,7 +541,7 @@ function test()
             0.0 0.0 7637.999999999999
         ],
     ) < 1.0e-15 * E2
-    cl = CM.CompositeLayup("sample", [ply1, ply2], CM.cartesian_csys((1, 2, 3)))
+    cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1, ply2], CM.cartesian_csys((1, 2, 3)))
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
     # @show A./phun("MPa")
     @test norm(
@@ -586,7 +586,7 @@ function test()
     ply5 = CM.Ply("ply5", mater, thickness, 0)
     cl = CM.CompositeLayup(
         "sample",
-        [ply1, ply2, ply3, ply4, ply5],
+        CM.AbstractPly[ply1, ply2, ply3, ply4, ply5],
         CM.cartesian_csys((1, 2, 3)),
     )
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
@@ -625,7 +625,7 @@ function test()
     H = fill(0.0, 2, 2)
     # "cross-ply" fabric: no coupling of extension and bending
     ply1 = CM.Ply("ply1", mater, thickness, -55)
-    cl = CM.CompositeLayup("sample", [ply1], CM.cartesian_csys((1, 2, 3)))
+    cl = CM.CompositeLayup("sample", CM.AbstractPly[ply1], CM.cartesian_csys((1, 2, 3)))
     A, B, C = CM.laminate_stiffnesses!(cl, A, B, C)
     # @show A./phun("GPa")/thickness
     @test norm(
@@ -678,7 +678,7 @@ function test()
     # "angle-ply" fabric: coupling of extension and bending
     cl = CM.CompositeLayup(
         "sample",
-        [
+        CM.AbstractPly[
             CM.Ply("ply1", mater, lamina_thickness, +55),
             CM.Ply("ply2", mater, lamina_thickness, -55),
         ],
@@ -744,7 +744,7 @@ function test(npairs = 1)
     B = fill(0.0, 3, 3)
     C = fill(0.0, 3, 3)
 
-    plies = []
+    plies = CM.AbstractPly[]
     for j = 1:npairs
         push!(plies, CM.Ply("ply1", mater, thickness / npairs / 2, 0))
         push!(plies, CM.Ply("ply1", mater, thickness / npairs / 2, 90))

@@ -39,7 +39,7 @@ function cartesian_csys(axes)
         end
         return csmatout
     end
-    # TO DO: checked the axes argument for correctness
+    # TO DO: check the axes argument for correctness/sanity
     return CSys(3, 3, cartesian!)
 end
 
@@ -60,7 +60,7 @@ struct Ply{M} <: AbstractPly
 end
 
 """
-    Ply{M} <: AbstractPly
+    Ply(name, material::M, thickness, angle) where {M}
 
 Create a ply.
 
@@ -166,16 +166,28 @@ function lamina_material(rho, E, nu)
     return MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
 end
 
+
+abstract type AbstractTransverseShearModel end
+
+struct TransverseShearModelVinsonSierakowski <: AbstractTransverseShearModel
+end
+
+struct TransverseShearModelConstant <: AbstractTransverseShearModel
+end
+
+
 """
     CompositeLayup
 
 Type for composite layup.
 """
-struct CompositeLayup
-    name::String
+struct CompositeLayup{TSM<:AbstractTransverseShearModel}
+    name::String # Name of the composite layup.
     offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
     plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)
     csys::CSys # updater of the material orientation matrix
+    transverse_shear_model::TSM # Transverse shear correction model.
+    transverse_shear_constant::FFlt # Transverse shear correction constant. Only used for TransverseShearModelConstant.
 end
 
 """
@@ -186,10 +198,29 @@ Create a composite layup.
 Provide the name, the array of plies (`Ply`), and the coordinate system that
 defines the orientation of the composite layup. The first base vector of this
 coordinate system is the reference direction for the layup.
+The transverse shear model is `TransverseShearModelVinsonSierakowski()`.
 """
 function CompositeLayup(name, plies, mcsys)
     offset = 0.0
-    return CompositeLayup(name, offset, plies, mcsys)
+    _plies = AbstractPly[p for p in plies]
+    return CompositeLayup(name, offset, _plies, mcsys, TransverseShearModelVinsonSierakowski(), 0.0)
+end
+
+"""
+    CompositeLayup(name, plies, mcsys, tcf)
+
+Create a composite layup.
+
+Provide the name, the array of plies (`Ply`), the coordinate system that
+defines the orientation of the composite layup (the first base vector 
+of this coordinate system is the reference direction for the layup), 
+and the transverse shear correction constant. 
+The transverse shear model is `TransverseShearModelConstant()`.
+"""
+function CompositeLayup(name, plies, mcsys, tcf::N) where {N<:Number}
+    offset = 0.0
+    _plies = AbstractPly[p for p in plies]
+    return CompositeLayup(name, offset, _plies, mcsys, TransverseShearModelConstant(), tcf)
 end
 
 """
@@ -259,11 +290,17 @@ function laminate_transverse_stiffness!(cl::CompositeLayup, H)
         # Transform the plane stress matrix into the layup coordinates
         @. Dts = p._Dts
         Dts = tf(Dts, T)
-        # Compute the transverse shear stiffness. The correction factor
-        # accounting for the parabolic distribution of the shear stress is due to
-        # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
-        # Materials, 2008
-        @. H += 5 / 4 * (ze - zs - 4 / 3 * (ze^3 - zs^3) / layup_thickness^2) * Dts
+        # Compute the transverse shear stiffness. 
+        cf = cl.transverse_shear_constant
+        if cl.transverse_shear_model === TransverseShearModelVinsonSierakowski()
+            # The correction factor
+            # accounting for the parabolic distribution of the shear stress is due to
+            # Vinson, Sierakowski, The Behavior of Structures Composed of Composite
+            # Materials, 2008
+            @. H += 5 / 4 * (ze - zs - 4 / 3 * (ze^3 - zs^3) / layup_thickness^2) * Dts
+        else
+            @. H += cf * (ze - zs) * Dts
+        end
         zs += p.thickness
     end
     return H
