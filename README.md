@@ -29,7 +29,8 @@
 
 ## News
 
-- 01/31/2026: Update versions.
+- 01/29/2026: Add option to use constant transverse shear correction factor.
+- 01/3/2026: Update versions.
 - 08/28/2025: Update examples. Update workflows.
 
 
