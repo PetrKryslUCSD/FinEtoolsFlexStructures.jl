@@ -1,4 +1,7 @@
 using Test
+@time @testset "Shell statics Q4RNT" begin
+    include("test_q4rnt_shell_statics.jl")
+end
 @time @testset "Beam transient dynamics" begin
     include("test_beam_dyn.jl")
 end

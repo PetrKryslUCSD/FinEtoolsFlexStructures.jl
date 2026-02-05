@@ -7,6 +7,11 @@ using FinEtools
 using FinEtools.MeshQuadrilateralModule
 using LinearAlgebra: norm, Transpose, mul!
 
+"""
+    struct FESetShellQ4 <: AbstractFESet2Manifold{4}
+
+Type of a finite element set for the four-node quadrilateral shell.
+"""
 struct FESetShellQ4 <: AbstractFESet2Manifold{4} end
 
 function local_frame!(fes::FESetShellQ4, F0, J0)
@@ -23,7 +28,7 @@ function local_frame!(fes::FESetShellQ4, F0, J0)
         F0[3, 1] * b[1] - F0[1, 1] * b[3],
         -F0[2, 1] * b[1] + F0[1, 1] * b[2],
     )
-    F0[:, 3] /= norm(@view F0[:, 3])
+    F0[:, 3] ./= norm(@view F0[:, 3])
     #     F0(:,2)=skewmat(F0(:,3))*F0(:,1);
     F0[:, 2] .= (
         -F0[3, 3] * F0[2, 1] + F0[2, 3] * F0[3, 1],
