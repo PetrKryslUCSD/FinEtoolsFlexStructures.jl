@@ -573,6 +573,42 @@ end
     mul!(Bs, o.tempBs, T)
 end
 
+function _drilling_penalty_kavg(elmat, normals, normal_valid, conn, drilling_stiffness_scale)
+    if drilling_stiffness_scale == 0.0
+        return 0.0
+    end
+    
+    I3 = Matrix{Float64}(I, 3, 3)
+    tangential = Float64[]
+    
+    for k in 1:__NN
+        nnode = Int(conn[k])
+        if !normal_valid[nnode]
+            continue
+        end
+        
+        nvec = @view normals[nnode, :]
+        nn = norm(nvec)
+        if nn == 0.0
+            continue
+        end
+        nvec_normalized = nvec / nn
+        
+        r = ((k - 1) * __NDOF + 4):((k - 1) * __NDOF + 6)
+        Krr = @view elmat[r, r]
+        P = I3 - nvec_normalized * nvec_normalized'
+        Kt = P * Krr * P
+        
+        push!(tangential, max(0.0, sum(diag(Kt)) / 2.0))
+    end
+    
+    if isempty(tangential)
+        return 0.0
+    end
+    
+    return mean(tangential) * drilling_stiffness_scale
+end
+
 """
     stiffness(self::FEMMShellQ4RNT, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, TI<:Number}
 
@@ -655,6 +691,25 @@ function stiffness(
         end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
+        # Drilling stiffness
+        if drilling_stiffness_scale != 0.0
+            kavg = _drilling_penalty_kavg(elmat, normals, normal_valid, fes.conn[i], drilling_stiffness_scale)
+            if kavg != 0.0
+                for k in 1:__NN
+                    nnode = fes.conn[i][k]
+                    if !normal_valid[nnode]
+                        continue
+                    end
+                    nvec = @view normals[nnode, :]
+                    if norm(nvec) == 0.0
+                        continue
+                    end
+                    Ke = kavg .* (nvec * nvec')
+                    r = ((k - 1) * __NDOF + 4):((k - 1) * __NDOF + 6)
+                    elmat[r, r] .+= Ke
+                end
+            end
+        end
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i])
         assemble!(assembler, elmat, dofnums, dofnums)
