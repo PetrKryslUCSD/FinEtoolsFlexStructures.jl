@@ -208,7 +208,7 @@ end
     make(integdomain, material)
 
 Make a Q4RNT FEMM from the integration domain,  and a material.
-Default isoparametric method for computing the normals is used.
+Default isoparametric method for computing the normais is used.
 """
 function make(integdomain, material)
     return FEMMShellQ4RNT(integdomain, material)
