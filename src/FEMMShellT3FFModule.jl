@@ -21,8 +21,8 @@ using FinEtools.MatrixUtilityModule:
 using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 
-const __nn = 3 # number of nodes
-const __ndof = 6 # number of degrees of freedom per node
+const __NN = 3 # number of nodes
+const __NDOF = 6 # number of degrees of freedom per node
 
 # Formulation for the transverse shear stiffness which averages the
 # strain-displacement matrix.
@@ -120,33 +120,33 @@ function _J0(ft::Type{T}) where {T<:Real}
 end
 
 function _ecoords(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn, 3)
+    return fill(zero(ft), __NN, 3)
 end
 
 function _edisp(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn * __ndof)
+    return fill(zero(ft), __NN * __NDOF)
 end
 
 function _ecoords_e(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn, 2)
+    return fill(zero(ft), __NN, 2)
 end
 
 function _edisp_e(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn * __ndof)
+    return fill(zero(ft), __NN * __NDOF)
 end
 
 function _gradN_e(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn, 2)
+    return fill(zero(ft), __NN, 2)
 end
 
 function _dofnums(it::Type{IT}) where {IT<:Integer}
-    return fill(zero(it), 1, __nn * __ndof)
+    return fill(zero(it), 1, __NN * __NDOF)
 end
 
 function _Bs(ft::Type{T}) where {T<:Real}
-    _Bm = fill(zero(ft), 3, __nn * __ndof)
-    _Bb = fill(zero(ft), 3, __nn * __ndof)
-    _Bs = fill(zero(ft), 2, __nn * __ndof)
+    _Bm = fill(zero(ft), 3, __NN * __NDOF)
+    _Bb = fill(zero(ft), 3, __NN * __NDOF)
+    _Bs = fill(zero(ft), 2, __NN * __NDOF)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
     return _Bm, _Bb, _Bs, _DpsBmb, _DtBs
@@ -165,11 +165,11 @@ function _nvalid()
 end
 
 function _T(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn * __ndof, __nn * __ndof)
+    return fill(zero(ft), __NN * __NDOF, __NN * __NDOF)
 end
 
 function _elmat(ft::Type{T}) where {T<:Real}
-    return fill(zero(ft), __nn * __ndof, __nn * __ndof)
+    return fill(zero(ft), __NN * __NDOF, __NN * __NDOF)
 end
 
 """
@@ -401,9 +401,9 @@ end
     # - `T` = transformation matrix, input in the global basis, output in the
     #   nodal basis
     T .= zero(eltype(T))
-    for i = 1:__nn
+    for i = 1:__NN
         mul!(o.Tblock, transpose(A_Es[i]), transpose(E_G))
-        offset = (i - 1) * __ndof
+        offset = (i - 1) * __NDOF
         r = offset+1:offset+3
         @. T[r, r] = o.Tblock
         r = offset+4:offset+6
@@ -426,8 +426,8 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # rotations.
 
     T .= zero(eltype(T))
-    for i = 1:__nn
-        roffst = (i - 1) * __ndof
+    for i = 1:__NN
+        roffst = (i - 1) * __NDOF
         iA_E = A_Es[i]
         iA_E_33 = iA_E[3, 3]
         # T[r, r] .= iA_E
@@ -444,8 +444,8 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
         end
         m1 = (1 / iA_E_33) * iA_E[1, 3]
         m2 = (1 / iA_E_33) * iA_E[2, 3]
-        for j = 1:__nn
-            coffst = (j - 1) * __ndof
+        for j = 1:__NN
+            coffst = (j - 1) * __NDOF
             for k = 1:3
                 a3 = 1 / 2 * (iA_E[2, k] * gradN_e[j, 1] - iA_E[1, k] * gradN_e[j, 2])
                 T[roffst+4, coffst+k] += m1 * a3
@@ -533,7 +533,7 @@ end
 function _Bmmat!(Bm, gradN)
     # Compute the linear membrane strain-displacement matrix.
     fill!(Bm, zero(eltype(Bm)))
-    for i = 1:__nn
+    for i = 1:__NN
         Bm[1, 6*(i-1)+1] = gradN[i, 1]
         Bm[2, 6*(i-1)+2] = gradN[i, 2]
         Bm[3, 6*(i-1)+1] = gradN[i, 2]
@@ -546,7 +546,7 @@ function _Bbmat!(Bb, gradN)
     # matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and
     # rotations are in a local coordinate system.
     fill!(Bb, zero(eltype(Bb)))
-    for i = 1:__nn
+    for i = 1:__NN
         Bb[1, 6*(i-1)+5] = gradN[i, 1]
         Bb[2, 6*(i-1)+4] = -gradN[i, 2]
         Bb[3, 6*(i-1)+4] = -gradN[i, 1]
@@ -788,12 +788,12 @@ function mass(
         for k = 1:npe
             # Translation degrees of freedom
             for d = 1:3
-                c = (k - 1) * __ndof + d
+                c = (k - 1) * __NDOF + d
                 elmat[c, c] += tmass
             end
             # Bending degrees of freedom
             for d = 4:6
-                c = (k - 1) * __ndof + d
+                c = (k - 1) * __NDOF + d
                 elmat[c, c] += rmass
             end
         end

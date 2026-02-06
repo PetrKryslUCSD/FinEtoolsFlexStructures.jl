@@ -123,11 +123,11 @@ function _E_G(ft::Type{T}) where {T<:Real}
 end
 
 function _A_Es(ft::Type{T}) where {T<:Real}
-    return [fill(zero(ft), 3, 3), fill(zero(ft), 3, 3), fill(zero(ft), 3, 3)]
+    return [fill(zero(ft), 3, 3) for i in 1:__NN]
 end
 
 function _nvalid()
-    return fill(false, 3)
+    return fill(false, __NN)
 end
 
 function _T(ft::Type{T}) where {T<:Real}
@@ -316,18 +316,18 @@ function _gradN_e!(gradN_e, J0, E_G, gradNparams)
     end
 end
 
-struct NodalTriadsE{FT<:Real}
+struct _NodalTriadsE{FT<:Real}
     r::Vector{FT}
     nk_e::Vector{FT}
     nk::Vector{FT}
     f3_e::Vector{FT}
 end
 
-function NodalTriadsE(ft::Type{T}) where {T<:Real}
-    NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
+function _NodalTriadsE(ft::Type{T}) where {T<:Real}
+    _NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
 end
 
-(o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
+(o::_NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
     # Components of nodal cartesian ordinate systems such that the third
     # direction is the direction of the nodal normal, and the angle to rotate
     # the element normal into the nodal normal is as short as possible; these
@@ -513,43 +513,65 @@ function num_normals(self::FEMMShellQ4RNT)
     return total_normals, total_invalid_normals
 end
 
-
-function _Bmmat!(Bm, gradN)
-    fill!(Bm, 0.0)
-    for i in 1:__NN
-        off = (i-1)*__NDOF
-        Bm[1, off + 1] = gradN[i,1]
-        Bm[2, off + 2] = gradN[i,2]
-        Bm[3, off + 1] = gradN[i,2]
-        Bm[3, off + 2] = gradN[i,1]
-    end
-    return nothing
+struct _Bmmat{FT<:Real}
+    tempBm::Matrix{FT}
 end
 
-function _Bbmat!(Bb, gradN)
-    fill!(Bb, 0.0)
-    for i in 1:__NN
-        off = (i-1)*__NDOF
-        Bb[1, off + 5] = gradN[i,1]
-        Bb[2, off + 4] = -gradN[i,2]
-        Bb[3, off + 4] = -gradN[i,1]
-        Bb[3, off + 5] = gradN[i,2]
-    end
-    return nothing
+function _Bmmat(ft::Type{T}) where {T<:Real}
+    _Bmmat(fill(zero(ft), 3, __NN * __NDOF))
 end
 
-function _Bsmat!(Bs, gradN, N)
-    fill!(Bs, 0.0)
+(o::_Bmmat)(Bm, gradN, T) = begin
+    o.tempBm .= 0.0
     for i in 1:__NN
         off = (i-1)*__NDOF
-        Bs[1, off + 3] = gradN[i,1]
-        Bs[1, off + 5] = N[i]
-        Bs[2, off + 3] = gradN[i,2]
-        Bs[2, off + 4] = -N[i]
+        o.tempBm[1, off + 1] = gradN[i,1]
+        o.tempBm[2, off + 2] = gradN[i,2]
+        o.tempBm[3, off + 1] = gradN[i,2]
+        o.tempBm[3, off + 2] = gradN[i,1]
     end
-    return nothing
+    mul!(Bm, o.tempBm, T)
 end
 
+struct _Bbmat{FT<:Real}
+    tempBb::Matrix{FT}
+end
+
+function _Bbmat(ft::Type{T}) where {T<:Real}
+    _Bbmat(fill(zero(ft), 3, __NN * __NDOF))
+end
+
+(o::_Bbmat)(Bb, gradN, T) = begin
+    o.tempBb .= 0.0
+    for i in 1:__NN
+        off = (i-1)*__NDOF
+        o.tempBb[1, off + 5] = gradN[i,1]
+        o.tempBb[2, off + 4] = -gradN[i,2]
+        o.tempBb[3, off + 4] = -gradN[i,1]
+        o.tempBb[3, off + 5] = gradN[i,2]
+    end
+    mul!(Bb, o.tempBb, T)
+end
+
+struct _Bsmat{FT<:Real}
+    tempBs::Matrix{FT}
+end
+
+function _Bsmat(ft::Type{T}) where {T<:Real}
+    _Bsmat(fill(zero(ft), 2, __NN * __NDOF))
+end
+
+(o::_Bsmat)(Bs, gradN, N, T) = begin
+    o.tempBs .= 0.0
+    for i in 1:__NN
+        off = (i-1)*__NDOF
+        o.tempBs[1, off + 3] = gradN[i,1]
+        o.tempBs[1, off + 5] = N[i]
+        o.tempBs[2, off + 3] = gradN[i,2]
+        o.tempBs[2, off + 4] = -N[i]
+    end
+    mul!(Bs, o.tempBs, T)
+end
 
 """
     stiffness(self::FEMMShellQ4RNT, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, TI<:Number}
@@ -578,11 +600,12 @@ function stiffness(
     fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
     reduced_rule = self.integdomain.integration_rule.rule2
     ri_npts, ri_Ns, ri_gradNparams, ri_w, ri_pc = integrationdata(self.integdomain, reduced_rule)
-    transformwith = TransformerQtEQ(elmat)
-    _nodal_triads_e! = NodalTriadsE(FT)
+    _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    bmmat! = _Bmmat(FT);   bbmat! = _Bbmat(FT);   bsmat! = _Bsmat(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
+    T = _T(FT); Tae = _T(FT); Tga = _T(FT)
     scf = 5 / 6  # shear correction factor
     Dt .*= scf
     
@@ -598,22 +621,42 @@ function stiffness(
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         # Construct the Stiffness Matrix
         fill!(elmat, 0.0) # Initialize element matrix
-        # Membrane
+        # Membrane and bending stiffness
         for j in 1:fi_npts
             locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
-            Jac = Jacobianmdim(self.integdomain, J, loc, fes.conn[i], fi_Ns[j], 2)
-            t = otherdimension
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
             _e_g!(E_G, J)
-            _gradN_e!(gradN_e, J0, E_G, fi_gradNparams[j])
-            _Bmmat!(Bm, gradN_e)
-            mul!(Bhat3, Bm, T)
-            add_btdb_ut_only!(elmat, Bhat3, t * detA * wq, Dps, DpsB)
-            
-            _Bbmat!(Bb, gradN_e)
-            mul!(Bhat3, Bb, T)
-            add_btdb_ut_only!(elmat, Bhat3, (t^3 / 12.0) * detA * wq, Dps, DpsB)
+            _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+            _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+            _transfmat_g_to_a!(Tga, A_Es, E_G)
+            _transfmat_a_to_e!(Tae, A_Es, gradN_e)
+            mul!(T, Tae, Tga)
+            bmmat!(Bm, gradN_e, T)
+            add_btdb_ut_only!(elmat, Bm, t * Jac * fi_w[j], Dps, DpsBmb)
+            bbmat!(Bb, gradN_e, T)
+            add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * fi_w[j], Dps, DpsBmb)
         end
-    
+        # Transverse sheer stiffness
+        for j in 1:ri_npts
+            locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
+            _e_g!(E_G, J)
+            _gradN_e!(gradN_e, J, E_G, ri_gradNparams[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], ri_Ns[j])
+            _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+            _transfmat_g_to_a!(Tga, A_Es, E_G)
+            _transfmat_a_to_e!(Tae, A_Es, gradN_e)
+            mul!(T, Tae, Tga)
+            bsmat!(Bs, gradN_e, ri_Ns[j], T)
+            add_btdb_ut_only!(
+                elmat,
+                Bs,
+                (t^3 / (t^2 + mult_el_size * Jac)) * Jac * ri_w[j],
+                Dt,
+                DtBs,
+            )
+        end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Assembly

@@ -31,8 +31,8 @@ using ..CompositeLayupModule:
     laminate_inertia!
 
 
-const __nn = 3 # number of nodes
-const __ndof = 6 # number of degrees of freedom per node
+const __NN = 3 # number of nodes
+const __NDOF = 6 # number of degrees of freedom per node
 
 
 """
@@ -126,20 +126,20 @@ function FEMMShellT3FFComp(
     # Alocate the buffers
     _loc = fill(0.0, 1, 3)
     _J0 = fill(0.0, 3, 2)
-    _ecoords = fill(0.0, __nn, 3)
-    _edisp = fill(0.0, __nn * __ndof)
-    _ecoords_e = fill(0.0, __nn, 2)
-    _edisp_e = fill(0.0, __nn * __ndof)
-    _dofnums = zeros(FInt, 1, __nn * __ndof)
+    _ecoords = fill(0.0, __NN, 3)
+    _edisp = fill(0.0, __NN * __NDOF)
+    _ecoords_e = fill(0.0, __NN, 2)
+    _edisp_e = fill(0.0, __NN * __NDOF)
+    _dofnums = zeros(FInt, 1, __NN * __NDOF)
     _E_G = fill(0.0, 3, 3)
     _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]
     _nvalid = fill(false, 3)
-    _T = fill(0.0, __nn * __ndof, __nn * __ndof)
-    _elmat = fill(0.0, __nn * __ndof, __nn * __ndof)
-    _gradN_e = fill(0.0, __nn, 2)
-    _Bm = fill(0.0, 3, __nn * __ndof)
-    _Bb = fill(0.0, 3, __nn * __ndof)
-    _Bs = fill(0.0, 2, __nn * __ndof)
+    _T = fill(0.0, __NN * __NDOF, __NN * __NDOF)
+    _elmat = fill(0.0, __NN * __NDOF, __NN * __NDOF)
+    _gradN_e = fill(0.0, __NN, 2)
+    _Bm = fill(0.0, 3, __NN * __NDOF)
+    _Bb = fill(0.0, 3, __NN * __NDOF)
+    _Bs = fill(0.0, 2, __NN * __NDOF)
     _DpsBmb = similar(_Bm)
     _DtBs = similar(_Bs)
 
@@ -312,9 +312,9 @@ end
     # - `T` = transformation matrix, input in the global basis, output in the
     #   nodal basis
     T .= 0.0
-    for i = 1:__nn
+    for i = 1:__NN
         mul!(o.Tblock, transpose(A_Es[i]), transpose(E_G))
-        offset = (i - 1) * __ndof
+        offset = (i - 1) * __NDOF
         r = offset+1:offset+3
         @. T[r, r] = o.Tblock
         r = offset+4:offset+6
@@ -337,8 +337,8 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # rotations.
 
     T .= 0.0
-    for i = 1:__nn
-        roffst = (i - 1) * __ndof
+    for i = 1:__NN
+        roffst = (i - 1) * __NDOF
         iA_E = A_Es[i]
         iA_E_33 = iA_E[3, 3]
         # T[r, r] .= iA_E
@@ -355,8 +355,8 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
         end
         m1 = (1 / iA_E_33) * iA_E[1, 3]
         m2 = (1 / iA_E_33) * iA_E[2, 3]
-        for j = 1:__nn
-            coffst = (j - 1) * __ndof
+        for j = 1:__NN
+            coffst = (j - 1) * __NDOF
             for k = 1:3
                 a3 = 1 / 2 * (iA_E[2, k] * gradN_e[j, 1] - iA_E[1, k] * gradN_e[j, 2])
                 T[roffst+4, coffst+k] += m1 * a3
@@ -444,7 +444,7 @@ end
 function _Bmmat!(Bm, gradN)
     # Compute the linear membrane strain-displacement matrix.
     fill!(Bm, 0.0)
-    for i = 1:__nn
+    for i = 1:__NN
         Bm[1, 6*(i-1)+1] = gradN[i, 1]
         Bm[2, 6*(i-1)+2] = gradN[i, 2]
         Bm[3, 6*(i-1)+1] = gradN[i, 2]
@@ -457,7 +457,7 @@ function _Bbmat!(Bb, gradN)
     # matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and
     # rotations are in a local coordinate system.
     fill!(Bb, 0.0)
-    for i = 1:__nn
+    for i = 1:__NN
         Bb[1, 6*(i-1)+5] = gradN[i, 1]
         Bb[2, 6*(i-1)+4] = -gradN[i, 2]
         Bb[3, 6*(i-1)+4] = -gradN[i, 1]
@@ -732,12 +732,12 @@ function mass(
             for k = 1:npe
                 # Translation degrees of freedom
                 for d = 1:3
-                    c = (k - 1) * __ndof + d
+                    c = (k - 1) * __NDOF + d
                     elmat[c, c] += tmass
                 end
                 # Bending degrees of freedom
                 for d = 4:6
-                    c = (k - 1) * __ndof + d
+                    c = (k - 1) * __NDOF + d
                     elmat[c, c] += rmass
                 end
             end
