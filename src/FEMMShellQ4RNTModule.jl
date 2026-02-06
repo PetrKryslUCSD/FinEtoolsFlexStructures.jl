@@ -603,7 +603,7 @@ function stiffness(
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
-    bmmat! = _Bmmat(FT);   bbmat! = _Bbmat(FT);   bsmat! = _Bsmat(FT)
+    bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
     T = _T(FT); Tae = _T(FT); Tga = _T(FT)
     scf = 5 / 6  # shear correction factor
@@ -637,7 +637,7 @@ function stiffness(
             bbmat!(Bb, gradN_e, T)
             add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * fi_w[j], Dps, DpsBmb)
         end
-        # Transverse sheer stiffness
+        # Transverse shear stiffness
         for j in 1:ri_npts
             locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
@@ -649,13 +649,9 @@ function stiffness(
             _transfmat_a_to_e!(Tae, A_Es, gradN_e)
             mul!(T, Tae, Tga)
             bsmat!(Bs, gradN_e, ri_Ns[j], T)
-            add_btdb_ut_only!(
-                elmat,
-                Bs,
-                (t^3 / (t^2 + mult_el_size * Jac)) * Jac * ri_w[j],
-                Dt,
-                DtBs,
-            )
+            add_btdb_ut_only!(elmat, Bs,
+                (t^3 / (t^2 + mult_el_size * Jac * ri_w[j])) * Jac * ri_w[j],
+                Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)

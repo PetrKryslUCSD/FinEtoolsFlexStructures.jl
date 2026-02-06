@@ -38,7 +38,7 @@ function _execute(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
-    femm.mult_el_size = 0.2
+    # femm.mult_el_size = 0.2
     femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -79,17 +79,17 @@ function _execute(n = 8, visualize = true)
         box = Float64[sin(40 / 360 * 2 * pi) * 25 sin(40 / 360 * 2 * pi) * 25 L / 2 L / 2 -Inf Inf],
         inflate = tolerance,
     )
-    lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
+    lfemm = FEMMBase(IntegDomain(fes, GaussRule(2, 2)))
     fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0])
-    F = distribloads(lfemm, geom0, dchi, fi, 3)
+    F = distribloads(lfemm, geom0, dchi, fi, 2)
+    @show sum(F)
 
     # Solve
     solve_blocked!(dchi, K, F)
-    resultpercent = dchi.values[nl, 3][1] / analyt_sol * 100
+    @show resultpercent = dchi.values[nl, 3][1] / analyt_sol * 100
 
     # Visualization
     if visualize
-@info "Plots"
         update_rotation_field!(Rfield0, dchi)
         vtkwrite("scordelis_lo_q4rnt-$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
