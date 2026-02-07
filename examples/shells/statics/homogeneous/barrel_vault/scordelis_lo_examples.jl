@@ -101,14 +101,14 @@ function _execute_t3ff_model(n = 8, visualize = true)
     lfemm = FEMMBase(IntegDomain(fes, TriRule(3)))
     fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0]);
     Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
-    @show sum(Ff)
+    
     # Solve
     Uf = Kff \ Ff
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
-    @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
+    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
     # Visualization
     if visualize
@@ -193,14 +193,14 @@ function _execute_q4rnt_model(n = 8, visualize = true)
     lfemm = FEMMBase(IntegDomain(fes, GaussRule(2, 2)))
     fi = ForceIntensity(Float64[0, 0, -90, 0, 0, 0]);
     Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
-    @show sum(Ff)
+    
     # Solve
     Uf = Kff \ Ff
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
-    @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
+    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
     # Visualization
     if visualize
@@ -310,7 +310,7 @@ function _execute_t3ff_model_w_units(n = 8, visualize = true)
     return true
 end
 
-function test_convergence(ns = [32, 64, 128])
+function test_convergence(ns = [8, 16, 32, ])
     @info "Scordelis-Lo shell, T3FF"
     for n in ns
         _execute_t3ff_model(n, false)
@@ -322,7 +322,7 @@ function test_convergence(ns = [32, 64, 128])
     return true
 end
 
-function test_convergence_w_units(ns = [32, 64, 128])
+function test_convergence_w_units(ns = [8, 16, 32, ])
     @info "Scordelis-Lo shell: variant with explicit physical units"
     for n in ns
         _execute_t3ff_model_w_units(n, false)
