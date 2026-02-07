@@ -573,11 +573,7 @@ end
     mul!(Bs, o.tempBs, T)
 end
 
-function _drilling_penalty_kavg(elmat, normals, normal_valid, conn, drilling_stiffness_scale)
-    if drilling_stiffness_scale == 0.0
-        return 0.0
-    end
-    
+function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     I3 = Matrix{Float64}(I, 3, 3)
     tangential = Float64[]
     
@@ -606,7 +602,31 @@ function _drilling_penalty_kavg(elmat, normals, normal_valid, conn, drilling_sti
         return 0.0
     end
     
-    return mean(tangential) * drilling_stiffness_scale
+    return mean(tangential)
+end
+
+# TODO optimize allocations, and also consider a more direct way to compute
+#  the drilling stiffness without having to compute the tangential stiffness at each node.
+# @show mean(diag(elmat[4:5, 4:5])), mean(diag(elmat[10:11, 10:11])), mean(diag(elmat[16:17, 16:17])), mean(diag(elmat[22:23, 22:23]))
+function _add_drilling_stiffness!(elmat, normals, normal_valid, conn, drilling_stiffness_scale)
+    if drilling_stiffness_scale != 0.0
+        kavg = _drilling_penalty_kavg(elmat, normals, normal_valid, conn) * drilling_stiffness_scale
+        if kavg != 0.0
+            for k in 1:__NN
+                nnode = conn[k]
+                if !normal_valid[nnode]
+                    continue
+                end
+                nvec = @view normals[nnode, :]
+                if norm(nvec) == 0.0
+                    continue
+                end
+                Ke = kavg .* (nvec * nvec')
+                r = ((k-1)*__NDOF+4):((k-1)*__NDOF+6)
+                elmat[r, r] .+= Ke
+            end
+        end
+    end
 end
 
 """
@@ -692,24 +712,7 @@ function stiffness(
         # Complete the elementwise matrix by filling in the lower triangle
         complete_lt!(elmat)
         # Drilling stiffness
-        if drilling_stiffness_scale != 0.0
-            kavg = _drilling_penalty_kavg(elmat, normals, normal_valid, fes.conn[i], drilling_stiffness_scale)
-            if kavg != 0.0
-                for k in 1:__NN
-                    nnode = fes.conn[i][k]
-                    if !normal_valid[nnode]
-                        continue
-                    end
-                    nvec = @view normals[nnode, :]
-                    if norm(nvec) == 0.0
-                        continue
-                    end
-                    Ke = kavg .* (nvec * nvec')
-                    r = ((k - 1) * __NDOF + 4):((k - 1) * __NDOF + 6)
-                    elmat[r, r] .+= Ke
-                end
-            end
-        end
+        _add_drilling_stiffness!(elmat, normals, normal_valid, fes.conn[i], drilling_stiffness_scale)
         # Assembly
         gatherdofnums!(dchi, dofnums, fes.conn[i])
         assemble!(assembler, elmat, dofnums, dofnums)
