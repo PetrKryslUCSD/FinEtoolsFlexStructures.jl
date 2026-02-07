@@ -7,7 +7,10 @@ an application to shell structures. Computers & Structures, 2003. 81(8-11): p. 6
 The applied pressure in the above paper needs to be 1 MPa for the energy values 
 to correspond to the two tables.
 
-See also: watch out, confusing mix up with magnitude of the modulus and applied pressure.
+Warning: watch out, confusing mix up with magnitude of the modulus and 
+    applied pressure.
+
+See also:    
 @article{Lee2004,
    author = {Lee, P. S. and Bathe, K. J.},
    title = {Development of MITC isotropic triangular shell finite elements},
@@ -31,6 +34,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
+using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -65,7 +69,7 @@ function computetrac!(forceout, XYZ, tangents, feid, qpid)
     return forceout
 end
 
-function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
+function _execute_t3ff(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
     tolerance = Length/n/100
     fens, fes = distortblock(T3block, 90/360*2*pi, Length/2, n, n, distortion, distortion);
     fens.xyz = xyz3(fens)
@@ -174,22 +178,145 @@ function _execute(formul, n = 8, thickness = Length/2/100, visualize = false, di
     return strainenergy
 end
 
-function allrun()
-    println("#####################################################")
-    println("# test_convergence ")
-    test_convergence()
-    return true
-end # function allrun
+function _execute_q4rnt(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
+    tolerance = Length/n/100
+    fens, fes = distortblock(Q4block, 90/360*2*pi, Length/2, n, n, distortion, distortion);
+    fens.xyz = xyz3(fens)
+    for i in 1:count(fens)
+        a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
+        R = sqrt(1 + y^2)
+        fens.xyz[i, :] .= (R*sin(a), y, R*cos(a))
+    end
 
-function test_convergence(formul = FEMMShellT3FFModule, thicknessmult = 1/100000, distortion = 0.0)
+    mater = MatDeforElastIso(DeforModelRed3D, E, nu)
+    
+    sfes = FESetShellQ4()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    stiffness = formul.stiffness
+    associategeometry! = formul.associategeometry!
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # plane of symmetry perpendicular to Z
+    l1 = selectnode(fens; box = Float64[-Inf Inf -Inf Inf 0 0], inflate = tolerance)
+    for i in [3,4,5]
+        setebc!(dchi, l1, true, i)
+    end
+    # plane of symmetry perpendicular to Y
+    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
+    for i in [2,4,6]
+        setebc!(dchi, l1, true, i)
+    end
+    # plane of symmetry perpendicular to X
+    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
+    for i in [1,5,6]
+        setebc!(dchi, l1, true, i)
+    end
+    # clamped edge perpendicular to Y
+    # l1 = selectnode(fens; box = Float64[-Inf Inf L/2 L/2 -Inf Inf], inflate = tolerance)
+    # for i in [1,2,3,4,5,6]
+    #     setebc!(dchi, l1, true, i)
+    # end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    massem = SysmatAssemblerFFBlock(nfreedofs(dchi))
+    vassem = SysvecAssemblerFBlock(nfreedofs(dchi))
+
+    # Assemble the system matrix
+    associategeometry!(femm, geom0)
+    Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+
+    # Midpoint of the free edge
+    # nl = selectnode(fens; box = Float64[R R L/2 L/2 -Inf Inf], inflate = tolerance)
+    lfemm = FEMMBase(IntegDomain(fes, GaussRule(2, 2)))
+    
+    fi = ForceIntensity(Float64, 6, computetrac!);
+    Ff = distribloads(lfemm, vassem, geom0, dchi, fi, 2);
+    
+    # Solve
+     Uf = Kff \ Ff
+    scattersysvec!(dchi, Uf, DOF_KIND_FREE)
+    U = gathersysvec(dchi, DOF_KIND_ALL)
+    strainenergy = 1/2 * Uf' * Ff
+    @info "Strain Energy: $(round(strainenergy, digits = 9))"
+
+    # Generate a graphical display of resultants
+    # ocsys = CSys(3, 3, hyperbolic!)
+    # scalars = []
+    # for nc in 1:3
+    #     fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
+    #         # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+    #     push!(scalars, ("m$nc", fld.values))
+    # end
+    # vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    # scalars = []
+    # for nc in 1:3
+    #     fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
+    #         # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+    #     push!(scalars, ("n$nc", fld.values))
+    # end
+    # vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+    # scalars = []
+    # for nc in 1:2
+    #     fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
+    #         # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+    #     push!(scalars, ("q$nc", fld.values))
+    # end
+    # vtkwrite("cos_2t_press_hyperboloid_free-$(n)-$(thickness)-$(distortion)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+
+    # Visualization
+    if visualize
+        scattersysvec!(dchi, (Length/8)/maximum(abs.(Uf)).*Uf)
+        update_rotation_field!(Rfield0, dchi)
+        plots = cat(plot_space_box([[0 0 -Length/2]; [Length/2 Length/2 Length/2]]),
+            #plot_nodes(fens),
+            plot_midsurface(fens, fes; x = geom0.values, facecolor = "rgb(12, 12, 123)"),
+            plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            dims = 1)
+        pl = render(plots)
+    end
+
+    return strainenergy
+end
+
+function test_convergence_t3ff(thicknessmult = 1/100000, distortion = 0.0)
+    formul = FEMMShellT3FFModule
     @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
     results = []
     ns = [16, 32, 64, 128, ]
     for n in ns
-        push!(results, _execute(formul, n, Length/2*thicknessmult, true, 2*distortion/n))
+        push!(results, _execute_t3ff(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
     end
     return ns, results
 end
+
+function test_convergence_q4rtn(thicknessmult = 1/100000, distortion = 0.0)
+    formul = FEMMShellQ4RNTModule
+    @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
+    results = []
+    ns = [16, 32, 64, 128, ]
+    for n in ns
+        push!(results, _execute_q4rnt(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
+    end
+    return ns, results
+end
+
+function allrun()
+    println("#####################################################")
+    println("# test_convergence_t3ff ")
+    test_convergence_t3ff()
+    println("# test_convergence_q4rtn ")
+    test_convergence_q4rtn()
+    return true
+end # function allrun
 
 @info "All examples may be executed with "
 println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
