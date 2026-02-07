@@ -246,7 +246,11 @@ function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, 
+        # Not robust, but it does reduce the excessive deformation for the very coarsest mesh.
+        # CompositeRule(GaussRule(2, 2), NodalTensorProductRule(2)), 
+        CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), 
+        thickness), mater)
     femm.drilling_stiffness_scale = drilling_stiffness_scale
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!

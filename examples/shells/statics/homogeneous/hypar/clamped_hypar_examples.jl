@@ -154,7 +154,11 @@ function _execute_q4rnt(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n
     
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, 
+            # This one is not robust regarding shear locking.
+            # CompositeRule(GaussRule(2, 2), NodalTensorProductRule(2)),
+            CompositeRule(GaussRule(2, 2), GaussRule(2, 1)),
+            thickness), mater)
     femm.drilling_stiffness_scale = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
