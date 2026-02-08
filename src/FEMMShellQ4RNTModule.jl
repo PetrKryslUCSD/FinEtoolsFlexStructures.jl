@@ -362,15 +362,15 @@ end
     return A_Es, nvalid
 end
 
-struct TransfmatGToA{FT<:Real}
+struct _TransfmatGToA{FT<:Real}
     Tblock::Matrix{FT}
 end
 
-function TransfmatGToA(ft::Type{T}) where {T<:Real}
-    TransfmatGToA(fill(zero(ft), 3, 3))
+function _TransfmatGToA(ft::Type{T}) where {T<:Real}
+    _TransfmatGToA(fill(zero(ft), 3, 3))
 end
 
-(o::TransfmatGToA)(T, A_Es, E_G) = begin
+(o::_TransfmatGToA)(T, A_Es, E_G) = begin
     # Global-to-nodal transformation matrix. 
 
     # The 3x3 blocks consist of the nodal triad expressed on the global basis.
@@ -656,7 +656,7 @@ function stiffness(
     reduced_rule = self.integdomain.integration_rule.rule2
     ri_npts, ri_Ns, ri_gradNparams, ri_w, ri_pc = integrationdata(self.integdomain, reduced_rule)
     _nodal_triads_e! = _NodalTriadsE(FT)
-    _transfmat_g_to_a! = TransfmatGToA(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
@@ -848,21 +848,24 @@ function inspectintegpoints(
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     FT = _number_type(self)
-    centroid, J = _loc(FT), _J(FT)
+    loc, J = _loc(FT), _J(FT)
     ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
     edisp = _edisp(FT)
-    _nodal_triads_e! = NodalTriadsE(FT)
-    _transfmat_g_to_a! = TransfmatGToA(FT)
+    _nodal_triads_e! = _NodalTriadsE(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
+    T = _T(FT); Tae = _T(FT); Tga = _T(FT)
+    full_rule = self.integdomain.integration_rule.rule1
+    fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
+    reduced_rule = self.integdomain.integration_rule.rule2
+    ri_npts, ri_Ns, ri_gradNparams, ri_w, ri_pc = integrationdata(self.integdomain, reduced_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     lla = Layup2ElementAngle()
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
     Dt .*= scf
-    ipc = [(1.0 / 3) (1.0 / 3)]
     mult_el_size = self.mult_el_size
-    edisp_e = deepcopy(edisp)
-    edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
     o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
@@ -889,58 +892,64 @@ function inspectintegpoints(
         i = felist[ilist]
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         gathervalues_asvec!(u, edisp, fes.conn[i])
-        _centroid!(centroid, ecoords)
-        _compute_J!(J, ecoords)
-        _e_g!(E_G, J)
-        _ecoords_e!(ecoords_e, J, E_G)
-        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
-        # Establish nodal triads
-        _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-        # Transform from global into nodal coordinates
-        _transfmat_g_to_a!(T, A_Es, E_G)
-        mul!(edisp_n, T, edisp)
-        # Now treat the transformation from the nodal to the element triad
-        _transfmat_a_to_e!(T, A_Es, gradN_e)
-        # Transform the nodal vector into the elementwise coordinates
-        mul!(edisp_e, T, edisp_n)
-        updatecsmat!(outputcsys, centroid, J, i, 0)
-        if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
-            @warn "Coordinate systems mismatched?"
-        end
-        ocsm, ocsn = lla(E_G, csmat(outputcsys))
-        o2_e[1, 1] = o2_e[2, 2] = ocsm
-        o2_e[1, 2] = ocsn
-        o2_e[2, 1] = -ocsn
-        # Compute the Requested Quantity
-        if quant == BENDING_MOMENT
-            _Bbmat!(Bb, gradN_e)
-            kurv = Bb * edisp_e
-            mom = ((t^3) / 12) * Dps * kurv
-            m = [mom[1] mom[3]; mom[3] mom[2]]
-            mo = o2_e' * m * o2_e
-            out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
-        end
-        if quant == MEMBRANE_FORCE
-            _Bmmat!(Bm, gradN_e)
-            strn = Bm * edisp_e
-            frc = (t) * Dps * strn
-            f = [frc[1] frc[3]; frc[3] frc[2]]
-            fo = o2_e' * f * o2_e
-            out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
-            # @infiltrate
-        end
         if quant == TRANSVERSE_SHEAR
-            _Bsmat!(Bs, ecoords_e, Ae)
-            he = sqrt(2 * Ae)
-            shr = Bs * edisp_e
-            frc = ((t^3 / (t^2 + mult_el_size * 2 * Ae))) * Dt * shr
-            fo = o2_e' * frc
-            out[1:2] .= fo[1], fo[2]
-        end
-        # Call the inspector
-        idat = inspector(idat, i, fes.conn[i], ecoords, out, centroid)
-        # end # Loop over quadrature points
+            for j in 1:ri_npts # Loop over quadrature points
+                locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
+                Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
+                _e_g!(E_G, J)
+                _gradN_e!(gradN_e, J, E_G, ri_gradNparams[j])
+                t = self.integdomain.otherdimension(loc, fes.conn[i], ri_Ns[j])
+                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+                _transfmat_g_to_a!(Tga, A_Es, E_G)
+                _transfmat_a_to_e!(Tae, A_Es, gradN_e)
+                mul!(T, Tae, Tga)
+                bsmat!(Bs, gradN_e, ri_Ns[j], T)
+                shr = Bs * edisp
+                frc = (t^3 / (t^2 + mult_el_size * Jac * ri_w[j])) * Dt * shr
+                fo = o2_e' * frc
+                out[1:2] .= fo[1], fo[2]
+                # Call the inspector
+                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
+            end # Loop over quadrature points
+        else # Bending moment or membrane force
+            for j in 1:fi_npts # Loop over quadrature points
+                locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
+                _e_g!(E_G, J)
+                _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
+                t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+                _transfmat_g_to_a!(Tga, A_Es, E_G)
+                _transfmat_a_to_e!(Tae, A_Es, gradN_e)
+                mul!(T, Tae, Tga)
+                updatecsmat!(outputcsys, loc, J, i, j)
+                if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
+                    @warn "Coordinate systems mismatched?"
+                end
+                ocsm, ocsn = lla(E_G, csmat(outputcsys))
+                o2_e[1, 1] = o2_e[2, 2] = ocsm
+                o2_e[1, 2] = ocsn
+                o2_e[2, 1] = -ocsn
+                # Compute the Requested Quantity
+                if quant == BENDING_MOMENT
+                    bbmat!(Bb, gradN_e, T)
+                    kurv = Bb * edisp
+                    mom = ((t^3) / 12) * Dps * kurv
+                    m = [mom[1] mom[3]; mom[3] mom[2]]
+                    mo = o2_e' * m * o2_e
+                    out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
+                end
+                if quant == MEMBRANE_FORCE
+                    bmmat!(Bm, gradN_e, T)
+                    strn = Bm * edisp
+                    frc = (t) * Dps * strn
+                    f = [frc[1] frc[3]; frc[3] frc[2]]
+                    fo = o2_e' * f * o2_e
+                    out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
+                end
+                # Call the inspector
+                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
+            end # Loop over quadrature points
+        end # select quantity
     end # Loop over elements
     return idat # return the updated inspector data
 end
