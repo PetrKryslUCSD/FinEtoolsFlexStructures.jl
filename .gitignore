@@ -6,7 +6,7 @@
 *.pvd
 *.jls
 *.jld
-
+*.h5mesh
 *.log
 *.json
 *.sublime-workspace
