@@ -644,7 +644,6 @@ function stiffness(
 ) where {ASS<:AbstractSysmatAssembler,TI<:Number}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     FT = _number_type(self)
     loc, J = _loc(FT), _J(FT)
@@ -735,7 +734,7 @@ end
 """
     mass(self::FEMMShellQ4RNT,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{TI}) where {A<:AbstractSysmatAssembler, TI<:Number}
 
-Compute the diagonal (lumped) mass matrix
+Compute the diagonal (lumped) mass matrix.
 
 The mass matrix can be expected to be non-singular.
 """
@@ -748,15 +747,13 @@ function mass(
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     FT = _number_type(self)
-    centroid, J = _loc(FT), _J(FT)
+    loc, J = _loc(FT), _J(FT)
     ecoords = _ecoords(FT)
     dofnums = _dofnums(eltype(dchi.dofnums)) 
-    ecoords_e, gradN_e = _ecoords_e(FT), _gradN_e(FT)
-    E_G = _E_G(FT)
     elmat = _elmat(FT)
     rho = massdensity(self.material) # mass density
-    npe = nodesperelem(fes)
-    ipc = [(1.0 / 3) (1.0 / 3)]
+    full_rule = self.integdomain.integration_rule.rule1
+    fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
     startassembly!(
         assembler,
         size(elmat)..., count(fes),
@@ -765,25 +762,28 @@ function mass(
     )
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
-        _centroid!(centroid, ecoords)
-        _compute_J!(J, ecoords)
-        _e_g!(E_G, J)
-        _ecoords_e!(ecoords_e, J, E_G)
-        gradN_e, Ae = _gradN_e_Ae!(gradN_e, ecoords_e)
-        # Compute the translational and rotational masses corresponding to nodes
-        t = self.integdomain.otherdimension(centroid, fes.conn[i], ipc)
-        tmass = rho * (t * Ae) / 3
-        rmass = rho * (t^3 / 12 * Ae) / 3
+        # Calculate the element mass
+        tmass = 0.0
+        rmass = 0.0
+        for j in 1:fi_npts
+            locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+            tmass += rho * t * Jac * fi_w[j]
+            rmass += rho * t^3 / 12 * Jac * fi_w[j]
+        end
+        tmass = tmass / __NN
+        rmass = rmass / __NN
         # Fill the elementwise matrix in the global basis.
         fill!(elmat, 0.0) # Initialize element matrix
-        for k = 1:npe
+        for k in 1:__NN
             # Translation degrees of freedom
-            for d = 1:3
+            for d in 1:3
                 c = (k - 1) * __NDOF + d
                 elmat[c, c] += tmass
             end
             # Bending degrees of freedom
-            for d = 4:6
+            for d in 4:6
                 c = (k - 1) * __NDOF + d
                 elmat[c, c] += rmass
             end
