@@ -903,6 +903,14 @@ function inspectintegpoints(
                 _transfmat_g_to_a!(Tga, A_Es, E_G)
                 _transfmat_a_to_e!(Tae, A_Es, gradN_e)
                 mul!(T, Tae, Tga)
+                updatecsmat!(outputcsys, loc, J, i, j)
+                if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
+                    @warn "Coordinate systems mismatched?"
+                end
+                ocsm, ocsn = lla(E_G, csmat(outputcsys))
+                o2_e[1, 1] = o2_e[2, 2] = ocsm
+                o2_e[1, 2] = ocsn
+                o2_e[2, 1] = -ocsn
                 bsmat!(Bs, gradN_e, ri_Ns[j], T)
                 shr = Bs * edisp
                 frc = (t^3 / (t^2 + mult_el_size * Jac * ri_w[j])) * Dt * shr
