@@ -68,7 +68,7 @@ function _execute_t3ff(formul, input, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    associate = formul.associategeometry!
+    associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass
 
@@ -148,6 +148,7 @@ function _execute_q4rnt(formul, input, visualize = true)
     # Report
     @info "Mesh: $input"
 
+
     if !isfile(joinpath(dirname(@__FILE__()), input))
         success(run(`unzip -qq -d $(dirname(@__FILE__())) $(joinpath(dirname(@__FILE__()), "barrel_w_stiffeners-q4-mesh.zip"))`; wait = false))
     end
@@ -174,7 +175,7 @@ function _execute_q4rnt(formul, input, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
-    associate = formul.associategeometry!
+    associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass
 
@@ -244,14 +245,14 @@ function _execute_q4rnt(formul, input, visualize = true)
 end
 
 function test_convergence()
-    # input = "barrel_w_stiffeners-s3.h5mesh"
-    # formul = FEMMShellT3FFModule
-    # @info "Barrel With Stiffeners, free vibration, formulation=$(formul)"
-    # @time _execute_t3ff(formul, input, true)
+    input = "barrel_w_stiffeners-s3.h5mesh"
+    formul = FEMMShellT3FFModule
+    @info "Barrel With Stiffeners, free vibration,\n formulation=$(formul)"
+    @time _execute_t3ff(formul, input, true)
     
     input = "barrel_w_stiffeners-q4-mesh.h5mesh"
     formul = FEMMShellQ4RNTModule
-    @info "Barrel With Stiffeners, free vibration, formulation=$(formul)"
+    @info "Barrel With Stiffeners, free vibration,\n formulation=$(formul)"
     @time _execute_q4rnt(formul, input, true)
     return true
 end
