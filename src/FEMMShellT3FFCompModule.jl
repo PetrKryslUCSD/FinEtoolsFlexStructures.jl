@@ -246,18 +246,18 @@ function _centroid!(centroid, ecoords)
     return centroid
 end
 
-struct NodalTriadsE
+struct _NodalTriadsE
     r::FFltVec
     nk_e::FFltVec
     nk::FFltVec
     f3_e::FFltVec
 end
 
-function NodalTriadsE()
-    NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
+function _NodalTriadsE()
+    _NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
 end
 
-(o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
+(o::_NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
     # Components of nodal cartesian ordinate systems such that the third
     # direction is the direction of the nodal normal, and the angle to rotate
     # the element normal into the nodal normal is as short as possible; these
@@ -292,15 +292,15 @@ end
     return A_Es, nvalid
 end
 
-struct TransfmatGToA
+struct _TransfmatGToA
     Tblock::FFltMat
 end
 
-function TransfmatGToA()
-    TransfmatGToA(fill(0.0, 3, 3))
+function _TransfmatGToA()
+    _TransfmatGToA(fill(0.0, 3, 3))
 end
 
-(o::TransfmatGToA)(T, A_Es, E_G) = begin
+(o::_TransfmatGToA)(T, A_Es, E_G) = begin
     # Global-to-nodal transformation matrix. 
 
     # The 3x3 blocks consist of the nodal triad expressed on the global basis.
@@ -559,8 +559,8 @@ function stiffness(
     elmat = self._elmat
     transformwith = TransformerQtEQ(elmat)
     lla = Layup2ElementAngle()
-    _nodal_triads_e! = NodalTriadsE()
-    _transfmat_g_to_a! = TransfmatGToA()
+    _nodal_triads_e! = _NodalTriadsE()
+    _transfmat_g_to_a! = _TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)
@@ -807,8 +807,8 @@ function inspectintegpoints(
     E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
     elmat = self._elmat
     transformwith = TransformerQtEQ(elmat)
-    _nodal_triads_e! = NodalTriadsE()
-    _transfmat_g_to_a! = TransfmatGToA()
+    _nodal_triads_e! = _NodalTriadsE()
+    _transfmat_g_to_a! = _TransfmatGToA()
     Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
     A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
     H = zeros(2, 2)

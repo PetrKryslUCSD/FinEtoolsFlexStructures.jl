@@ -335,18 +335,18 @@ function _shell_material_stiffness(material)
     return Dps, Dt
 end
 
-struct NodalTriadsE{FT<:Real}
+struct _NodalTriadsE{FT<:Real}
     r::Vector{FT}
     nk_e::Vector{FT}
     nk::Vector{FT}
     f3_e::Vector{FT}
 end
 
-function NodalTriadsE(ft::Type{T}) where {T<:Real}
-    NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
+function _NodalTriadsE(ft::Type{T}) where {T<:Real}
+    _NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
 end
 
-(o::NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
+(o::_NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
     # Components of nodal cartesian ordinate systems such that the third
     # direction is the direction of the nodal normal, and the angle to rotate
     # the element normal into the nodal normal is as short as possible; these
@@ -381,15 +381,15 @@ end
     return A_Es, nvalid
 end
 
-struct TransfmatGToA{FT<:Real}
+struct _TransfmatGToA{FT<:Real}
     Tblock::Matrix{FT}
 end
 
-function TransfmatGToA(ft::Type{T}) where {T<:Real}
-    TransfmatGToA(fill(zero(ft), 3, 3))
+function _TransfmatGToA(ft::Type{T}) where {T<:Real}
+    _TransfmatGToA(fill(zero(ft), 3, 3))
 end
 
-(o::TransfmatGToA)(T, A_Es, E_G) = begin
+(o::_TransfmatGToA)(T, A_Es, E_G) = begin
     # Global-to-nodal transformation matrix. 
 
     # The 3x3 blocks consist of the nodal triad expressed on the global basis.
@@ -645,8 +645,8 @@ function stiffness(
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
     elmat = _elmat(FT)
     transformwith = TransformerQtEQ(elmat)
-    _nodal_triads_e! = NodalTriadsE(FT)
-    _transfmat_g_to_a! = TransfmatGToA(FT)
+    _nodal_triads_e! = _NodalTriadsE(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
@@ -861,8 +861,8 @@ function inspectintegpoints(
     ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
     edisp = _edisp(FT)
-    _nodal_triads_e! = NodalTriadsE(FT)
-    _transfmat_g_to_a! = TransfmatGToA(FT)
+    _nodal_triads_e! = _NodalTriadsE(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     lla = Layup2ElementAngle()
     Dps, Dt = _shell_material_stiffness(self.material)
