@@ -56,7 +56,7 @@ function computetrac!(forceout::Vector{T}, XYZ, tangents, feid, qpid)  where {T}
     return forceout
 end
 
-function _execute_dsg_model(formul, n = 8, thickness = R/100, visualize = true)
+function _execute_t3ff_model(formul, n = 8, thickness = R/100, visualize = true)
     tolerance = R/n/1000
     fens, fes = T3block(90/360*2*pi,L/2,n,n);
     fens.xyz = xyz3(fens)
@@ -167,7 +167,7 @@ end
 function test_convergence(formul = FEMMShellT3FFModule, thickness = R/100)
     @info "Pressurized Cylindrical shell, fixed ends, formulation=$(formul)"
     for n in [8, 16, 32, 64, 128]
-        _execute_dsg_model(formul, n, thickness, false)
+        _execute_t3ff_model(formul, n, thickness, false)
     end
     return true
 end
