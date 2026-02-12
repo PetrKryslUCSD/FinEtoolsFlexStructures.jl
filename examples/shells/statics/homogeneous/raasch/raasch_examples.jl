@@ -74,7 +74,7 @@ function _execute_t3ff(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1
         # fens, fes = T3refine(fens, fes)# .
     end
 
-    @show count(fens), count(fes)
+    # @show count(fens), count(fes)
 
     # plots = cat(plot_space_box([[0 0 -R/2]; [R/2 R/2 R/2]]),
     #     plot_nodes(fens),

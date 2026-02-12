@@ -310,7 +310,7 @@ function _execute_t3ff_model_w_units(n = 8, visualize = true)
     return true
 end
 
-function test_convergence(ns = [8, 16, 32, ])
+function test_convergence(ns = [8, 16, 32, 64, 128])
     @info "Scordelis-Lo shell, T3FF"
     for n in ns
         _execute_t3ff_model(n, false)
@@ -322,7 +322,7 @@ function test_convergence(ns = [8, 16, 32, ])
     return true
 end
 
-function test_convergence_w_units(ns = [8, 16, 32, ])
+function test_convergence_w_units(ns = [8, 16, 32, 64, 128])
     @info "Scordelis-Lo shell: variant with explicit physical units"
     for n in ns
         _execute_t3ff_model_w_units(n, false)

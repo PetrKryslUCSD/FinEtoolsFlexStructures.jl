@@ -280,7 +280,7 @@ function standard_single_q4rnt()
 
     for j in 1:6
         @show dec.values[j]
-        @show round.(v[:, j], digits=4)
+        # @show round.(v[:, j], digits=4)
     end
         
     
