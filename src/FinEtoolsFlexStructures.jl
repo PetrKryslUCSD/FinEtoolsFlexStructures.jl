@@ -12,7 +12,7 @@ composite).
 """
 module FinEtoolsFlexStructures
 
-__precompile__(true)
+# __precompile__(true)
 
 using FinEtools
 
