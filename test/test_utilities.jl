@@ -1,5 +1,3 @@
-
-
 module mutil001
 
 using Test
@@ -48,7 +46,7 @@ function _test()
    @test norm(A - A1) / norm(A1) < 1.0e-9
    return true
 end
-
+ 
 _test()
 
 end # module
