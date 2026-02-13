@@ -230,7 +230,7 @@ function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 
         fes = renumberconn!(fes, new_numbering);
     end
 
-    @show count(fens), count(fes)
+    # @show count(fens), count(fes)
 
     # plots = cat(plot_space_box([[0 0 -R/2]; [R/2 R/2 R/2]]),
     #     plot_nodes(fens),
@@ -356,14 +356,14 @@ function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 
     return targetu/ref_sol
 end
 
-function test_convergence()
+function test_convergence(lns = [9*2^(n-1) for n in 1:5], wns = [1*2^(n-1) for n in 1:5])
     @info "Raasch hook, T3FF elements"
-    for n in 1:7
-        _execute_t3ff("", 1.0, false, 9*2^(n-1), 1*2^(n-1))
+    for n in eachindex(lns)
+        _execute_t3ff("", 1.0, false, lns[n], wns[n])
     end
     @info "Raasch hook, Q4RNT elements"
-    for n in 1:7
-        _execute_q4rnt("", 1.0, false, 9*2^(n-1), 1*2^(n-1))
+    for n in eachindex(lns)
+        _execute_q4rnt("", 1.0, false, lns[n], wns[n])
     end
     return true
 end
@@ -376,7 +376,7 @@ function test_dep_drilling_stiffness_scale_t3ff()
         results = Float64[]
         # for m in ["1x9", "3x18", "5x36", "10x72", "20x144"]
             # v = _execute_t3ff("raasch_s4_" * m * ".inp", drilling_stiffness_scale, false)
-        for n in 1:7
+        for n in 1:5
             v = _execute_t3ff("", drilling_stiffness_scale, false, 9*2^(n-1), 1*2^(n-1))
                     push!(results, v)
         end
@@ -393,7 +393,7 @@ function test_dep_drilling_stiffness_scale_q4rnt()
         results = Float64[]
         # for m in ["1x9", "3x18", "5x36", "10x72", "20x144"]
             # v = _execute_q4rnt("raasch_s4_" * m * ".inp", drilling_stiffness_scale, false)
-        for n in 1:7
+        for n in 1:5
             v = _execute_q4rnt("", drilling_stiffness_scale, false, 9*2^(n-1), 1*2^(n-1))
                     push!(results, v)
         end

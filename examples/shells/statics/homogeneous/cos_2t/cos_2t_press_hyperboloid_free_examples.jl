@@ -291,7 +291,7 @@ function test_convergence_t3ff(thicknessmult = 1/100000, distortion = 0.0)
     formul = FEMMShellT3FFModule
     @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
     results = []
-    ns = [16, 32, 64, 128, ]
+    ns = [16, 32, 64, ]
     for n in ns
         push!(results, _execute_t3ff(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
     end
@@ -302,7 +302,7 @@ function test_convergence_q4rtn(thicknessmult = 1/100000, distortion = 0.0)
     formul = FEMMShellQ4RNTModule
     @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
     results = []
-    ns = [16, 32, 64, 128, ]
+    ns = [16, 32, 64, ]
     for n in ns
         push!(results, _execute_q4rnt(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
     end
