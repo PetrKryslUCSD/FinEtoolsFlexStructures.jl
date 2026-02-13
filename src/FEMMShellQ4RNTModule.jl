@@ -74,19 +74,20 @@ mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS
 end
 
 function _esfactor(t, h)
-    high = 1000 # large aspect ratio
-    at_high = 1e-6 # stabilization factor for large aspect ratio
-    low = 10 # small aspect ratio
-    at_low = 0.3 # stabilization factor for small aspect ratio
-    ar = h/t
-    f = max(
-        min(
-            at_low,
-            at_low * (ar - high) / (low - high) + at_high * (ar - low) / (high - low)
-        ),
-        at_high
-    )
-    return f
+    # high = 1000 # large aspect ratio
+    # at_high = 1e-6 # stabilization factor for large aspect ratio
+    # low = 10 # small aspect ratio
+    # at_low = 0.3 # stabilization factor for small aspect ratio
+    # ar = h/t
+    # f = max(
+    #     min(
+    #         at_low,
+    #         at_low * (ar - high) / (low - high) + at_high * (ar - low) / (high - low)
+    #     ),
+    #     at_high
+    # )
+    # return f
+    0.01
 end
 
 _number_type(femm::FEMMShellQ4RNT{ID, T, CS}) where {ID, T, CS} = T
