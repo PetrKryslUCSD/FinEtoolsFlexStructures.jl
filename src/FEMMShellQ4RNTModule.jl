@@ -73,6 +73,22 @@ mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS
     _normal_valid::Vector{Bool}
 end
 
+function _esfactor(t, h)
+    high = 1000 # large aspect ratio
+    at_high = 1e-6 # stabilization factor for large aspect ratio
+    low = 10 # small aspect ratio
+    at_low = 0.3 # stabilization factor for small aspect ratio
+    ar = h/t
+    f = max(
+        min(
+            at_low,
+            at_low * (ar - high) / (low - high) + at_high * (ar - low) / (high - low)
+        ),
+        at_high
+    )
+    return f
+end
+
 _number_type(femm::FEMMShellQ4RNT{ID, T, CS}) where {ID, T, CS} = T
 
 # Prepare functions to return buffers of various sorts
@@ -172,7 +188,7 @@ function FEMMShellQ4RNT(
         # mult_el_size::Float64
         T(1.0),
         T(30.0),
-        T(5 / 12 / 1.5),
+        T(0.05),
         false,
         _normals,
         _normal_valid,
@@ -573,88 +589,88 @@ end
     mul!(Bs, o.tempBs, T)
 end
 
-function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
-    # Compute the linear transverse shear strain-displacement matrix for one
-    # particular ordering of the nodes. The computed entries are ADDED. The
-    # matrix is NOT zeroed out initially. That is the responsibility of the
-    # caller.
+# function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
+#     # Compute the linear transverse shear strain-displacement matrix for one
+#     # particular ordering of the nodes. The computed entries are ADDED. The
+#     # matrix is NOT zeroed out initially. That is the responsibility of the
+#     # caller.
 
-    # Orientation 
-    s, p, q = ordering
-    a = ecoords_e[p, 1] - ecoords_e[s, 1]
-    b = ecoords_e[p, 2] - ecoords_e[s, 2]
-    c = ecoords_e[q, 1] - ecoords_e[s, 1]
-    d = ecoords_e[q, 2] - ecoords_e[s, 2]
-    m = (1 / 2 / Ae) # multiplier
+#     # Orientation 
+#     s, p, q = ordering
+#     a = ecoords_e[p, 1] - ecoords_e[s, 1]
+#     b = ecoords_e[p, 2] - ecoords_e[s, 2]
+#     c = ecoords_e[q, 1] - ecoords_e[s, 1]
+#     d = ecoords_e[q, 2] - ecoords_e[s, 2]
+#     m = (1 / 2 / Ae) # multiplier
 
-    # The first node in the triangle 
-    # Node s
-    co = (s - 1) * 6 # column offset
-    Bs[1, co+3] += m * (b - d)
-    Bs[1, co+5] += m * (Ae)
-    Bs[2, co+3] += m * (c - a)
-    Bs[2, co+4] += m * (-Ae)
-    # The other two nodes
-    # Node p
-    co = (p - 1) * 6 # column offset
-    Bs[1, co+3] += m * (d)
-    Bs[1, co+4] += m * (-b * d / 2)
-    Bs[1, co+5] += m * (a * d / 2)
-    Bs[2, co+3] += m * (-c)
-    Bs[2, co+4] += m * (b * c / 2)
-    Bs[2, co+5] += m * (-a * c / 2)
-    # Node q
-    co = (q - 1) * 6 # column offset
-    Bs[1, co+3] += m * (-b)
-    Bs[1, co+4] += m * (b * d / 2)
-    Bs[1, co+5] += m * (-b * c / 2)
-    Bs[2, co+3] += m * (a)
-    Bs[2, co+4] += m * (-a * d / 2)
-    Bs[2, co+5] += m * (a * c / 2)
+#     # The first node in the triangle 
+#     # Node s
+#     co = (s - 1) * 6 # column offset
+#     Bs[1, co+3] += m * (b - d)
+#     Bs[1, co+5] += m * (Ae)
+#     Bs[2, co+3] += m * (c - a)
+#     Bs[2, co+4] += m * (-Ae)
+#     # The other two nodes
+#     # Node p
+#     co = (p - 1) * 6 # column offset
+#     Bs[1, co+3] += m * (d)
+#     Bs[1, co+4] += m * (-b * d / 2)
+#     Bs[1, co+5] += m * (a * d / 2)
+#     Bs[2, co+3] += m * (-c)
+#     Bs[2, co+4] += m * (b * c / 2)
+#     Bs[2, co+5] += m * (-a * c / 2)
+#     # Node q
+#     co = (q - 1) * 6 # column offset
+#     Bs[1, co+3] += m * (-b)
+#     Bs[1, co+4] += m * (b * d / 2)
+#     Bs[1, co+5] += m * (-b * c / 2)
+#     Bs[2, co+3] += m * (a)
+#     Bs[2, co+4] += m * (-a * d / 2)
+#     Bs[2, co+5] += m * (a * c / 2)
 
-    return Bs
-end
+#     return Bs
+# end
 
-(o::_Bsmat)(Bs, ecoords, E_G, T, ignore) = begin
-    o.tempBs .= 0.0
-    _bsmat_dsg(o.tempBs, ecoords, E_G) 
-    mul!(Bs, o.tempBs, T)
-end
+# (o::_Bsmat)(Bs, ecoords, E_G, T, ignore) = begin
+#     o.tempBs .= 0.0
+#     _bsmat_dsg(o.tempBs, ecoords, E_G) 
+#     mul!(Bs, o.tempBs, T)
+# end
 
-function _bsmat_dsg(Bs, ecoords, E_G) 
-# Q4 DSG transverse shear: average of four triangular DSG matrices.
+# function _bsmat_dsg(Bs, ecoords, E_G) 
+# # Q4 DSG transverse shear: average of four triangular DSG matrices.
 
-    # Triangles 123, 341, 412, 234 (node combinations). Each triangle contributes
-    # one DSG matrix (single orientation, not the 1/3 average of three as in T3FF).
-    # ecoords_e_quad is (4, 2): local coords of the four quad nodes in the element plane.
+#     # Triangles 123, 341, 412, 234 (node combinations). Each triangle contributes
+#     # one DSG matrix (single orientation, not the 1/3 average of three as in T3FF).
+#     # ecoords_e_quad is (4, 2): local coords of the four quad nodes in the element plane.
     
-    ecoords_e = zeros(__NN, 2)
-    for j in axes(ecoords_e, 1)
-        ecoords_e[j, 1] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 1])
-        ecoords_e[j, 2] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 2])
-    end
+#     ecoords_e = zeros(__NN, 2)
+#     for j in axes(ecoords_e, 1)
+#         ecoords_e[j, 1] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 1])
+#         ecoords_e[j, 2] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 2])
+#     end
     
-    # One triangular DSG matrix per orientation; no inner average as in T3FF.
-    Bs_tri = zeros(2, 3 * __NDOF)
-    ecoords_e_tri = zeros(3, 2)
-    # Four triangles  in  two pairs
-    for (i, j, k) in ((4, 1, 2), (2, 3, 4), (1, 2, 3), (3, 4, 1))
-        ecoords_e_tri[1, :] = ecoords_e[i, :]
-        ecoords_e_tri[2, :] = ecoords_e[j, :]
-        ecoords_e_tri[3, :] = ecoords_e[k, :]
-        a, b = ecoords_e_tri[2, :] .- ecoords_e_tri[1, :]
-        c, d = ecoords_e_tri[3, :] .- ecoords_e_tri[1, :]
-        Ae = (a*d - b*c) / 2
-        Bs_tri .= 0.0
-        _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (1, 2, 3))
-        # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (2, 3, 1))
-        # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (3, 1, 2))
-        Bs[:, (i-1)*__NDOF+1:i*__NDOF] += Bs_tri[:, 1:__NDOF]
-        Bs[:, (j-1)*__NDOF+1:j*__NDOF] += Bs_tri[:, __NDOF+1:2*__NDOF]
-        Bs[:, (k-1)*__NDOF+1:k*__NDOF] += Bs_tri[:, 2*__NDOF+1:3*__NDOF]
-    end
-    Bs .*= 0.5
-end
+#     # One triangular DSG matrix per orientation; no inner average as in T3FF.
+#     Bs_tri = zeros(2, 3 * __NDOF)
+#     ecoords_e_tri = zeros(3, 2)
+#     # Four triangles  in  two pairs
+#     for (i, j, k) in ((4, 1, 2), (2, 3, 4), (1, 2, 3), (3, 4, 1))
+#         ecoords_e_tri[1, :] = ecoords_e[i, :]
+#         ecoords_e_tri[2, :] = ecoords_e[j, :]
+#         ecoords_e_tri[3, :] = ecoords_e[k, :]
+#         a, b = ecoords_e_tri[2, :] .- ecoords_e_tri[1, :]
+#         c, d = ecoords_e_tri[3, :] .- ecoords_e_tri[1, :]
+#         Ae = (a*d - b*c) / 2
+#         Bs_tri .= 0.0
+#         _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (1, 2, 3))
+#         # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (2, 3, 1))
+#         # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (3, 1, 2))
+#         Bs[:, (i-1)*__NDOF+1:i*__NDOF] += Bs_tri[:, 1:__NDOF]
+#         Bs[:, (j-1)*__NDOF+1:j*__NDOF] += Bs_tri[:, __NDOF+1:2*__NDOF]
+#         Bs[:, (k-1)*__NDOF+1:k*__NDOF] += Bs_tri[:, 2*__NDOF+1:3*__NDOF]
+#     end
+#     Bs .*= 0.5
+# end
 
 function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     I3 = Matrix{Float64}(I, 3, 3)
@@ -688,9 +704,7 @@ function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     return mean(tangential)
 end
 
-# TODO optimize allocations, and also consider a more direct way to compute
-#  the drilling stiffness without having to compute the tangential stiffness at each node.
-# @show mean(diag(elmat[4:5, 4:5])), mean(diag(elmat[10:11, 10:11])), mean(diag(elmat[16:17, 16:17])), mean(diag(elmat[22:23, 22:23]))
+# TODO optimize allocations
 function _add_drilling_stiffness!(elmat, normals, normal_valid, conn, drilling_stiffness_scale)
     if drilling_stiffness_scale != 0.0
         kavg = _drilling_penalty_kavg(elmat, normals, normal_valid, conn) * drilling_stiffness_scale
@@ -710,6 +724,17 @@ function _add_drilling_stiffness!(elmat, normals, normal_valid, conn, drilling_s
             end
         end
     end
+end
+
+function _quad_diameter(ecoords)
+    max_dist = 0.0
+    for i in 2:__NN
+        dist = ((ecoords[i, 1] - ecoords[1, 1])^2 + 
+                (ecoords[i, 2] - ecoords[1, 2])^2 +
+                (ecoords[i, 3] - ecoords[1, 3])^2)
+        max_dist = max(max_dist, dist)
+    end
+    return sqrt(max_dist)
 end
 
 """
@@ -757,10 +782,10 @@ function stiffness(
     )
     for i in eachindex(fes) # Loop over elements
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
-        # Construct the Stiffness Matrix
+        h = _quad_diameter(ecoords)
         fill!(elmat, 0.0) # Initialize element matrix
         # Membrane and bending stiffness
-        for j in 1:fi_npts
+        for j in 1:fi_npts 
             locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
             _e_g!(E_G, J)
@@ -774,6 +799,12 @@ function stiffness(
             add_btdb_ut_only!(elmat, Bm, t * Jac * fi_w[j], Dps, DpsBmb)
             bbmat!(Bb, gradN_e, T)
             add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * fi_w[j], Dps, DpsBmb)
+            bsmat!(Bs, gradN_e, fi_Ns[j], T)
+            Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
+            # Lylyetal = t / (t + mult_el_size * h)
+            add_btdb_ut_only!(elmat, Bs,
+                t  * Lylyetal * (_esfactor(t, h)) * Jac * fi_w[j],
+                Dt, DtBs)
         end
         # Transverse shear stiffness
         for j in 1:ri_npts
@@ -786,10 +817,11 @@ function stiffness(
             _transfmat_g_to_a!(Tga, A_Es, E_G)
             _transfmat_a_to_e!(Tae, A_Es, gradN_e)
             mul!(T, Tae, Tga)
-            # bsmat!(Bs, gradN_e, ri_Ns[j], T)
-            bsmat!(Bs, ecoords, E_G, T, 0)
+            bsmat!(Bs, gradN_e, ri_Ns[j], T)
+            Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
+            # Lylyetal = t / (t + mult_el_size * h)
             add_btdb_ut_only!(elmat, Bs,
-                (t^3 / (t^2 + mult_el_size * Jac * ri_w[j])) * Jac * ri_w[j],
+                t  * Lylyetal * (1 - _esfactor(t, h)) * Jac * ri_w[j],
                 Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
