@@ -1,7 +1,8 @@
 """
 Module for operations on interiors of domains to construct system matrices and
 system vectors for linear homogenous shells using the quadrilateral
-four-node finite element (Q4RNT).
+four-node finite element (Q4RNT). It uses regular membrane and bending stiffness,
+and the transverse sheer stiffness is computed with the MITC (DSG) approach.
 """
 module FEMMShellQ4RNTModule
 
@@ -71,23 +72,6 @@ mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS
     _associatedgeometry::Bool
     _normals::Matrix{T}
     _normal_valid::Vector{Bool}
-end
-
-function _esfactor(t, h)
-    # high = 1000 # large aspect ratio
-    # at_high = 1e-6 # stabilization factor for large aspect ratio
-    # low = 10 # small aspect ratio
-    # at_low = 0.3 # stabilization factor for small aspect ratio
-    # ar = h/t
-    # f = max(
-    #     min(
-    #         at_low,
-    #         at_low * (ar - high) / (low - high) + at_high * (ar - low) / (high - low)
-    #     ),
-    #     at_high
-    # )
-    # return f
-    0.01
 end
 
 _number_type(femm::FEMMShellQ4RNT{ID, T, CS}) where {ID, T, CS} = T
@@ -570,6 +554,17 @@ end
     mul!(Bb, o.tempBb, T)
 end
 
+# TODO eliminate allocations
+function _ecoords_e!(ecoords_e, ecoords, E_G)
+    centroid = mean(ecoords, dims=1)'
+    for j in axes(ecoords_e, 1)
+        for k in axes(ecoords_e, 2)
+            ecoords_e[j, k] = dot(ecoords[j, :] - centroid, E_G[:, k])
+        end
+    end
+    return ecoords_e
+end
+
 struct _Bsmat{FT<:Real}
     tempBs::Matrix{FT}
 end
@@ -578,100 +573,58 @@ function _Bsmat(ft::Type{T}) where {T<:Real}
     _Bsmat(fill(zero(ft), 2, __NN * __NDOF))
 end
 
-(o::_Bsmat)(Bs, gradN, N, T) = begin
+(o::_Bsmat)(Bs, ecoords_e, rs, T) = begin
     o.tempBs .= 0.0
-    for i in 1:__NN
-        off = (i-1)*__NDOF
-        o.tempBs[1, off + 3] = gradN[i,1]
-        o.tempBs[1, off + 5] = N[i]
-        o.tempBs[2, off + 3] = gradN[i,2]
-        o.tempBs[2, off + 4] = -N[i]
-    end
+    X1, Y1 = ecoords_e[1, 1], ecoords_e[1, 2]
+    X2, Y2 = ecoords_e[2, 1], ecoords_e[2, 2]
+    X3, Y3 = ecoords_e[3, 1], ecoords_e[3, 2]
+    X4, Y4 = ecoords_e[4, 1], ecoords_e[4, 2]
+    r, s = rs[1], rs[2]
+    J11 = (X1 * (s - 1) / 4 - X2 * (s - 1) / 4 + X3 * (s + 1) / 4 - X4 * (s + 1) / 4)
+    J21 = (Y1 * (s - 1) / 4 - Y2 * (s - 1) / 4 + Y3 * (s + 1) / 4 - Y4 * (s + 1) / 4)
+    J12 = (X1 * (r - 1) / 4 - X2 * (r + 1) / 4 + X3 * (r + 1) / 4 - X4 * (r - 1) / 4)
+    J22 = (Y1 * (r - 1) / 4 - Y2 * (r + 1) / 4 + Y3 * (r + 1) / 4 - Y4 * (r - 1) / 4)
+    A = sqrt(J11^2 + J21^2)
+    B = sqrt(J12^2 + J22^2)
+    ca = J11 / A
+    sa = J21 / A    
+    cb = J12 / B
+    sb = J22 / B
+    detJ = J11 * J22 - J12 * J21
+    Ax = X1 - X2 - X3 + X4
+    Ay = Y1 - Y2 - Y3 + Y4
+    Bx = X1 - X2 + X3 - X4
+    By = Y1 - Y2 + Y3 - Y4
+    Cx = X1 + X2 - X3 - X4
+    Cy = Y1 + Y2 - Y3 - Y4
+    # gxz
+    o.tempBs[1, 3] += (-sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 4] += (sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 5] += (-sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 9] += (sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 10] += (-sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 11] += (sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 15] += (-sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 16] += (-sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 17] += (sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 21] += (sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 22] += (sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 23] += (-sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    # gyz
+    o.tempBs[2, 3] += (ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 4] += (-ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 5] += (ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 9] += (-ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 10] += (ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 11] += (-ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 15] += (ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 16] += (ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 17] += (-ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 21] += (-ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 22] += (-ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 23] += (ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
     mul!(Bs, o.tempBs, T)
 end
-
-# function _add_Bsmat_o!(Bs, ecoords_e, Ae, ordering)
-#     # Compute the linear transverse shear strain-displacement matrix for one
-#     # particular ordering of the nodes. The computed entries are ADDED. The
-#     # matrix is NOT zeroed out initially. That is the responsibility of the
-#     # caller.
-
-#     # Orientation 
-#     s, p, q = ordering
-#     a = ecoords_e[p, 1] - ecoords_e[s, 1]
-#     b = ecoords_e[p, 2] - ecoords_e[s, 2]
-#     c = ecoords_e[q, 1] - ecoords_e[s, 1]
-#     d = ecoords_e[q, 2] - ecoords_e[s, 2]
-#     m = (1 / 2 / Ae) # multiplier
-
-#     # The first node in the triangle 
-#     # Node s
-#     co = (s - 1) * 6 # column offset
-#     Bs[1, co+3] += m * (b - d)
-#     Bs[1, co+5] += m * (Ae)
-#     Bs[2, co+3] += m * (c - a)
-#     Bs[2, co+4] += m * (-Ae)
-#     # The other two nodes
-#     # Node p
-#     co = (p - 1) * 6 # column offset
-#     Bs[1, co+3] += m * (d)
-#     Bs[1, co+4] += m * (-b * d / 2)
-#     Bs[1, co+5] += m * (a * d / 2)
-#     Bs[2, co+3] += m * (-c)
-#     Bs[2, co+4] += m * (b * c / 2)
-#     Bs[2, co+5] += m * (-a * c / 2)
-#     # Node q
-#     co = (q - 1) * 6 # column offset
-#     Bs[1, co+3] += m * (-b)
-#     Bs[1, co+4] += m * (b * d / 2)
-#     Bs[1, co+5] += m * (-b * c / 2)
-#     Bs[2, co+3] += m * (a)
-#     Bs[2, co+4] += m * (-a * d / 2)
-#     Bs[2, co+5] += m * (a * c / 2)
-
-#     return Bs
-# end
-
-# (o::_Bsmat)(Bs, ecoords, E_G, T, ignore) = begin
-#     o.tempBs .= 0.0
-#     _bsmat_dsg(o.tempBs, ecoords, E_G) 
-#     mul!(Bs, o.tempBs, T)
-# end
-
-# function _bsmat_dsg(Bs, ecoords, E_G) 
-# # Q4 DSG transverse shear: average of four triangular DSG matrices.
-
-#     # Triangles 123, 341, 412, 234 (node combinations). Each triangle contributes
-#     # one DSG matrix (single orientation, not the 1/3 average of three as in T3FF).
-#     # ecoords_e_quad is (4, 2): local coords of the four quad nodes in the element plane.
-    
-#     ecoords_e = zeros(__NN, 2)
-#     for j in axes(ecoords_e, 1)
-#         ecoords_e[j, 1] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 1])
-#         ecoords_e[j, 2] = dot(ecoords[j, :] - ecoords[1, :], E_G[:, 2])
-#     end
-    
-#     # One triangular DSG matrix per orientation; no inner average as in T3FF.
-#     Bs_tri = zeros(2, 3 * __NDOF)
-#     ecoords_e_tri = zeros(3, 2)
-#     # Four triangles  in  two pairs
-#     for (i, j, k) in ((4, 1, 2), (2, 3, 4), (1, 2, 3), (3, 4, 1))
-#         ecoords_e_tri[1, :] = ecoords_e[i, :]
-#         ecoords_e_tri[2, :] = ecoords_e[j, :]
-#         ecoords_e_tri[3, :] = ecoords_e[k, :]
-#         a, b = ecoords_e_tri[2, :] .- ecoords_e_tri[1, :]
-#         c, d = ecoords_e_tri[3, :] .- ecoords_e_tri[1, :]
-#         Ae = (a*d - b*c) / 2
-#         Bs_tri .= 0.0
-#         _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (1, 2, 3))
-#         # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (2, 3, 1))
-#         # _add_Bsmat_o!(Bs_tri, ecoords_e_tri, Ae, (3, 1, 2))
-#         Bs[:, (i-1)*__NDOF+1:i*__NDOF] += Bs_tri[:, 1:__NDOF]
-#         Bs[:, (j-1)*__NDOF+1:j*__NDOF] += Bs_tri[:, __NDOF+1:2*__NDOF]
-#         Bs[:, (k-1)*__NDOF+1:k*__NDOF] += Bs_tri[:, 2*__NDOF+1:3*__NDOF]
-#     end
-#     Bs .*= 0.5
-# end
 
 function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     I3 = Matrix{Float64}(I, 3, 3)
@@ -762,8 +715,6 @@ function stiffness(
     elmat = _elmat(FT)
     full_rule = self.integdomain.integration_rule.rule1
     fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
-    reduced_rule = self.integdomain.integration_rule.rule2
-    ri_npts, ri_Ns, ri_gradNparams, ri_w, ri_pc = integrationdata(self.integdomain, reduced_rule)
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = _TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
@@ -785,11 +736,11 @@ function stiffness(
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         h = _quad_diameter(ecoords)
         fill!(elmat, 0.0) # Initialize element matrix
-        # Membrane and bending stiffness
         for j in 1:fi_npts 
             locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
             Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
             _e_g!(E_G, J)
+            _ecoords_e!(ecoords_e, ecoords, E_G)
             _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
             t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
             _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
@@ -800,29 +751,10 @@ function stiffness(
             add_btdb_ut_only!(elmat, Bm, t * Jac * fi_w[j], Dps, DpsBmb)
             bbmat!(Bb, gradN_e, T)
             add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * fi_w[j], Dps, DpsBmb)
-            bsmat!(Bs, gradN_e, fi_Ns[j], T)
+            bsmat!(Bs, ecoords_e, fi_pc[j, :], T)
             Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
-            # Lylyetal = t / (t + mult_el_size * h)
             add_btdb_ut_only!(elmat, Bs,
-                t  * Lylyetal * (_esfactor(t, h)) * Jac * fi_w[j],
-                Dt, DtBs)
-        end
-        # Transverse shear stiffness
-        for j in 1:ri_npts
-            locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
-            _e_g!(E_G, J)
-            _gradN_e!(gradN_e, J, E_G, ri_gradNparams[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], ri_Ns[j])
-            _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-            _transfmat_g_to_a!(Tga, A_Es, E_G)
-            _transfmat_a_to_e!(Tae, A_Es, gradN_e)
-            mul!(T, Tae, Tga)
-            bsmat!(Bs, gradN_e, ri_Ns[j], T)
-            Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
-            # Lylyetal = t / (t + mult_el_size * h)
-            add_btdb_ut_only!(elmat, Bs,
-                t  * Lylyetal * (1 - _esfactor(t, h)) * Jac * ri_w[j],
+                t  * Lylyetal * Jac * fi_w[j],
                 Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
