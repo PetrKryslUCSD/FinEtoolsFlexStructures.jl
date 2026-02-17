@@ -1,7 +1,7 @@
 name = "FinEtoolsFlexStructures"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
 authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
-version = "3.2.4"
+version = "3.2.5"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
