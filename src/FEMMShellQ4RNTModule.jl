@@ -2,7 +2,7 @@
 Module for operations on interiors of domains to construct system matrices and
 system vectors for linear homogenous shells using the quadrilateral
 four-node finite element (Q4RNT). It uses regular membrane and bending stiffness,
-and the transverse sheer stiffness is computed with the MITC (DSG) approach.
+and the transverse shear stiffness is computed with the MITC (DSG) approach.
 """
 module FEMMShellQ4RNTModule
 
@@ -573,6 +573,125 @@ function _Bsmat(ft::Type{T}) where {T<:Real}
     _Bsmat(fill(zero(ft), 2, __NN * __NDOF))
 end
 
+#=
+```python
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Feb 14 07:17:46 2026
+
+@author: pkonl
+"""
+
+from sympy import *
+
+# +Bathe, Dvorkin 1985 numbering (FinEtools switches the signs of the coordinates)
+# 
+#           ^ s
+#           |
+#           |
+# 2 ------- A ------- 1
+# |                   |
+# |                   |
+# B                   D --> r
+# |                   |
+# |                   |
+# 3 ------- C ------- 4
+# 
+# Node 1 is at (r = +1, s = +1) etc.
+
+# Basis functions
+var('r, s')
+N = Matrix([(1+r)*(1+s)/4, 
+            (1-r)*(1+s)/4, 
+            (1-r)*(1-s)/4,
+            (1+r)*(1-s)/4]).reshape(4,1)
+display(simplify(sum(N))) 
+# Displacements at nodes
+var('W1, W2, W3, W4')
+W = Matrix([W1, W2, W3, W4]).reshape(4, 1)
+
+# Transverse displacement w(r, s)
+w = N.T * W
+
+# Coordinates
+var('X1, X2, X3, X4')
+X = Matrix([X1, X2, X3, X4]).reshape(4, 1)
+var('Y1, Y2, Y3, Y4')
+Y = Matrix([Y1, Y2, Y3, Y4]).reshape(4, 1)
+x = (N.T * X)[0]
+y = (N.T * Y)[0]
+
+# Jacobian matrix
+dpdr = Matrix([diff(x, r), diff(y, r)]).reshape(2, 1)
+dpds = Matrix([diff(x, s), diff(y, s)]).reshape(2, 1)
+J = dpdr.row_join(dpds)
+print('J=', J)
+print('--------------------')
+# Gradient of w wrt r, s
+gradwrs = Matrix([diff(w, r), diff(w, s)]).reshape(1, 2)
+
+# Rotations 
+var('Tx1, Tx2, Tx3, Tx4')
+Tx = Matrix([Tx1, Tx2, Tx3, Tx4]).reshape(4, 1)
+tx = N.T * Tx
+var('Ty1, Ty2, Ty3, Ty4')
+Ty = Matrix([Ty1, Ty2, Ty3, Ty4]).reshape(4, 1)
+ty = N.T * Ty
+
+var('Ax, Ay')
+var('Bx, By')
+var('Cx, Cy')
+var('detJ')
+
+# Displacement-based shear strains in r,s, Equation 9a,b
+grzi = sqrt((Cx+r*Bx)**2+(Cy+r*By)**2)/8/detJ * (
+    (1+s)*((W1-W2)/2 + (X1-X2)/4*(Ty1+Ty2) - (Y1-Y2)/4*(Tx1+Tx2))
+    +(1-s)*((W4-W3)/2 + (X4-X3)/4*(Ty4+Ty3) - (Y4-Y3)/4*(Tx4+Tx3))
+    )
+gszi = sqrt((Ax+s*Bx)**2+(Ay+s*By)**2)/8/detJ * (
+    (1+r)*((W1-W4)/2 + (X1-X4)/4*(Ty1+Ty4) - (Y1-Y4)/4*(Tx1+Tx4))
+    +(1-r)*((W2-W3)/2 + (X2-X3)/4*(Ty2+Ty3) - (Y2-Y3)/4*(Tx2+Tx3))
+    )
+
+var('A, ca, sa, B, cb, sb, J')
+gxz = grzi * sb + gszi * (-sa)
+gyz = grzi * (-cb) + gszi * ca
+
+print('# gxz')
+print('o.tempBs[1, 3] += ', simplify(diff(gxz, W1)))
+print('o.tempBs[1, 4] += ', simplify(diff(gxz, Tx1)))
+print('o.tempBs[1, 5] += ', simplify(diff(gxz, Ty1)))
+
+print('o.tempBs[1, 9] += ', simplify(diff(gxz, W2)))
+print('o.tempBs[1, 10] += ', simplify(diff(gxz, Tx2)))
+print('o.tempBs[1, 11] += ', simplify(diff(gxz, Ty2)))
+
+print('o.tempBs[1, 15] += ', simplify(diff(gxz, W3)))
+print('o.tempBs[1, 16] += ', simplify(diff(gxz, Tx3)))
+print('o.tempBs[1, 17] += ', simplify(diff(gxz, Ty3)))
+
+print('o.tempBs[1, 21] += ', simplify(diff(gxz, W4)))
+print('o.tempBs[1, 22] += ', simplify(diff(gxz, Tx4)))
+print('o.tempBs[1, 23] += ', simplify(diff(gxz, Ty4)))
+
+print('# gyz')
+print('o.tempBs[2, 3] += ', simplify(diff(gyz, W1)))
+print('o.tempBs[2, 4] += ', simplify(diff(gyz, Tx1)))
+print('o.tempBs[2, 5] += ', simplify(diff(gyz, Ty1)))
+
+print('o.tempBs[2, 9] += ', simplify(diff(gyz, W2)))
+print('o.tempBs[2, 10] += ', simplify(diff(gyz, Tx2)))
+print('o.tempBs[2, 11] += ', simplify(diff(gyz, Ty2)))
+
+print('o.tempBs[2, 15] += ', simplify(diff(gyz, W3)))
+print('o.tempBs[2, 16] += ', simplify(diff(gyz, Tx3)))
+print('o.tempBs[2, 17] += ', simplify(diff(gyz, Ty3)))
+
+print('o.tempBs[2, 21] += ', simplify(diff(gyz, W4)))
+print('o.tempBs[2, 22] += ', simplify(diff(gyz, Tx4)))
+print('o.tempBs[2, 23] += ', simplify(diff(gyz, Ty4)))
+```
+=#
 (o::_Bsmat)(Bs, ecoords_e, rs, T) = begin
     o.tempBs .= 0.0
     X1, Y1 = ecoords_e[1, 1], ecoords_e[1, 2]
@@ -940,12 +1059,14 @@ function inspectintegpoints(
     for ilist in eachindex(felist) # Loop over elements
         i = felist[ilist]
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
+        h = _quad_diameter(ecoords)
         gathervalues_asvec!(u, edisp, fes.conn[i])
         if quant == TRANSVERSE_SHEAR
             for j in 1:ri_npts # Loop over quadrature points
                 locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
                 Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
                 _e_g!(E_G, J)
+                _ecoords_e!(ecoords_e, ecoords, E_G)
                 _gradN_e!(gradN_e, J, E_G, ri_gradNparams[j])
                 t = self.integdomain.otherdimension(loc, fes.conn[i], ri_Ns[j])
                 _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
@@ -960,9 +1081,10 @@ function inspectintegpoints(
                 o2_e[1, 1] = o2_e[2, 2] = ocsm
                 o2_e[1, 2] = ocsn
                 o2_e[2, 1] = -ocsn
-                bsmat!(Bs, gradN_e, ri_Ns[j], T)
+                bsmat!(Bs, ecoords_e, fi_pc[j, :], T)
+                Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
                 shr = Bs * edisp
-                frc = (t^3 / (t^2 + mult_el_size * Jac * ri_w[j])) * Dt * shr
+                frc = t * Lylyetal * Dt * shr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
                 # Call the inspector
