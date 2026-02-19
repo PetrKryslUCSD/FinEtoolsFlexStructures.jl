@@ -574,17 +574,16 @@ function _Bsmat(ft::Type{T}) where {T<:Real}
 end
 
 #=
+The shear strains are computed with the MITC (DSG) Bathe, Dvorkin 1985 approach. The formula is 
+derived with the help of SymPy in the following Python code. The change of
+the sign of the shear strains is due to the change of the orientation 
+of the parameter coordinates relative to the local element coordinates x,y, 
+which is needed to make the formulation consistent with FinEtools.
+
 ```python
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Feb 14 07:17:46 2026
-
-@author: pkonl
-"""
-
 from sympy import *
 
-# +Bathe, Dvorkin 1985 numbering (FinEtools switches the signs of the coordinates)
+# +Bathe, Dvorkin 1985 numbering (FinEtools switches the signs of the r, s coordinates)
 # 
 #           ^ s
 #           |
@@ -598,6 +597,9 @@ from sympy import *
 # 3 ------- C ------- 4
 # 
 # Node 1 is at (r = +1, s = +1) etc.
+# Due to the change of the orientation of the parameter coordinates 
+# relative to the local element coordinates x,y, the sign of the sheer strains 
+# relative to x and y needs to be changed.
 
 # Basis functions
 var('r, s')
@@ -656,6 +658,10 @@ gszi = sqrt((Ax+s*Bx)**2+(Ay+s*By)**2)/8/detJ * (
 var('A, ca, sa, B, cb, sb, J')
 gxz = grzi * sb + gszi * (-sa)
 gyz = grzi * (-cb) + gszi * ca
+
+# Note the change of the sign!
+gxz = (-1) * gxz
+gyz = (-1) * gyz
 
 print('# gxz')
 print('o.tempBs[1, 3] += ', simplify(diff(gxz, W1)))
@@ -717,31 +723,31 @@ print('o.tempBs[2, 23] += ', simplify(diff(gyz, Ty4)))
     Cx = X1 + X2 - X3 - X4
     Cy = Y1 + Y2 - Y3 - Y4
     # gxz
-    o.tempBs[1, 3] += (-sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[1, 4] += (sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 5] += (-sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 9] += (sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[1, 10] += (-sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 11] += (sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 15] += (-sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[1, 16] += (-sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 17] += (sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 21] += (sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[1, 22] += (sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[1, 23] += (-sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 3] += (sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 4] += (-sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 5] += (sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 9] += (-sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 10] += (sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 11] += (-sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 15] += (sa * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 16] += (sa * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 17] += (-sa * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 21] += (-sa * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[1, 22] += (-sa * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + sb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[1, 23] += (sa * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - sb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
     # gyz
-    o.tempBs[2, 3] += (ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[2, 4] += (-ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 5] += (ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 9] += (-ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[2, 10] += (ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 11] += (-ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 15] += (ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[2, 16] += (ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 17] += (-ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 21] += (-ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
-    o.tempBs[2, 22] += (-ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
-    o.tempBs[2, 23] += (ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 3] += (-ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 4] += (ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 5] += (-ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 9] += (ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 10] += (-ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (Y1 - Y2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 11] += (ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (X1 - X2) * (s + 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 15] += (-ca * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 16] += (-ca * (Y2 - Y3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 17] += (ca * (X2 - X3) * (r - 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 21] += (ca * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (16 * detJ)
+    o.tempBs[2, 22] += (ca * (Y1 - Y4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) - cb * (Y3 - Y4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
+    o.tempBs[2, 23] += (-ca * (X1 - X4) * (r + 1) * sqrt((Ax + Bx * s)^2 + (Ay + By * s)^2) + cb * (X3 - X4) * (s - 1) * sqrt((Bx * r + Cx)^2 + (By * r + Cy)^2)) / (32 * detJ)
     mul!(Bs, o.tempBs, T)
 end
 
@@ -1059,74 +1065,52 @@ function inspectintegpoints(
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         h = _quad_diameter(ecoords)
         gathervalues_asvec!(u, edisp, fes.conn[i])
-        if quant == TRANSVERSE_SHEAR
-            for j in 1:fi_npts # Loop over quadrature points
-                locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
-                Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
-                _e_g!(E_G, J)
+        for j in 1:fi_npts # Loop over quadrature points
+            locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
+            _e_g!(E_G, J)
+            _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+            _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
+            _transfmat_g_to_a!(Tga, A_Es, E_G)
+            _transfmat_a_to_e!(Tae, A_Es, gradN_e)
+            mul!(T, Tae, Tga)
+            updatecsmat!(outputcsys, loc, J, i, j)
+            if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
+                @warn "Coordinate systems mismatched?"
+            end
+            ocsm, ocsn = lla(E_G, csmat(outputcsys))
+            o2_e[1, 1] = o2_e[2, 2] = ocsm
+            o2_e[1, 2] = ocsn
+            o2_e[2, 1] = -ocsn
+            # Compute the Requested Quantity
+            if quant == BENDING_MOMENT
+                bbmat!(Bb, gradN_e, T)
+                kurv = Bb * edisp
+                mom = ((t^3) / 12) * Dps * kurv
+                m = [mom[1] mom[3]; mom[3] mom[2]]
+                mo = o2_e' * m * o2_e
+                out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
+            end
+            if quant == MEMBRANE_FORCE
+                bmmat!(Bm, gradN_e, T)
+                strn = Bm * edisp
+                frc = (t) * Dps * strn
+                f = [frc[1] frc[3]; frc[3] frc[2]]
+                fo = o2_e' * f * o2_e
+                out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
+            end
+            if quant == TRANSVERSE_SHEAR
                 _ecoords_e!(ecoords_e, ecoords, E_G)
-                _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
-                t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
-                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-                _transfmat_g_to_a!(Tga, A_Es, E_G)
-                _transfmat_a_to_e!(Tae, A_Es, gradN_e)
-                mul!(T, Tae, Tga)
-                updatecsmat!(outputcsys, loc, J, i, j)
-                if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
-                    @warn "Coordinate systems mismatched?"
-                end
-                ocsm, ocsn = lla(E_G, csmat(outputcsys))
-                o2_e[1, 1] = o2_e[2, 2] = ocsm
-                o2_e[1, 2] = ocsn
-                o2_e[2, 1] = -ocsn
                 bsmat!(Bs, ecoords_e, fi_pc[j, :], T)
                 Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
                 shr = Bs * edisp
                 frc = t * Lylyetal * Dt * shr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
-                # Call the inspector
-                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
-            end # Loop over quadrature points
-        else # Bending moment or membrane force
-            for j in 1:fi_npts # Loop over quadrature points
-                locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
-                _e_g!(E_G, J)
-                _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
-                t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
-                _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
-                _transfmat_g_to_a!(Tga, A_Es, E_G)
-                _transfmat_a_to_e!(Tae, A_Es, gradN_e)
-                mul!(T, Tae, Tga)
-                updatecsmat!(outputcsys, loc, J, i, j)
-                if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
-                    @warn "Coordinate systems mismatched?"
-                end
-                ocsm, ocsn = lla(E_G, csmat(outputcsys))
-                o2_e[1, 1] = o2_e[2, 2] = ocsm
-                o2_e[1, 2] = ocsn
-                o2_e[2, 1] = -ocsn
-                # Compute the Requested Quantity
-                if quant == BENDING_MOMENT
-                    bbmat!(Bb, gradN_e, T)
-                    kurv = Bb * edisp
-                    mom = ((t^3) / 12) * Dps * kurv
-                    m = [mom[1] mom[3]; mom[3] mom[2]]
-                    mo = o2_e' * m * o2_e
-                    out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
-                end
-                if quant == MEMBRANE_FORCE
-                    bmmat!(Bm, gradN_e, T)
-                    strn = Bm * edisp
-                    frc = (t) * Dps * strn
-                    f = [frc[1] frc[3]; frc[3] frc[2]]
-                    fo = o2_e' * f * o2_e
-                    out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
-                end
-                # Call the inspector
-                idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
-            end # Loop over quadrature points
-        end # select quantity
+            end
+            # Call the inspector
+            idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
+        end # Loop over quadrature points
     end # Loop over elements
     return idat # return the updated inspector data
 end
