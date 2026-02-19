@@ -29,7 +29,7 @@ const __NDOF = 6 # number of degrees of freedom per node
     mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
 
 Type for the finite element modeling machine of the Q4 quadrilateral Flat-Facet
-shell with the reduced integration on the shear term and a consistent handling of the
+shell with the MITC (DSG) approach on the shear term and a consistent handling of the
 normals. 
 
 Also, the formulation is developed to correctly handle the coupling of twisting
@@ -1025,8 +1025,6 @@ function inspectintegpoints(
     T = _T(FT); Tae = _T(FT); Tga = _T(FT)
     full_rule = self.integdomain.integration_rule.rule1
     fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
-    reduced_rule = self.integdomain.integration_rule.rule2
-    ri_npts, ri_Ns, ri_gradNparams, ri_w, ri_pc = integrationdata(self.integdomain, reduced_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     lla = Layup2ElementAngle()
@@ -1062,13 +1060,13 @@ function inspectintegpoints(
         h = _quad_diameter(ecoords)
         gathervalues_asvec!(u, edisp, fes.conn[i])
         if quant == TRANSVERSE_SHEAR
-            for j in 1:ri_npts # Loop over quadrature points
-                locjac!(loc, J, ecoords, ri_Ns[j], ri_gradNparams[j])
-                Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], ri_Ns[j])
+            for j in 1:fi_npts # Loop over quadrature points
+                locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
+                Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
                 _e_g!(E_G, J)
                 _ecoords_e!(ecoords_e, ecoords, E_G)
-                _gradN_e!(gradN_e, J, E_G, ri_gradNparams[j])
-                t = self.integdomain.otherdimension(loc, fes.conn[i], ri_Ns[j])
+                _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
+                t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
                 _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
                 _transfmat_g_to_a!(Tga, A_Es, E_G)
                 _transfmat_a_to_e!(Tae, A_Es, gradN_e)
