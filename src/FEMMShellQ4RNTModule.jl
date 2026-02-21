@@ -838,8 +838,7 @@ function stiffness(
     dofnums = _dofnums(eltype(dchi.dofnums)) 
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
     elmat = _elmat(FT)
-    full_rule = self.integdomain.integration_rule.rule1
-    fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
+    npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = _TransfmatGToA(FT)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
@@ -861,25 +860,25 @@ function stiffness(
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         h = _quad_diameter(ecoords)
         fill!(elmat, 0.0) # Initialize element matrix
-        for j in 1:fi_npts 
-            locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
+        for j in 1:npts 
+            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j])
             _e_g!(E_G, J)
             _ecoords_e!(ecoords_e, ecoords, E_G)
-            _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+            _gradN_e!(gradN_e, J, E_G, gradNparams[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
             _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
             _transfmat_g_to_a!(Tga, A_Es, E_G)
             _transfmat_a_to_e!(Tae, A_Es, gradN_e)
             mul!(T, Tae, Tga)
             bmmat!(Bm, gradN_e, T)
-            add_btdb_ut_only!(elmat, Bm, t * Jac * fi_w[j], Dps, DpsBmb)
+            add_btdb_ut_only!(elmat, Bm, t * Jac * w[j], Dps, DpsBmb)
             bbmat!(Bb, gradN_e, T)
-            add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * fi_w[j], Dps, DpsBmb)
-            bsmat!(Bs, ecoords_e, fi_pc[j, :], T)
+            add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * w[j], Dps, DpsBmb)
+            bsmat!(Bs, ecoords_e, pc[j, :], T)
             Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
             add_btdb_ut_only!(elmat, Bs,
-                t  * Lylyetal * Jac * fi_w[j],
+                t  * Lylyetal * Jac * w[j],
                 Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
@@ -926,8 +925,7 @@ function mass(
     dofnums = _dofnums(eltype(dchi.dofnums)) 
     elmat = _elmat(FT)
     rho = massdensity(self.material) # mass density
-    full_rule = self.integdomain.integration_rule.rule1
-    fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
+    npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     startassembly!(
         assembler,
         size(elmat)..., count(fes),
@@ -939,12 +937,12 @@ function mass(
         # Calculate the element mass
         tmass = 0.0
         rmass = 0.0
-        for j in 1:fi_npts
-            locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], fi_Ns[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
-            tmass += rho * t * Jac * fi_w[j]
-            rmass += rho * t^3 / 12 * Jac * fi_w[j]
+        for j in 1:npts
+            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+            tmass += rho * t * Jac * w[j]
+            rmass += rho * t^3 / 12 * Jac * w[j]
         end
         tmass = tmass / __NN
         rmass = rmass / __NN
@@ -1029,8 +1027,7 @@ function inspectintegpoints(
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = _TransfmatGToA(FT)
     T = _T(FT); Tae = _T(FT); Tga = _T(FT)
-    full_rule = self.integdomain.integration_rule.rule1
-    fi_npts, fi_Ns, fi_gradNparams, fi_w, fi_pc = integrationdata(self.integdomain, full_rule)
+    npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     lla = Layup2ElementAngle()
@@ -1065,11 +1062,11 @@ function inspectintegpoints(
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
         h = _quad_diameter(ecoords)
         gathervalues_asvec!(u, edisp, fes.conn[i])
-        for j in 1:fi_npts # Loop over quadrature points
-            locjac!(loc, J, ecoords, fi_Ns[j], fi_gradNparams[j])
+        for j in 1:npts # Loop over quadrature points
+            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
             _e_g!(E_G, J)
-            _gradN_e!(gradN_e, J, E_G, fi_gradNparams[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], fi_Ns[j])
+            _gradN_e!(gradN_e, J, E_G, gradNparams[j])
+            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
             _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
             _transfmat_g_to_a!(Tga, A_Es, E_G)
             _transfmat_a_to_e!(Tae, A_Es, gradN_e)
@@ -1101,7 +1098,7 @@ function inspectintegpoints(
             end
             if quant == TRANSVERSE_SHEAR
                 _ecoords_e!(ecoords_e, ecoords, E_G)
-                bsmat!(Bs, ecoords_e, fi_pc[j, :], T)
+                bsmat!(Bs, ecoords_e, pc[j, :], T)
                 Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
                 shr = Bs * edisp
                 frc = t * Lylyetal * Dt * shr

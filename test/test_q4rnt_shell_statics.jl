@@ -36,7 +36,7 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
     femm.mult_el_size = 0.2
     femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
@@ -176,7 +176,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
-#     femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+#     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
 #     femm.mult_el_size = 0.2
 #     femm.drilling_stiffness_scale = 1.0
 #     stiffness = formul.stiffness
@@ -315,7 +315,7 @@ function _execute(
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), t), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater)
     # femm.mult_el_size = 0.2
     # femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
@@ -463,7 +463,7 @@ Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
-#     femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+#     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
 #     femm.mult_el_size = 0.2
 #     femm.drilling_stiffness_scale = 1.0
 #     stiffness = formul.stiffness
@@ -604,7 +604,7 @@ numerically.
 
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
-#     femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+#     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
 #     femm.mult_el_size = 0.2
 #     femm.drilling_stiffness_scale = 0.1
 #     stiffness = formul.stiffness
@@ -798,7 +798,7 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
     femm.mult_el_size = 0.2
     femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
@@ -884,7 +884,7 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
     femm.mult_el_size = 0.2
     femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness

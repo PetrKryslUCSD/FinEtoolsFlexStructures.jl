@@ -237,7 +237,7 @@ function standard_single_q4rnt()
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, 
-            CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+            GaussRule(2, 2), thickness), mater)
     associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass

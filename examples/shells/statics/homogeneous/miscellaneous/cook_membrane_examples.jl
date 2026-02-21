@@ -132,7 +132,7 @@ function _execute_q4rtn(n = 8, visualize = true)
     
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 

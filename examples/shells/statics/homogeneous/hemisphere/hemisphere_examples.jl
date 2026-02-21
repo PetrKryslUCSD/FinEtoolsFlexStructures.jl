@@ -154,7 +154,7 @@ function _execute_q4rnt(n = 2, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(
-        IntegDomain(fes, CompositeRule(GaussRule(2, 2), GaussRule(2, 1)), 
+        IntegDomain(fes, GaussRule(2, 2), 
         thickness), ocsys, mater)
     femm.drilling_stiffness_scale = 0.1
     femm.threshold_angle = 45.0
