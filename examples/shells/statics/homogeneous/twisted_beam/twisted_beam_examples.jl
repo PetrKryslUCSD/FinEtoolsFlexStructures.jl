@@ -143,6 +143,7 @@ function _execute_q4rnt(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469,
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater)
     # femm.drilling_stiffness_scale = 0.1
+    femm.mult_el_size = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 

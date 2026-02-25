@@ -42,7 +42,7 @@ The stabilization factor of the shear term of
 the Reissner-Mindlin plate model Computer Methods in Applied Mechanics and
 Engineering 110 (1993) 343-357 
 
-is present, but disabled by default. Refer to expressions (3.12) and (3.13).
+is included to improve results on coarse meshes. Refer to expressions (3.12) and (3.13).
 
 The formula for the element to nodal basis transformation is derived similarly 
 to the formulation of the robust flat-facet triangle, T3FF.
@@ -170,10 +170,10 @@ function FEMMShellQ4RNT(
         material,
         # drilling_stiffness_scale::Float64
         # threshold_angle::Float64
-        # mult_el_size::Float64 (turned off by default -- 0.0)
+        # mult_el_size::Float64
         T(1.0),
         T(30.0),
-        T(0.0),
+        T(0.1),
         false,
         _normals,
         _normal_valid,
