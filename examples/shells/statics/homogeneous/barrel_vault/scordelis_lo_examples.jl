@@ -58,8 +58,8 @@ function _execute_t3ff_model(n = 8, visualize = true)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
-    femm.drilling_stiffness_scale = 1.0e0
-    femm.mult_el_size = 1.0
+    # femm.drilling_stiffness_scale = 1.0e0
+    # femm.mult_el_size = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -150,8 +150,8 @@ function _execute_q4rnt_model(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = 1.00
-    femm.drilling_stiffness_scale = 1.0e0
+    femm.mult_el_size = 0.00
+    # femm.drilling_stiffness_scale = 1.0e0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -244,7 +244,7 @@ function _execute_t3ff_model_w_units(n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
+    # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 

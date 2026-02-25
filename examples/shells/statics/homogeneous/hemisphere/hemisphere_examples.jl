@@ -42,12 +42,12 @@ function _execute_t3ff(n = 2, visualize = true)
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
     # Report
-    @info "Mesh: $n elements per side"
+    # @info "Mesh: $n elements per side"
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    femm.drilling_stiffness_scale = 0.1
+    # femm.drilling_stiffness_scale = 0.1
     femm.threshold_angle = 45.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -104,8 +104,7 @@ function _execute_t3ff(n = 2, visualize = true)
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
-    resultpercent =  dchi.values[nl, 1][1]*100
-    @info "Solution: $(round(resultpercent/analyt_sol, digits = 4))%"
+    @info "n=$(n): Solution: $(round(dchi.values[nl, 1][1]*100, digits = 4)) [$(round(dchi.values[nl, 1][1]/analyt_sol*100, digits = 4))%]"
 
     # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
 
@@ -149,14 +148,14 @@ function _execute_q4rnt(n = 2, visualize = true)
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
     # Report
-    @info "Mesh: $n elements per side"
+    # @info "Mesh: $n elements per side"
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(
         IntegDomain(fes, GaussRule(2, 2), 
         thickness), ocsys, mater)
-    femm.drilling_stiffness_scale = 0.1
+    # femm.drilling_stiffness_scale = 0.1
     femm.threshold_angle = 45.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -213,8 +212,7 @@ function _execute_q4rnt(n = 2, visualize = true)
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
-    resultpercent =  dchi.values[nl, 1][1]*100
-    @info "Solution: $(round(resultpercent/analyt_sol, digits = 4))%"
+    @info "n=$(n): Solution: $(round(dchi.values[nl, 1][1]*100, digits = 4)) [$(round(dchi.values[nl, 1][1]/analyt_sol*100, digits = 4))%]"
 
     # formul._resultant_check(femm, geom0, u0, Rfield0, dchi)
 
@@ -227,15 +225,15 @@ function _execute_q4rnt(n = 2, visualize = true)
     return true
 end
 
-function test_convergence()
+function test_convergence(ns = [4, 8, 16, 32, 64])
     @info "Hemisphere benchmark, T3FF elements"
     # for n in [2, ]
-    for n in [2, 4, 8, 16, 32]
+    for n in ns
         _execute_t3ff(n, false)
     end
     @info "Hemisphere benchmark, Q4RNT elements"
     # for n in [2, ]
-    for n in [2, 4, 8, 16, 32]
+    for n in ns
         _execute_q4rnt(n, true)
     end
     return true
