@@ -316,7 +316,7 @@ function _execute(
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater)
-    # femm.mult_el_size = 0.2
+    femm.mult_el_size = 0.05
     # femm.drilling_stiffness_scale = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
