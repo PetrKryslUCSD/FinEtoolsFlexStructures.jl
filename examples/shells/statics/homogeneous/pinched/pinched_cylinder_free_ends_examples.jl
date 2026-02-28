@@ -55,7 +55,7 @@ function _execute_dsg_model(formul, n = 2, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    # femm.drilling_stiffness_scale = 1.0e0
+    # e0
     associategeometry! = formul.associategeometry!
     stiffness = formul.stiffness
 

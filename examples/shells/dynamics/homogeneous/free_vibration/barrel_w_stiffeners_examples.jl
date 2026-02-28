@@ -24,7 +24,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using DataDrop
@@ -138,7 +138,7 @@ function _execute_t3ff(formul, input, visualize = true)
 end
 
 
-function _execute_q4rnt(formul, input, visualize = true)
+function _execute_Q4RS(formul, input, visualize = true)
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 7850*phun("KG/M^3");
@@ -251,9 +251,9 @@ function test_convergence()
     @time _execute_t3ff(formul, input, true)
     
     input = "barrel_w_stiffeners-q4-mesh.h5mesh"
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     @info "Barrel With Stiffeners, free vibration,\n formulation=$(formul)"
-    @time _execute_q4rnt(formul, input, true)
+    @time _execute_Q4RS(formul, input, true)
     return true
 end
 

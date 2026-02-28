@@ -62,8 +62,7 @@ function test_homogeneous(visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    femm.drilling_stiffness_scale = 1.0e-4
-    femm.mult_el_size = 5 / 12
+    femm.mult_el_size = 5 / 12 # make the test happy
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -243,8 +242,7 @@ function test_composite(visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), layup)
-    femm.drilling_stiffness_scale = 1.0e-4
-    femm.mult_el_size = 5 / 12
+    femm.mult_el_size = 5 / 12 # make the test happy
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 

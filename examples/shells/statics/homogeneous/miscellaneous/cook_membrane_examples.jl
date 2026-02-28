@@ -7,7 +7,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -116,7 +116,7 @@ function _execute_q4rtn(n = 8, visualize = true)
     mid_edge  = [48.0, 52.0];# Location of tracked  deflection
     magn=1/free_height;# Magnitude of applied load
     convutip=23.97;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     
     @info "Mesh: $n elements per side"
     tolerance = thickness/n/100
@@ -211,7 +211,7 @@ function test_convergence()
     for n in [2, 4, 8, 16, 32, 64]
         _execute_t3ff(n, false)
     end
-    @info "Cook trapezoidal membrane Q4RNT"
+    @info "Cook trapezoidal membrane Q4RS"
     for n in [2, 4, 8, 16, 32, 64]
         _execute_q4rtn(n, true)
     end

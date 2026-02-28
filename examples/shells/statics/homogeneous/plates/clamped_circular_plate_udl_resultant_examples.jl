@@ -13,7 +13,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -147,7 +147,7 @@ function _execute_t3ff(mesh_procedure = :q4_t3, n = 2, t_radius_ratio = 0.01, vi
     return true
 end
 
-function _execute_q4rnt(mesh_procedure = :q4, n = 2, t_radius_ratio = 0.01, visualize = true)
+function _execute_Q4RS(mesh_procedure = :q4, n = 2, t_radius_ratio = 0.01, visualize = true)
     E = 200*phun("GPa");
     nu = 0.3;
     a = 1.0*phun("m");
@@ -160,7 +160,7 @@ function _execute_q4rnt(mesh_procedure = :q4, n = 2, t_radius_ratio = 0.01, visu
     @show center_m = q*a^2*(1+nu)/16
     @show fixed_mr = q*a^2/8
     @show fixed_mt = nu*q*a^2/8
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = a/n/1000
     if mesh_procedure == :q4
@@ -247,7 +247,7 @@ function _execute_q4rnt(mesh_procedure = :q4, n = 2, t_radius_ratio = 0.01, visu
     # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("m$nc", fld.values))
     end
-    vtkwrite("clamped_circular_plate_udl-q4rnt-m.vtu", fens, fes; scalars = scalars)
+    vtkwrite("clamped_circular_plate_udl-Q4RS-m.vtu", fens, fes; scalars = scalars)
     # Generate a graphical display of resultants
     scalars = []
     for nc in 1:2
@@ -255,7 +255,7 @@ function _execute_q4rnt(mesh_procedure = :q4, n = 2, t_radius_ratio = 0.01, visu
     # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
     end
-    vtkwrite("clamped_circular_plate_udl-q4rnt-q.vtu", fens, fes; scalars = scalars)
+    vtkwrite("clamped_circular_plate_udl-Q4RS-q.vtu", fens, fes; scalars = scalars)
 
     # Visualization
     if !visualize
@@ -278,7 +278,7 @@ function test_convergence()
     @info "thickness/length = $t_radius_ratio "
     for n in [80, ]
         _execute_t3ff(:t3_nice, n, t_radius_ratio, false)
-        _execute_q4rnt(:q4, n, t_radius_ratio, false)
+        _execute_Q4RS(:q4, n, t_radius_ratio, false)
     end
     return true
 end

@@ -1,4 +1,4 @@
-module scordelis_lo_q4rnt_verification
+module scordelis_lo_Q4RS_verification
 
 using Test
 using LinearAlgebra
@@ -8,7 +8,7 @@ using FinEtools.FTypesModule:
 using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 function _execute(n = 8, visualize = true)
@@ -21,7 +21,7 @@ function _execute(n = 8, visualize = true)
     thickness = 0.25 # geometrical dimensions are in feet
     R = 25.0
     L = 50.0
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = R / n / 1000
     fens, fes = Q4block(40 / 360 * 2 * pi, L / 2, n, n)
@@ -37,8 +37,8 @@ function _execute(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = 0.2
-    femm.drilling_stiffness_scale = 1.0
+    femm.mult_el_size = 0.2 # make the test happy
+    
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -90,7 +90,7 @@ function _execute(n = 8, visualize = true)
 end
 
 function test_convergence()
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     # @info "Testing convergence of Scordelis-Lo shell"
     results = [
         97.88098976068304,
@@ -131,7 +131,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 
 
 """
-# module raasch_q4rnt_verification
+# module raasch_Q4RS_verification
 
 # using Test
 # using LinearAlgebra
@@ -141,7 +141,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 # using FinEtools.AlgoBaseModule: solve_blocked!
 # using FinEtoolsDeforLinear
 # using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-# using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+# using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 # using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 # function _execute(input = "raasch_s4_1x9.inp", visualize = true)
@@ -152,7 +152,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 #     # analytical solution for the vertical deflection under the load
 #     analyt_sol = 5.02
 #     R = 46.0
-#     formul = FEMMShellQ4RNTModule
+#     formul = FEMMShellQ4RSModule
 
 #     output = import_ABAQUS(joinpath(input))
 #     fens = output["fens"]
@@ -177,8 +177,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
 #     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-#     femm.mult_el_size = 0.2
-#     femm.drilling_stiffness_scale = 1.0
+#     
 #     stiffness = formul.stiffness
 #     associategeometry! = formul.associategeometry!
 
@@ -221,7 +220,7 @@ equivalent shear force is applied as a distributed shear traction instead.
 # end
 
 # function test_convergence()
-#     formul = FEMMShellQ4RNTModule
+#     formul = FEMMShellQ4RSModule
 #     results = [91.7059961843231, 95.9355786538892, 97.19276899988246, 98.38896641657374]
 #     for (m, res) in zip(["1x9", "3x18", "5x36", "10x72"], results)
 #         v = _execute("raasch_s4_" * m * ".inp", false)
@@ -267,7 +266,7 @@ Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically
 
 
 """
-module twisted_beam_q4rnt_verification
+module twisted_beam_Q4RS_verification
 
 using Test
 using FinEtools
@@ -276,7 +275,7 @@ using FinEtools.FTypesModule:
 using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 params_thicker_dir_3 = (t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469)
@@ -299,7 +298,7 @@ function _execute(
     nu = 0.22
     W = 1.1
     L = 12.0
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = W / nW / 100
     fens, fes = Q4block(L, W, nL, nW)
@@ -316,8 +315,8 @@ function _execute(
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater)
-    femm.mult_el_size = 0.05
-    # femm.drilling_stiffness_scale = 1.0
+    femm.mult_el_size = 0.05 # make the test happy
+    # 
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -357,7 +356,7 @@ function _execute(
 end
 
 function test_convergence()
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     results = [
 57.52004303100694,
 82.57318302555431,
@@ -421,7 +420,7 @@ NAFEMS REFERENCE SOLUTION
 
 Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 """
-# module LE5_Z_cantilever_q4rnt_verification
+# module LE5_Z_cantilever_Q4RS_verification
 
 # using Test
 # using LinearAlgebra
@@ -431,7 +430,7 @@ Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 # using FinEtools.AlgoBaseModule: solve_blocked!
 # using FinEtoolsDeforLinear
 # using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-# using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+# using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 # using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 
 
@@ -440,7 +439,7 @@ Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 #     nu = 0.3
 #     L = 10.0
 #     thickness = 0.1
-#     formul = FEMMShellQ4RNTModule
+#     formul = FEMMShellQ4RSModule
 
 #     tolerance = thickness / 1000
 #     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
@@ -464,8 +463,7 @@ Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
 #     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-#     femm.mult_el_size = 0.2
-#     femm.drilling_stiffness_scale = 1.0
+#     
 #     stiffness = formul.stiffness
 #     associategeometry! = formul.associategeometry!
 
@@ -518,7 +516,7 @@ Axial stress at X = 2.5 from fixed end (point A) at the midsurface is -108 MPa.
 # end
 
 # function test_convergence()
-#     formul = FEMMShellQ4RNTModule
+#     formul = FEMMShellQ4RSModule
 #     # @info "LE5 Z-cantilever, formulation=$(formul)"
 #     for n in [0]
 #         res = _execute("nle5xf3c.inp", n, false)
@@ -566,7 +564,7 @@ numerically.
 # using FinEtoolsDeforLinear
 # using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 # using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-# using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+# using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 # using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 # using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
@@ -579,7 +577,7 @@ numerically.
 #     analyt_sol = -0.3024 * 12
 #     R = 25.0 * 12
 #     L = 50.0 * 12
-#     formul = FEMMShellQ4RNTModule
+#     formul = FEMMShellQ4RSModule
 
 #     output = import_ABAQUS(joinpath(dirname(@__FILE__()), input))
 #     fens = output["fens"]
@@ -605,7 +603,6 @@ numerically.
 #     sfes = FESetShellQ4()
 #     accepttodelegate(fes, sfes)
 #     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-#     femm.mult_el_size = 0.2
 #     femm.drilling_stiffness_scale = 0.1
 #     stiffness = formul.stiffness
 #     associategeometry! = formul.associategeometry!
@@ -759,7 +756,7 @@ numerically.
 
 # end # module
 
-module scordelis_lo_q4rnt_geometry
+module scordelis_lo_Q4RS_geometry
 
 using Test
 using LinearAlgebra
@@ -769,7 +766,7 @@ using FinEtools.FTypesModule:
 using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
@@ -783,7 +780,7 @@ function _execute(n = 8, visualize = true)
     thickness = 0.25 # geometrical dimensions are in feet
     R = 25.0
     L = 50.0
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = R / n / 1000
     fens, fes = Q4block(40 / 360 * 2 * pi, L / 2, n, n)
@@ -799,8 +796,8 @@ function _execute(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = 0.2
-    femm.drilling_stiffness_scale = 1.0
+    femm.mult_el_size = 0.2 # make the test happy
+    
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -851,7 +848,7 @@ test_convergence()
 
 end # module
 
-module sphere_q4rnt_geometry
+module sphere_Q4RS_geometry
 
 using Test
 using LinearAlgebra
@@ -861,7 +858,7 @@ using FinEtools.FTypesModule:
 using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
@@ -875,7 +872,7 @@ function _execute(n = 8, visualize = true)
     thickness = 0.25 # geometrical dimensions are in feet
     R = 25.0
     L = 50.0
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = R / n / 1000
     fens, fes = Q4spheren(L, n)
@@ -885,8 +882,8 @@ function _execute(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = 0.2
-    femm.drilling_stiffness_scale = 1.0
+    femm.mult_el_size = 0.2 # make the test happy
+    
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 

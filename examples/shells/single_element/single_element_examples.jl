@@ -10,7 +10,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, 
     plot_midsurface, space_aspectratio, save_to_json, plot_triads, default_layout_3d
@@ -211,7 +211,7 @@ function distorted_single_t3ff()
     end
 end
 
-function standard_single_q4rnt()
+function standard_single_Q4RS()
     E = 200e3*phun("MPa")
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
@@ -232,7 +232,7 @@ function standard_single_q4rnt()
 
     mater = MatDeforElastIso(DeforModelRed3D, rho, E, nu, 0.0)
     
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
@@ -309,8 +309,8 @@ function allrun()
     println("# standard_single_t3ff ")
     standard_single_t3ff()
     println("#####################################################")
-    println("# standard_single_q4rnt ")
-    standard_single_q4rnt()
+    println("# standard_single_Q4RS ")
+    standard_single_Q4RS()
     return true
 end # function allrun
 

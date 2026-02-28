@@ -10,7 +10,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -122,14 +122,14 @@ function _execute_t3ff(n = 2, visualize = true)
     return true
 end
 
-function _execute_q4rnt(n = 2, visualize = true)
+function _execute_Q4RS(n = 2, visualize = true)
     E = 6.825e7;
     nu = 0.3;
     thickness  =  0.04;
     # analytical solution for the vertical deflection under the load
     analyt_sol = 0.0924;
     R = 10.0;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     tolerance = R/n/1000
     fens, fes = Q4spheren(R, n)
@@ -231,10 +231,10 @@ function test_convergence(ns = [4, 8, 16, 32, 64])
     for n in ns
         _execute_t3ff(n, false)
     end
-    @info "Hemisphere benchmark, Q4RNT elements"
+    @info "Hemisphere benchmark, Q4RS elements"
     # for n in [2, ]
     for n in ns
-        _execute_q4rnt(n, true)
+        _execute_Q4RS(n, true)
     end
     return true
 end

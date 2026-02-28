@@ -25,7 +25,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -58,8 +58,6 @@ function _execute_t3ff_model(n = 8, visualize = true)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
-    # femm.drilling_stiffness_scale = 1.0e0
-    # femm.mult_el_size = 1.0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -125,7 +123,7 @@ function _execute_t3ff_model(n = 8, visualize = true)
     return true
 end
 
-function _execute_q4rnt_model(n = 8, visualize = true)
+function _execute_Q4RS_model(n = 8, visualize = true)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     analyt_sol=-0.3024;
@@ -135,7 +133,7 @@ function _execute_q4rnt_model(n = 8, visualize = true)
     thickness = 0.25; # geometrical dimensions are in feet
     R = 25.0;
     L = 50.0;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     
     tolerance = R/n/1000
     fens, fes = Q4block(40/360*2*pi,L/2,n,n);
@@ -150,8 +148,6 @@ function _execute_q4rnt_model(n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = 0.00
-    # femm.drilling_stiffness_scale = 1.0e0
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -204,7 +200,7 @@ function _execute_q4rnt_model(n = 8, visualize = true)
 
     # Visualization
     if visualize
-        vtkwrite("scordelis_lo_q4rnt-$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("scordelis_lo_Q4RS-$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         # scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
         # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
@@ -315,9 +311,9 @@ function test_convergence(ns = [8, 16, 32, 64, 128])
     for n in ns
         _execute_t3ff_model(n, false)
     end
-    @info "Scordelis-Lo shell, Q4RNT"
+    @info "Scordelis-Lo shell, Q4RS"
     for n in ns
-        _execute_q4rnt_model(n, true)
+        _execute_Q4RS_model(n, true)
     end
     return true
 end

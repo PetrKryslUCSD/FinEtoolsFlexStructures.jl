@@ -133,9 +133,8 @@ function _execute(n = 8, thickness = 0.01, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
     femm.drilling_mass_scale = 1.0
-    femm.drilling_stiffness_scale = 1.0
+    
 
 # Construct the requisite fields, geometry and displacement
 # Initialize configuration variables

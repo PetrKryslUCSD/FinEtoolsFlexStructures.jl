@@ -26,7 +26,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -194,7 +194,7 @@ function _execute_t3ff(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1
     return targetu/ref_sol
 end
 
-function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1)
+function _execute_Q4RS(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 1.0, visualize = true, nL = 9, nW = 1)
     # The physical quantities are provided in english units, dimensions in inches.10
     E = 3300.0;
     nu = 0.35;
@@ -203,7 +203,7 @@ function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 
     # Reference solution for the vertical deflection under the load. Obtained with a refined 20-node solid model.
     ref_sol = 5.022012648671993;
     R = 46.0;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     
     if input  == ""
         fens, fes = Q4block(210.0, 20.0, nL, nW)
@@ -307,7 +307,7 @@ function _execute_q4rnt(input = "raasch_s4_1x9.inp", drilling_stiffness_scale = 
     push!(vectors, ("UR", deepcopy(dchi.values[:, 4:6])))
     vtkwrite("$input-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
 
-    if false # This is not working with the Q4RNT elements yet.
+    if false # This is not working with the Q4RS elements yet.
         # Generate a graphical display of resultants
         function csys!(csmatout, XYZ, tangents, feid, qpid)
             cross3!(view(csmatout, :, 3), view(tangents, :, 1), view(tangents, :, 2))
@@ -359,9 +359,9 @@ function test_convergence(lns = [9*2^(n-1) for n in 1:5], wns = [1*2^(n-1) for n
     for n in eachindex(lns)
         _execute_t3ff("", 1.0, false, lns[n], wns[n])
     end
-    @info "Raasch hook, Q4RNT elements"
+    @info "Raasch hook, Q4RS elements"
     for n in eachindex(lns)
-        _execute_q4rnt("", 1.0, false, lns[n], wns[n])
+        _execute_Q4RS("", 1.0, false, lns[n], wns[n])
     end
     return true
 end
@@ -383,16 +383,16 @@ function test_dep_drilling_stiffness_scale_t3ff()
     return all_drilling_stiffness_scale, all_results
 end
 
-function test_dep_drilling_stiffness_scale_q4rnt()
-    @info "Raasch hook, Q4RNT elements, dependence on drilling stiffness scale"
+function test_dep_drilling_stiffness_scale_Q4RS()
+    @info "Raasch hook, Q4RS elements, dependence on drilling stiffness scale"
     all_results = []
     all_drilling_stiffness_scale = [1000.0, 1.0, 0.1, 0.0001, 0.000001] 
     for drilling_stiffness_scale in all_drilling_stiffness_scale
         results = Float64[]
         # for m in ["1x9", "3x18", "5x36", "10x72", "20x144"]
-            # v = _execute_q4rnt("raasch_s4_" * m * ".inp", drilling_stiffness_scale, false)
+            # v = _execute_Q4RS("raasch_s4_" * m * ".inp", drilling_stiffness_scale, false)
         for n in 1:5
-            v = _execute_q4rnt("", drilling_stiffness_scale, false, 9*2^(n-1), 1*2^(n-1))
+            v = _execute_Q4RS("", drilling_stiffness_scale, false, 9*2^(n-1), 1*2^(n-1))
                     push!(results, v)
         end
         push!(all_results, results)
@@ -408,8 +408,8 @@ function allrun()
     println("# test_dep_drilling_stiffness_scale_t3ff ")
     test_dep_drilling_stiffness_scale_t3ff()
     println("#####################################################")
-    println("# test_dep_drilling_stiffness_scale_q4rnt ")
-    test_dep_drilling_stiffness_scale_q4rnt()
+    println("# test_dep_drilling_stiffness_scale_Q4RS ")
+    test_dep_drilling_stiffness_scale_Q4RS()
     return true
 end # function allrun
 

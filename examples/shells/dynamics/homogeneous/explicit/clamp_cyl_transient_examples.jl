@@ -172,7 +172,6 @@ function _set_up_model(n = 64, thickness = 0.01, drilling_stiffness_scale = 1.0)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
     femm.drilling_stiffness_scale = drilling_stiffness_scale
 
     # Construct the requisite fields, geometry and displacement

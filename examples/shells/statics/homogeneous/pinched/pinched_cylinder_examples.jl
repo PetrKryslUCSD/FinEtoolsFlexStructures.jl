@@ -9,7 +9,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -125,13 +125,13 @@ function _execute_t3ff(n = 2, visualize = true)
     return true
 end
 
-function _execute_q4rnt(n = 2, visualize = true)
+function _execute_Q4RS(n = 2, visualize = true)
     E = 3e6;
     nu = 0.3;
     thickness = 3.0;
     # analytical solution for the vertical deflection under the load
     analyt_sol=-1.82488e-5;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     
 
@@ -219,7 +219,7 @@ function _execute_q4rnt(n = 2, visualize = true)
     vectors = []
     push!(vectors, ("U", deepcopy(dchi.values[:, 1:3])))
     push!(vectors, ("UR", deepcopy(dchi.values[:, 4:6])))
-    vtkwrite("pinched_cylinder-q4rnt-$n-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
+    vtkwrite("pinched_cylinder-Q4RS-$n-dchi.vtu", fens, fes; scalars = scalars, vectors = vectors)
 
 
     # Visualization
@@ -241,9 +241,9 @@ function test_convergence(ns = [4, 8, 16, 32, 64,]) # 3:64 #
     for n in ns
         _execute_t3ff(n, false)
     end
-    @info "Pinched cylinder, Q4RNT formulation"
+    @info "Pinched cylinder, Q4RS formulation"
     for n in ns
-    _execute_q4rnt(n, false)
+    _execute_Q4RS(n, false)
     end
     return true
 end

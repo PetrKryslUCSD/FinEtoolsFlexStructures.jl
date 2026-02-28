@@ -31,7 +31,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -128,7 +128,7 @@ function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n 
     return targetu
 end
 
-function _execute_q4rnt(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32, visualize = false)
+function _execute_Q4RS(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n = 32, visualize = false)
     # analytical solution for the vertical deflection and the midpoint of the
     # free edge 
     # Parameters:
@@ -138,7 +138,7 @@ function _execute_q4rnt(tL_ratio = 1/100, g = 80*0.1^0, analyt_sol=-9.3355e-5, n
     thickness = tL_ratio * L
     # Bathe, Iosilevich, and Chapelle (2000) with a refined mesh of
     # high-order element MITC16
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
 
     @info "Mesh: $n elements per side"
 
@@ -240,11 +240,11 @@ function test_convergence()
     end
 
     for (tL_ratio, g, analyt_sol) in zip(tL_ratios, gs, analyt_sols)
-        @info "Clamped hypar, t/L=$(tL_ratio), Q4RNT elements"
+        @info "Clamped hypar, t/L=$(tL_ratio), Q4RS elements"
         results = Float64[]
         for n in [4, 8, 16, 32, 64, ]
         # for n in [4, 8, 16, 32, 64, ]
-            r = _execute_q4rnt(tL_ratio, g, analyt_sol, n, false)
+            r = _execute_Q4RS(tL_ratio, g, analyt_sol, n, false)
             push!(results, r/analyt_sol)
         end   
         @show results

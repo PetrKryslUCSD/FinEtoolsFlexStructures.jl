@@ -28,7 +28,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -66,8 +66,6 @@ function _execute_t3ff(formul, n = 8, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness),  mater)
-    # femm.drilling_stiffness_scale = 1.0e-4
-    # femm.mult_el_size = 5/12
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -161,7 +159,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
     result
 end
 
-function _execute_q4rnt(formul, n = 8, visualize = true)
+function _execute_Q4RS(formul, n = 8, visualize = true)
     tolerance = R/n/10
     # fens, fes = T3blockrand(40/360*2*pi,L/2,n,n);
     fens, fes = Q4block(40/360*2*pi,L/2,n,n);
@@ -177,8 +175,6 @@ function _execute_q4rnt(formul, n = 8, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness),  mater)
-    # femm.drilling_stiffness_scale = 1.0e-4
-    # femm.mult_el_size = 5/12
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -239,7 +235,7 @@ function _execute_q4rnt(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("em$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_q4rnt-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("vis_scordelis_lo_Q4RS-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
@@ -247,7 +243,7 @@ function _execute_q4rnt(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("en$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_q4rnt-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("vis_scordelis_lo_Q4RS-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
@@ -255,9 +251,9 @@ function _execute_q4rnt(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_q4rnt-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("vis_scordelis_lo_Q4RS-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
-        # vtkwrite("vis_scordelis_lo_q4rnt-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        # vtkwrite("vis_scordelis_lo_Q4RS-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         # scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
@@ -283,12 +279,12 @@ function test_t3ff(ns = [16, 32], visualize = true)
     return ns, results
 end
 
-function test_q4rnt(ns = [16, 32], visualize = true)
-    formul = FEMMShellQ4RNTModule
+function test_Q4RS(ns = [16, 32], visualize = true)
+    formul = FEMMShellQ4RSModule
     @info "Scordelis-Lo shell, formulation=$(formul)"
     results = []
     for n in ns
-        v = _execute_q4rnt(formul, n, visualize)
+        v = _execute_Q4RS(formul, n, visualize)
         push!(results, v/(-0.3020)*100)
     end
     return ns, results
@@ -299,8 +295,8 @@ function allrun()
     println("# test_t3ff ")
     test_t3ff()
     println("#####################################################")
-    println("# test_q4rnt ")
-    test_q4rnt()
+    println("# test_Q4RS ")
+    test_Q4RS()
     return true
 end # function allrun
 

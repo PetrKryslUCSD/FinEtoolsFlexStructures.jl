@@ -1,10 +1,10 @@
 """
 Module for operations on interiors of domains to construct system matrices and
 system vectors for linear homogenous shells using the quadrilateral
-four-node finite element (Q4RNT). It uses regular membrane and bending stiffness,
+four-node finite element (Q4RS). It uses regular membrane and bending stiffness,
 and the transverse shear stiffness is computed with the MITC (DSG) approach.
 """
-module FEMMShellQ4RNTModule
+module FEMMShellQ4RSModule
 
 using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
 using Statistics: mean
@@ -26,7 +26,7 @@ const __NN = 4 # number of nodes
 const __NDOF = 6 # number of degrees of freedom per node
 
 """
-    mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+    mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
 
 Type for the finite element modeling machine of the Q4 quadrilateral Flat-Facet
 shell with the MITC (DSG) approach on the shear term and a consistent handling of the
@@ -62,7 +62,7 @@ These attributes of the FEMM can be set after it's been created.
 - `mult_el_size`: multiplier of the square of the element size, used to control
   transverse shear stiffness.
 """
-mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
     mcsys::CS # updater of the material orientation matrix
     material::M # material object.
@@ -74,7 +74,11 @@ mutable struct FEMMShellQ4RNT{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS
     _normal_valid::Vector{Bool}
 end
 
-_number_type(femm::FEMMShellQ4RNT{ID, T, CS}) where {ID, T, CS} = T
+const __DEFAULT_DRILLING_STIFFNESS_SCALE = 1.0
+const __DEFAULT_THRESHOLD_ANGLE = 30.0
+const __DEFAULT_MULT_EL_SIZE = 0.1
+
+_number_type(femm::FEMMShellQ4RS{ID, T, CS}) where {ID, T, CS} = T
 
 # Prepare functions to return buffers of various sorts
 
@@ -140,15 +144,15 @@ function _elmat(ft::Type{T}) where {T<:Real}
 end
 
 """
-    FEMMShellQ4RNT(
+    FEMMShellQ4RS(
         integdomain::ID,
         mcsys::CSys,
         material::M,
     ) where {IntegDomain{S} where {S<:FESetQ4}, CS<:CSys, M}
 
-Constructor of the Q4RNT shell FEMM.
+Constructor of the Q4RS shell FEMM.
 """
-function FEMMShellQ4RNT(
+function FEMMShellQ4RS(
     integdomain::ID,
     mcsys::CS,
     material::M,
@@ -164,16 +168,13 @@ function FEMMShellQ4RNT(
     
     @assert delegateof(integdomain.fes) === FESetShellQ4()
 
-    return FEMMShellQ4RNT(
+    return FEMMShellQ4RS(
         integdomain,
         mcsys,
         material,
-        # drilling_stiffness_scale::Float64
-        # threshold_angle::Float64
-        # mult_el_size::Float64
-        T(1.0),
-        T(30.0),
-        T(0.1),
+        T(__DEFAULT_DRILLING_STIFFNESS_SCALE),
+        T(__DEFAULT_THRESHOLD_ANGLE),
+        T(__DEFAULT_MULT_EL_SIZE),
         false,
         _normals,
         _normal_valid,
@@ -191,38 +192,38 @@ function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J, feid, qpid)
 end
 
 """
-    FEMMShellQ4RNT(
+    FEMMShellQ4RS(
         integdomain::ID,
         material::M,
     ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, M}
 
-Constructor of the Q4RNT shell FEMM.
+Constructor of the Q4RS shell FEMM.
 """
-function FEMMShellQ4RNT(
+function FEMMShellQ4RS(
     integdomain::ID,
     material::M,
 ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, M}
-    return FEMMShellQ4RNT(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material)
+    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material)
 end
 
 """
     make(integdomain, material)
 
-Make a Q4RNT FEMM from the integration domain,  and a material.
+Make a Q4RS FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normais is used.
 """
 function make(integdomain, material)
-    return FEMMShellQ4RNT(integdomain, material)
+    return FEMMShellQ4RS(integdomain, material)
 end
 
 """
     make(integdomain, mcsys, material)
 
-Make a Q4RNT FEMM from the integration domain, a coordinate system to define the
+Make a Q4RS FEMM from the integration domain, a coordinate system to define the
 orientation of the normals, and a material.
 """
 function make(integdomain, mcsys, material)
-    return FEMMShellQ4RNT(integdomain, mcsys, material)
+    return FEMMShellQ4RS(integdomain, mcsys, material)
 end
 
 function _e_g!(E_G, J)
@@ -439,13 +440,13 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
 end
 
 """
-    associategeometry!(self::FEMMShellQ4RNT,  geom0::NodalField{FFlt})
+    associategeometry!(self::FEMMShellQ4RS,  geom0::NodalField{FFlt})
 
 Associate geometry with the FEMM. 
 
 In this case it means evaluate the nodal normals.
 """
-function associategeometry!(self::FEMMShellQ4RNT, geom0::NodalField{FFlt})
+function associategeometry!(self::FEMMShellQ4RS, geom0::NodalField{FFlt})
     threshold_angle = self.threshold_angle
     FT = _number_type(self)
     J = _J(FT)
@@ -503,11 +504,11 @@ end
 
 
 """
-    num_normals(self::FEMMShellQ4RNT)
+    num_normals(self::FEMMShellQ4RS)
 
 Compute the summary of the nodal normals.
 """
-function num_normals(self::FEMMShellQ4RNT)
+function num_normals(self::FEMMShellQ4RS)
     normals, normal_valid = self._normals, self._normal_valid
     total_normals = length(normal_valid)
     total_invalid_normals = length([v for v in normal_valid if v != true])
@@ -817,12 +818,12 @@ function _quad_diameter(ecoords)
 end
 
 """
-    stiffness(self::FEMMShellQ4RNT, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, TI<:Number}
+    stiffness(self::FEMMShellQ4RS, assembler::ASS, geom0::NodalField{FFlt}, u1::NodalField{TI}, Rfield1::NodalField{TI}, dchi::NodalField{TI}) where {ASS<:AbstractSysmatAssembler, TI<:Number}
 
 Compute the material stiffness matrix.
 """
 function stiffness(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     assembler::ASS,
     geom0::NodalField{FFlt},
     u1::NodalField{TI},
@@ -893,7 +894,7 @@ function stiffness(
 end
 
 function stiffness(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     geom0::NodalField{FFlt},
     u1::NodalField{TI},
     Rfield1::NodalField{TI},
@@ -905,14 +906,14 @@ end
 
 
 """
-    mass(self::FEMMShellQ4RNT,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{TI}) where {A<:AbstractSysmatAssembler, TI<:Number}
+    mass(self::FEMMShellQ4RS,  assembler::A,  geom::NodalField{FFlt}, dchi::NodalField{TI}) where {A<:AbstractSysmatAssembler, TI<:Number}
 
 Compute the diagonal (lumped) mass matrix.
 
 The mass matrix can be expected to be non-singular.
 """
 function mass(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     assembler::A,
     geom0::NodalField{FFlt},
     dchi::NodalField{TI},
@@ -968,7 +969,7 @@ function mass(
 end
 
 function mass(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     geom::NodalField{FFlt},
     u::NodalField{TI},
 ) where {TI<:Number}
@@ -1005,7 +1006,7 @@ Inspect integration point quantities.
 The updated inspector data is returned.
 """
 function inspectintegpoints(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     geom0::NodalField{FFlt},
     u::NodalField{TI},
     dT::NodalField{FFlt},
@@ -1113,7 +1114,7 @@ function inspectintegpoints(
 end
 
 function inspectintegpoints(
-    self::FEMMShellQ4RNT,
+    self::FEMMShellQ4RS,
     geom::NodalField{FFlt},
     u::NodalField{TI},
     felist::FIntVec,

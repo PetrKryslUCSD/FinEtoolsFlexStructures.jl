@@ -9,7 +9,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -142,7 +142,7 @@ function _execute_t3ff_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize =
     return true
 end
 
-function _execute_q4rnt_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
+function _execute_Q4RS_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -271,13 +271,13 @@ function test_convergence_quarter()
     for n in [2, 4, 8, 16, 32, 64]
         _execute_t3ff_quarter_model(formul, n, tL_ratio, true)
     end
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     tL_ratio = 0.1
-    @info "Simply supported square plate with uniform load, Q4RNT"
+    @info "Simply supported square plate with uniform load, Q4RS"
     @info "thickness/length = $tL_ratio formulation=$(formul)"
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64]
-        _execute_q4rnt_quarter_model(formul, n, tL_ratio, true)
+        _execute_Q4RS_quarter_model(formul, n, tL_ratio, true)
     end
     return true
 end
@@ -426,7 +426,7 @@ function _execute_t3ff_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     return true
 end
 
-function _execute_q4rnt_full_model(formul, n = 2, tL_ratio = 0.01, simple_support = :hard, visualize = true)
+function _execute_Q4RS_full_model(formul, n = 2, tL_ratio = 0.01, simple_support = :hard, visualize = true)
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -584,15 +584,15 @@ function test_convergence_full()
     # for n in [2, 4, 8, 16, 32,]
         _execute_t3ff_full_model(formul, n, tL_ratio, :soft, true)
     end
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     tL_ratio = 0.00001
     tL_ratio = 0.001
-    @info "Simply supported square plate with uniform load, Q4RNT"
+    @info "Simply supported square plate with uniform load, Q4RS"
     @info "thickness/length = $tL_ratio formulation=$(formul)"
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
     # for n in [2, 4, 8, 16, 32,]
-        _execute_q4rnt_full_model(formul, n, tL_ratio, :soft, true)
+        _execute_Q4RS_full_model(formul, n, tL_ratio, :soft, true)
     end
     return true
 end

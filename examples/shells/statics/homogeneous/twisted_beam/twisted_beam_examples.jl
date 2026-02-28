@@ -37,7 +37,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json, plot_triads
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -122,12 +122,12 @@ function _execute_t3ff(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, 
     return result
 end
 
-function _execute_q4rnt(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 24, nW = 2, visualize = true)
+function _execute_Q4RS(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, nL = 24, nW = 2, visualize = true)
     E = 0.29e8;
     nu = 0.22;
     W = 1.1;
     L = 12.0;
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     
     tolerance = W/nW/100
     fens, fes = Q4block(L,W,nL,nW);
@@ -142,8 +142,6 @@ function _execute_q4rnt(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469,
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater)
-    # femm.drilling_stiffness_scale = 0.1
-    femm.mult_el_size = 0.1
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -227,30 +225,30 @@ function test_convergence_t3ff(ns = [2, 4, 8, 16, 32, ])
     return true
 end
 
-function test_convergence_q4rnt(ns = [2, 4, 8, 16, 32, ])
-    @info "Twisted, thicker, Q4RNT elements"
+function test_convergence_Q4RS(ns = [2, 4, 8, 16, 32, ])
+    @info "Twisted, thicker, Q4RS elements"
     results = []
     for n in ns
-        v = _execute_q4rnt(params_thicker_dir_2..., 12*n, n, false)
+        v = _execute_Q4RS(params_thicker_dir_2..., 12*n, n, false)
         push!(results, v)
     end
     @show results
     results = []
     for n in ns
-        v = _execute_q4rnt(params_thicker_dir_3..., 12*n, n, false)
+        v = _execute_Q4RS(params_thicker_dir_3..., 12*n, n, false)
         push!(results, v)
     end
     @show results
-    @info "Twisted, thinner, Q4RNT elements"
+    @info "Twisted, thinner, Q4RS elements"
     results = []
     for n in ns
-        v = _execute_q4rnt(params_thinner_dir_2..., 12*n, n, false)
+        v = _execute_Q4RS(params_thinner_dir_2..., 12*n, n, false)
         push!(results, v)
     end
     @show results
     results = []
     for n in ns
-        v = _execute_q4rnt(params_thinner_dir_3..., 12*n, n, false)
+        v = _execute_Q4RS(params_thinner_dir_3..., 12*n, n, false)
         push!(results, v)
     end
     @show results
@@ -262,8 +260,8 @@ function allrun()
     println("# test_convergence_t3ff ")
     test_convergence_t3ff()
     println("#####################################################")
-    println("# test_convergence_q4rnt ")
-    test_convergence_q4rnt()
+    println("# test_convergence_Q4RS ")
+    test_convergence_Q4RS()
     return true
 end # function allrun
 

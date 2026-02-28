@@ -342,9 +342,7 @@ function _execute_parallel(n = 64, thickness = 0.01, nthr = 0)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
-
+    
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
@@ -495,8 +493,7 @@ function _execute_parallel_csr(n = 64, thickness = 0.01, nthr = 0)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
+    
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -654,8 +651,7 @@ end
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
+    
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -829,8 +825,7 @@ function _execute_parallel_vom(n = 64, thickness = 0.01, nthr = 0)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
+    
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -1040,8 +1035,7 @@ function _explore_csr(n = 64, thickness = 0.01, nthr = 0)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), ocsys, mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
+    
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables

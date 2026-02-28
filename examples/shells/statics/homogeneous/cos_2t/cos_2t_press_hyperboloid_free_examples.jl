@@ -34,7 +34,7 @@ using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFModule
-using FinEtoolsFlexStructures.FEMMShellQ4RNTModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
@@ -178,7 +178,7 @@ function _execute_t3ff(formul, n = 8, thickness = Length/2/100, visualize = fals
     return strainenergy
 end
 
-function _execute_q4rnt(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
+function _execute_Q4RS(formul, n = 8, thickness = Length/2/100, visualize = false, distortion = 0.0)
     tolerance = Length/n/100
     fens, fes = distortblock(Q4block, 90/360*2*pi, Length/2, n, n, distortion, distortion);
     fens.xyz = xyz3(fens)
@@ -299,12 +299,12 @@ function test_convergence_t3ff(thicknessmult = 1/100000, distortion = 0.0)
 end
 
 function test_convergence_q4rtn(thicknessmult = 1/100000, distortion = 0.0)
-    formul = FEMMShellQ4RNTModule
+    formul = FEMMShellQ4RSModule
     @info "Pressurized Hyperbolic shell, free ends, thicknessmult=$(thicknessmult), formulation=$(formul)"
     results = []
     ns = [16, 32, 64, ]
     for n in ns
-        push!(results, _execute_q4rnt(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
+        push!(results, _execute_Q4RS(formul, n, Length/2*thicknessmult, false, 2*distortion/n))
     end
     return ns, results
 end

@@ -148,8 +148,7 @@ function _execute_parallel_csr(nref = 2, nthr = 0, color = "red")
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = FEMMShellT3FFModule.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    # Set up
-    femm.drilling_stiffness_scale = 1.0
+    
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables

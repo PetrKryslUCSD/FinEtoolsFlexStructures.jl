@@ -29,10 +29,8 @@
 
 ## News
 
+- 02/27/2026: Rename shell element Q4RNT to Q4RS.
 - 02/06/2026: Add quadrilateral shell element Q4RNT.
-- 01/29/2026: Add option to use constant transverse shear correction factor.
-- 01/3/2026: Update versions.
-- 08/28/2025: Update examples. Update workflows.
 
 
 [Past news](#past-news)
@@ -126,6 +124,9 @@ pictures and time collections (useful for animations) are supported this way.
 
 ## <a name="past-news"></a>Past news
 
+- 01/29/2026: Add option to use constant transverse shear correction factor.
+- 01/3/2026: Update versions.
+- 08/28/2025: Update examples. Update workflows.
 - 01/06/2024: Update tutorials.
 - 01/04/2024: Add a Riks path-tracing solver.
 - 01/01/2024: Add a nonlinear corotational truss element. 

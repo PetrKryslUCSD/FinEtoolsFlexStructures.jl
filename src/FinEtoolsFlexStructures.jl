@@ -42,7 +42,7 @@ include("FEMMShellT3FFCompModule.jl")
 
 include("FEMMCorotTrussModule.jl")
 
-include("FEMMShellQ4RNTModule.jl")
+include("FEMMShellQ4RSModule.jl")
 
 # Enable LSP look-up in test modules.
 if false include("../test/runtests.jl") end
