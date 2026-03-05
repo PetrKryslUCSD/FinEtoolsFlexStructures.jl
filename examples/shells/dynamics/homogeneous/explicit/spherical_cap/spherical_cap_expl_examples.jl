@@ -183,7 +183,7 @@ function _execute_parallel_csr(n = 64, nthr = 0)
     
     
     function computetrac!(forceout, XYZ, tangents, feid, qpid)
-        r = vec(XYZ); 
+        r = vec(deepcopy(XYZ));; 
         r .= vec(r)/norm(vec(r))
         forceout[1:3] .= -r*q
         forceout[4:6] .= 0.0

@@ -40,7 +40,7 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_m
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 function spherical!(csmatout, XYZ, tangents, feid, qpid)
-    r = vec(XYZ); 
+    r = vec(deepcopy(XYZ));
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 0.0, 1.0)
     cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))

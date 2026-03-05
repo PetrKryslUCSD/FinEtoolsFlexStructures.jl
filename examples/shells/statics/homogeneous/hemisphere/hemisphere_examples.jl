@@ -29,7 +29,7 @@ function _execute_t3ff(n = 2, visualize = true)
     fens, fes = Q4toT3(fens, fes)
 
     spherical!(csmatout, XYZ, tangents, feid, qpid) = begin
-        r = vec(XYZ); 
+        r = vec(deepcopy(XYZ));
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)
         cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
@@ -135,7 +135,7 @@ function _execute_Q4RS(n = 2, visualize = true)
     fens, fes = Q4spheren(R, n)
 
     spherical!(csmatout, XYZ, tangents, feid, qpid) = begin
-        r = vec(XYZ); 
+        r = vec(deepcopy(XYZ));
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)
         cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))

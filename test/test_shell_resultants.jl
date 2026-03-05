@@ -29,7 +29,7 @@ R = 25.0
 L = 50.0
 
 cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
-    r = vec(XYZ)
+    r = vec(deepcopy(XYZ));
     r[2] = 0.0
     r[3] += R
     csmatout[:, 3] .= vec(r) / norm(vec(r))

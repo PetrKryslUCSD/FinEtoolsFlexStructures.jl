@@ -6,9 +6,9 @@ project_hash = "92f7800a522ecbad928e8316a94c1a236f6d984e"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "7e35fca2bdfba44d797c53dfe63a51fabf39bfc0"
+git-tree-sha1 = "35ea197a51ce46fcd01c4a44befce0578a1aaeca"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "4.4.0"
+version = "4.5.0"
 
     [deps.Adapt.extensions]
     AdaptSparseArraysExt = "SparseArrays"
@@ -278,9 +278,9 @@ version = "1.16.0"
 
 [[deps.FinEtools]]
 deps = ["DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "Statistics", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "0b34b62ee7a67e2a54e3b0069f1bfcd4ff4399ba"
+git-tree-sha1 = "2a8ab220d9919aa2410ca4f94e029e3807c55d68"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "8.2.3"
+version = "8.2.5"
 
 [[deps.FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "SuiteSparse", "Test"]

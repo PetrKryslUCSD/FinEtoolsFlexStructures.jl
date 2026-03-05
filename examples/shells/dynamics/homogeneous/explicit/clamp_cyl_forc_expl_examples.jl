@@ -62,7 +62,7 @@ omegaf = 2*pi*10^4
 tend = 15 * 2*pi/omegaf
 
 cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
-    r = vec(XYZ); r[2] = 0.0;
+    r = vec(deepcopy(XYZ)); r[2] = 0.0;
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
     cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
@@ -159,7 +159,7 @@ function _execute(n = 8, thickness = 0.001, visualize = true)
         dy = XYZ[2] - fens.xyz[qpoint, 2]
         dz = XYZ[3] - fens.xyz[qpoint, 3]
         mag = 10^5*exp(-20/R*sqrt(dx^2+dy^2+dz^2))
-        r = vec(XYZ); r[2] = 0.0
+        r = vec(deepcopy(XYZ)); r[2] = 0.0
         r .= vec(r)/norm(vec(r))
         theta = atan(r[3], r[1])
         forceout[1:3] .= r*mag

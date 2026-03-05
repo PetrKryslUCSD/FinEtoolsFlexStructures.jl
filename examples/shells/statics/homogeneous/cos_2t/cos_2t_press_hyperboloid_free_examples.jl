@@ -50,7 +50,7 @@ Length = 2.0;
 function hyperbolic!(csmatout, XYZ, tangents, feid, qpid)
     n = cross(tangents[:, 1], tangents[:, 2]) 
     n = n/norm(n)
-    # r = vec(XYZ); r[2] = 0.0
+    # r = vec(deepcopy(XYZ));; r[2] = 0.0
     csmatout[:, 3] .= n
     csmatout[:, 2] .= (0.0, 1.0, 0.0)
     cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
@@ -58,7 +58,7 @@ function hyperbolic!(csmatout, XYZ, tangents, feid, qpid)
 end
 
 function computetrac!(forceout, XYZ, tangents, feid, qpid)
-    r = vec(XYZ); r[2] = 0.0
+    r = vec(deepcopy(XYZ)); r[2] = 0.0
     r .= vec(r)/norm(vec(r))
     theta = atan(r[3], r[1])
     n = cross(tangents[:, 1], tangents[:, 2]) 

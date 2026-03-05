@@ -118,7 +118,7 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
 
     # Generate a graphical display of resultants
     cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
-        r = -vec(XYZ); r[3] = 0.0
+        r = -vec(deepcopy(XYZ)); r[3] = 0.0
         csmatout[:, 3] .= vec(r)/norm(vec(r))
         csmatout[:, 2] .= (0.0, 0.0, 1.0)
         cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
