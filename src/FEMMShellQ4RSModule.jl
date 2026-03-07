@@ -6,7 +6,7 @@ and the transverse shear stiffness is computed with the MITC (DSG) approach.
 """
 module FEMMShellQ4RSModule
 
-using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank
+using LinearAlgebra: norm, Transpose, mul!, diag, eigen, I, dot, rank, det, inv
 using Statistics: mean
 using FinEtools
 using FinEtools.FTypesModule:
@@ -28,7 +28,7 @@ const __NDOF = 6 # number of degrees of freedom per node
 """
     mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
 
-Type for the finite element modeling machine of the Q4 quadrilateral Flat-Facet
+Type for the finite element modeling machine of the Q4 quadrilateral 
 shell with the MITC (DSG) approach on the shear term and a consistent handling of the
 normals. 
 
@@ -44,11 +44,14 @@ Engineering 110 (1993) 343-357
 
 is included to improve results on coarse meshes. Refer to expressions (3.12) and (3.13).
 
-The formula for the element to nodal basis transformation is derived similarly 
-to the formulation of the robust flat-facet triangle, T3FF.
+The formula for the element to nodal basis transformation is derived analogously 
+to the formulation of the robust flat-facet triangle, T3FF, but the contributions are 
+calculated differently: the transformation matrices are applied to the 
+strain-displacement matrices at the integration points.
 
 The following features are incorporated to deal with nodal normals:
-- Nodal normals are averages of the normals of elements that meet at a node.
+- Nodal normals are averages of the normals of elements that meet at a node, or they 
+  can be supplied as exact normals to a particular surface (sphere, cylinder, ...).
 - A crease in the surface is taken into account. In that case the normal are not
   averaged across the crease. At the nodes along the crease every element uses
   the normal to its surface instead of the nodal normal.
@@ -66,9 +69,9 @@ mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<
     integdomain::ID # integration domain data
     mcsys::CS # updater of the material orientation matrix
     material::M # material object.
-    drilling_stiffness_scale::T
-    threshold_angle::T
-    mult_el_size::T
+    drilling_stiffness_scale::T # default is 1.0
+    threshold_angle::T # default is 30.0
+    mult_el_size::T # default is 0.1
     _associatedgeometry::Bool
     _normals::Matrix{T}
     _normal_valid::Vector{Bool}
@@ -151,6 +154,15 @@ end
     ) where {IntegDomain{S} where {S<:FESetQ4}, CS<:CSys, M}
 
 Constructor of the Q4RS shell FEMM.
+
+Example:
+```julia
+    sfes = FESetShellQ4()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mcsys, mater)
+```
+Here the `mcsys` is used to compute the normals at the nodes, and the `mater` is 
+used to compute the material stiffness matrices. 
 """
 function FEMMShellQ4RS(
     integdomain::ID,
@@ -181,7 +193,7 @@ function FEMMShellQ4RS(
     )
 end
 
-function isoparametric!(E_G, XYZ, J, feid, qpid)
+function _isoparametric!(E_G, XYZ, J, feid, qpid)
     return _e_g!(E_G, J)
 end
 
@@ -203,7 +215,7 @@ function FEMMShellQ4RS(
     integdomain::ID,
     material::M,
 ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, M}
-    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material)
+    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), _isoparametric!), material)
 end
 
 """
@@ -265,58 +277,62 @@ function _shell_material_stiffness(material)
     return Dps, Dt
 end
 
-# struct LocalDerivatives{FT<:Real}
-#     G::Matrix{FT}
-#     tmp::Vector{FT}
-# end
+struct _LocalDerivatives{FT<:Real}
+    G::Matrix{FT}
+    invG::Matrix{FT}
+    tmp2x1a::Vector{FT}
+    tmp2x1b::Vector{FT}
+    tmp3x1::Vector{FT}
+end
     
-# function LocalDerivatives(ft::Type{T}) where {T<:Real}
-#     return LocalDerivatives(fill(zero(ft), 2, 2), fill(zero(ft), 2))
-# end
+function _LocalDerivatives(ft::Type{T}) where {T<:Real}
+    return _LocalDerivatives(
+        fill(zero(ft), 2, 2),
+        fill(zero(ft), 2, 2),
+        fill(zero(ft), 2),
+        fill(zero(ft), 2),
+        fill(zero(ft), 3),
+    )
+end
 
-# (o::LocalDerivatives)(gradN_e, J, E_G, gradNparams) = let
-#     mul!(o.G, transpose(J), J)
-#     detG = det(o.G)
-    
+(o::_LocalDerivatives)(gradN_e, J, E_G, gradNparams) = let
+    mul!(o.G, transpose(J), J)
+    detG = det(o.G)
+    if detG ≈ 0.0
+        error("Singular metric matrix in _gradN_e!")
+        return
+    end
+    o.invG[:] = inv(o.G)
+    for a in 1:__NN
+        # Symbolically: g = J * (invG * gradNparams[a, :])
+        o.tmp2x1a[1] = gradNparams[a, 1]
+        o.tmp2x1a[2] = gradNparams[a, 2]
+        mul!(o.tmp2x1b, o.invG, o.tmp2x1a)
+        mul!(o.tmp3x1, J, o.tmp2x1b)
+        # Now project g onto the element basis vectors in E_G 
+        gradN_e[a, 1] = dot(view(E_G, :, 1), o.tmp3x1)
+        gradN_e[a, 2] = dot(view(E_G, :, 2), o.tmp3x1)
+    end
+end
+
+# function _gradN_e!(gradN_e, J, E_G, gradNparams)
+#     G = J' * J
+#     detG = G[1, 1] * G[2, 2] - G[1, 2] * G[2, 1]
 #     if detG ≈ 0.0
-#         error("Singular metric matrix in _gradN_e!")
+#         fill!(gradN_e, 0.0)
 #         return
 #     end
-    
 #     invG = inv(G)
+#     E2 = E_G[:, 1:2]
 #     tmp = zeros(2)
-    
 #     for a in 1:__NN
 #         tmp[1] = gradNparams[a, 1]
 #         tmp[2] = gradNparams[a, 2]
 #         g = J * (invG * tmp)
-#         gradN_e[a, 1] = dot(E_G[:, 1], g)
-#         gradN_e[a, 2] = dot(E_G[:, 2], g)
+#         gradN_e[a, 1] = dot(E2[:, 1], g)
+#         gradN_e[a, 2] = dot(E2[:, 2], g)
 #     end
 # end
-
-# TODO optimize allocations
-function _gradN_e!(gradN_e, J0, E_G, gradNparams)
-    G = J0' * J0
-    detG = G[1, 1] * G[2, 2] - G[1, 2] * G[2, 1]
-    
-    if detG ≈ 0.0
-        fill!(gradN_e, 0.0)
-        return
-    end
-    
-    invG = inv(G)
-    E2 = E_G[:, 1:2]
-    tmp = zeros(2)
-    
-    for a in 1:__NN
-        tmp[1] = gradNparams[a, 1]
-        tmp[2] = gradNparams[a, 2]
-        g = J0 * (invG * tmp)
-        gradN_e[a, 1] = dot(E2[:, 1], g)
-        gradN_e[a, 2] = dot(E2[:, 2], g)
-    end
-end
 
 struct _NodalTriadsE{FT<:Real}
     r::Vector{FT}
@@ -451,7 +467,6 @@ function associategeometry!(self::FEMMShellQ4RS, geom0::NodalField{FFlt})
     FT = _number_type(self)
     J = _J(FT)
     loc = _loc(FT)
-    E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
     nnormal = fill(zero(FT), 3)
     nodal_rule = NodalTensorProductRule(2)
@@ -555,16 +570,45 @@ end
     mul!(Bb, o.tempBb, T)
 end
 
-# TODO eliminate allocations
-function _ecoords_e!(ecoords_e, ecoords, E_G)
-    centroid = mean(ecoords, dims=1)'
+struct _EcoordsE{FT<:Real}
+    centroid::Vector{FT}
+end
+
+function _EcoordsE(ft::Type{T}) where {T<:Real}
+    _EcoordsE(fill(zero(ft), 3))
+end
+
+function (e::_EcoordsE{FT})(ecoords_e, ecoords, E_G) where {FT<:Real}
+    # mean(ecoords, dims=1)'
+    e.centroid[:] .= zero(FT)
+    for j in axes(ecoords, 1)
+        for k in axes(ecoords, 2)
+            e.centroid[k] += ecoords[j, k]
+        end 
+    end
+    e.centroid ./= size(ecoords, 1)
     for j in axes(ecoords_e, 1)
         for k in axes(ecoords_e, 2)
-            ecoords_e[j, k] = dot(ecoords[j, :] - centroid, E_G[:, k])
+            # ecoords_e[j, k] = dot(ecoords[j, :] - e.centroid, E_G[:, k])
+            d = zero(FT)
+            for m in axes(ecoords, 2)
+                d += (ecoords[j, m] - e.centroid[m]) * E_G[m, k]
+            end
+            ecoords_e[j, k] = d
         end
     end
     return ecoords_e
 end
+
+# function _ecoords_e!(ecoords_e, ecoords, E_G)
+#     centroid = mean(ecoords, dims=1)'
+#     for j in axes(ecoords_e, 1)
+#         for k in axes(ecoords_e, 2)
+#             ecoords_e[j, k] = dot(ecoords[j, :] - centroid, E_G[:, k])
+#         end
+#     end
+#     return ecoords_e
+# end
 
 struct _Bsmat{FT<:Real}
     tempBs::Matrix{FT}
@@ -752,6 +796,7 @@ print('o.tempBs[2, 23] += ', simplify(diff(gyz, Ty4)))
     mul!(Bs, o.tempBs, T)
 end
 
+# TODO optimize allocations
 function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     I3 = Matrix{Float64}(I, 3, 3)
     tangential = Float64[]
@@ -842,6 +887,8 @@ function stiffness(
     npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = _TransfmatGToA(FT)
+    _gradN_e! = _LocalDerivatives(FT)
+    _ecoords_e! = _EcoordsE(FT) 
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     Dps, Dt = _shell_material_stiffness(self.material)
@@ -1031,6 +1078,8 @@ function inspectintegpoints(
     npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
+    _gradN_e! = _LocalDerivatives(FT)
+    _ecoords_e! = _EcoordsE(FT) 
     lla = Layup2ElementAngle()
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
@@ -1136,6 +1185,5 @@ function inspectintegpoints(
         context...,
     )
 end
-
 
 end # module
