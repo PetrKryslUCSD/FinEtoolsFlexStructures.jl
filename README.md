@@ -29,6 +29,7 @@
 
 ## News
 
+- 03/07/2026: Clean up Q4RS.
 - 03/05/2026: Fix a bug where an XYZ array was inadvertently modified (coordinate systems!).
 - 02/27/2026: Rename shell element Q4RNT to Q4RS.
 - 02/06/2026: Add quadrilateral shell element Q4RNT.
