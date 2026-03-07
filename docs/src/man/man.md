@@ -46,6 +46,14 @@ Private = true
 Order = [:function, :type, :constant]
 ```
 
+## FE Set for Shell Q4 shapes
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FESetShellQ4Module]
+Private = true
+Order = [:function, :type, :constant]
+```
+
 ## FEMM for Corotational Beams 
 
 ```@autodocs
@@ -82,6 +90,14 @@ Order = [:function, :type, :constant]
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMShellT3FFCompModule]
+Private = true
+Order = [:function, :type, :constant]
+```
+
+## FEMM for Shell Q4RS with homogeneous composition
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMShellQ4RSModule]
 Private = true
 Order = [:function, :type, :constant]
 ```
