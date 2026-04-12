@@ -30,11 +30,10 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
+# Reference solution from Krysl, Chen paper
+const analyt_sol=-0.30202; 
 
 function _execute_t3ff_model(n = 8, visualize = true)
-    # analytical solution for the vertical deflection and the midpoint of the
-    # free edge 
-    analyt_sol=-0.3024;
     # Parameters:
     E=4.32e8;
     nu=0.0;
@@ -106,7 +105,7 @@ function _execute_t3ff_model(n = 8, visualize = true)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
-    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
+    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))% ($(dchi.values[nl, 3][1]))"
 
     # Visualization
     if visualize
@@ -124,9 +123,6 @@ function _execute_t3ff_model(n = 8, visualize = true)
 end
 
 function _execute_Q4RS_model(n = 8, visualize = true)
-    # analytical solution for the vertical deflection and the midpoint of the
-    # free edge 
-    analyt_sol=-0.3024;
     # Parameters:
     E=4.32e8;
     nu=0.0;
@@ -196,7 +192,7 @@ function _execute_Q4RS_model(n = 8, visualize = true)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
-    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
+    @info "Solution for n=$(n), $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))% ($(dchi.values[nl, 3][1]))"
 
     # Visualization
     if visualize
@@ -215,9 +211,6 @@ function _execute_Q4RS_model(n = 8, visualize = true)
 end
 
 function _execute_t3ff_model_w_units(n = 8, visualize = true)
-    # analytical solution for the vertical deflection and the midpoint of the
-    # free edge 
-    analyt_sol=-0.3024*phun("ft");
     # Parameters:
     E=4.32e8*phun("lbf/ft^2");
     nu=0.0;
@@ -288,7 +281,7 @@ function _execute_t3ff_model_w_units(n = 8, visualize = true)
     scattersysvec!(dchi, Uf, DOF_KIND_FREE)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
-    resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100
+    resultpercent =   dchi.values[nl, 3][1]/analyt_sol*100 / phun("ft")
     @info "Solution for $(count(fens)*6) dofs: $(round(resultpercent, digits = 4))%"
 
     # Visualization
@@ -306,7 +299,7 @@ function _execute_t3ff_model_w_units(n = 8, visualize = true)
     return true
 end
 
-function test_convergence(ns = [8, 16, 32, 64, 128])
+function test_convergence(ns = [4, 8, 16, 32, 64, 128])
     @info "Scordelis-Lo shell, T3FF"
     for n in ns
         _execute_t3ff_model(n, false)
@@ -318,7 +311,7 @@ function test_convergence(ns = [8, 16, 32, 64, 128])
     return true
 end
 
-function test_convergence_w_units(ns = [8, 16, 32, 64, 128])
+function test_convergence_w_units(ns = [4, 8, 16, 32, 64, 128])
     @info "Scordelis-Lo shell: variant with explicit physical units"
     for n in ns
         _execute_t3ff_model_w_units(n, false)
