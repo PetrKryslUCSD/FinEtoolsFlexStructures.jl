@@ -16,7 +16,7 @@ t/L   Strain energy  Displacement
 See also the table in  
 An Improved Quadrilateral Flat Element with Drilling
 Degrees of Freedom for Shell Structural Analysis
-H. Nguyen-Van1 , N. Mai-Duy1 and T. Tran-Cong1
+H. Nguyen-Van , N. Mai-Duy and T. Tran-Cong
 CMES, vol.49, no.2, pp.81-110, 2009.
 
 The shell geometry is described by the
