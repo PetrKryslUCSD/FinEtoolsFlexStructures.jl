@@ -42,6 +42,22 @@ const E = 2.0e11;
 const nu = 0.3
 const L = 1.0
 
+mutable struct _CSEval{T}
+    gradf::Matrix{T}
+end
+
+function (o::_CSEval)(csmatout, XYZ, tangents, feid, qpid)
+    o.gradf[:, 1] .= (2.0 .* XYZ[1], 0.0, 1.0)
+    o.gradf[:, 2] .= (0.0, -2.0 .* XYZ[2], 1.0)
+    cross3!(view(csmatout, :, 3), view(o.gradf, :, 1), view(o.gradf, :, 2))
+    csmatout[:, 3] .= vec(view(csmatout, :, 3))/norm(vec(view(csmatout, :, 3)))
+    csmatout[:, 1] .= o.gradf[:, 1]
+    csmatout[:, 1] .= vec(view(csmatout, :, 1))/norm(vec(view(csmatout, :, 1)))
+    cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))
+    return csmatout
+end
+
+
 function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 32, visualize = false)
     thickness = tL_ratio * L
     formul = FEMMShellT3FFModule
@@ -143,14 +159,17 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
+    cse = _CSEval(zeros(3, 2))
+    ocsys = CSys(3, 3, (csmatout, XYZ, tangents, feid, qpid) -> cse(csmatout, XYZ, tangents, feid, qpid))
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, 
             GaussRule(2, 2),
-            thickness), mater)
+            thickness), ocsys, mater)
     femm.mult_el_size = mult_el_size
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
+    vtkwrite("debug-normals.vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
 
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
@@ -219,14 +238,15 @@ const gs = [80*0.1^0, 80*0.1^1, 80*0.1^2]
 const u_sols = [-9.3355e-5, -6.3941e-3, -5.2988e-1];
 const energy_sols = [1.6790e-3, 1.1013e-2, 8.9867e-2];
 const case_data = zip(tL_ratios, gs, u_sols, energy_sols)
-const ns = [4, 8, 16, 32, 64, 128]
-const mult_el_size = [0.0, 0.1, 0.2, 0.5, 1.0]
+const ns = [4, 8, 16, 32, 64, 128, 256]
+const mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4]
 const colors = ["black", "red", "blue", "green", "magenta"]
+marks = ["x", "o", "square", "+", "diamond"]
 
 function test_convergence_t3ff(tL_ratio, g, u_sol, energy_sol)
     @info "Clamped hypar, T3FF elements, t/L=$(tL_ratio)"
     overall_results = []
-    for mult_el_size in [0.0, 0.1, 0.2, 0.5, 1.0]
+    for mult_el_size in mult_el_sizes
         results = []
         for n in ns
             r = _execute_t3ff(tL_ratio, g, mult_el_size, n, false)
@@ -246,12 +266,13 @@ function plot_case!(objects, j, nu_errs)
     @pgf p = PGFPlotsX.Plot(
         {
             color = colors[j],
+            mark = "$(marks[j])",
             line_width = 1.0,
         },
         Coordinates([v for v in zip(L ./ ns, abs.(nu_errs))])
     )
     push!(objects, p)
-    push!(objects, LegendEntry("$(mult_el_size[j])"))
+    push!(objects, LegendEntry("$(mult_el_sizes[j])"))
 end
 
 function display_case(tL_ratio, objects)
@@ -321,7 +342,7 @@ end
 function test_convergence_q4rs(tL_ratio, g, u_sol, energy_sol)
     @info "Clamped hypar, Q4RS elements, t/L=$(tL_ratio)"
     overall_results = []
-    for mult_el_size in [0.0, 0.1, 0.2, 0.5, 1.0]
+    for mult_el_size in mult_el_sizes
         results = []
         for n in ns
             r = _execute_q4rs(tL_ratio, g, mult_el_size, n, false)
