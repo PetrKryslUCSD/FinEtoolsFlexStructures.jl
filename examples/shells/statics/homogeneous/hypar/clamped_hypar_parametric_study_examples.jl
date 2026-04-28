@@ -43,15 +43,15 @@ const nu = 0.3
 const L = 1.0
 
 mutable struct _CSEval{T}
-    gradf::Matrix{T}
+    tang::Matrix{T}
 end
 
 function (o::_CSEval)(csmatout, XYZ, tangents, feid, qpid)
-    o.gradf[:, 1] .= (2.0 .* XYZ[1], 0.0, 1.0)
-    o.gradf[:, 2] .= (0.0, -2.0 .* XYZ[2], 1.0)
-    cross3!(view(csmatout, :, 3), view(o.gradf, :, 1), view(o.gradf, :, 2))
+    o.tang[:, 1] .= (1.0, 0.0, 2.0 .* XYZ[1])
+    o.tang[:, 2] .= (0.0, 1.0, -2.0 .* XYZ[2])
+    cross3!(view(csmatout, :, 3), view(o.tang, :, 1), view(o.tang, :, 2))
     csmatout[:, 3] .= vec(view(csmatout, :, 3))/norm(vec(view(csmatout, :, 3)))
-    csmatout[:, 1] .= o.gradf[:, 1]
+    csmatout[:, 1] .= o.tang[:, 1]
     csmatout[:, 1] .= vec(view(csmatout, :, 1))/norm(vec(view(csmatout, :, 1)))
     cross3!(view(csmatout, :, 2), view(csmatout, :, 3), view(csmatout, :, 1))
     return csmatout
@@ -169,8 +169,7 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
     femm.mult_el_size = mult_el_size
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
-    vtkwrite("debug-normals.vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
-
+    
     # Construct the requisite fields, geometry and displacement
     # Initialize configuration variables
     geom0 = NodalField(fens.xyz)
@@ -192,6 +191,7 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
+    vtkwrite("debug-normals.vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
     Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
@@ -233,36 +233,29 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
     return targetu, targetenergy
 end
 
-const tL_ratios = [1/100, 1/1000, 1/10000]; 
-const gs = [80*0.1^0, 80*0.1^1, 80*0.1^2]
-const u_sols = [-9.3355e-5, -6.3941e-3, -5.2988e-1];
-const energy_sols = [1.6790e-3, 1.1013e-2, 8.9867e-2];
-const case_data = zip(tL_ratios, gs, u_sols, energy_sols)
-const ns = [4, 8, 16, 32, 64, 128, 256]
-const mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4]
+struct CaseData
+    tL_ratio::Float64
+    g::Float64
+    u_sol::Float64
+    energy_sol::Float64
+end
+
+
+const case_data = [
+    CaseData(1/100, 80*0.1^0, -9.3355e-5, 1.6790e-3),
+    CaseData(1/1000, 80*0.1^1, -6.3941e-3, 1.1013e-2),
+    CaseData(1/10000, 80*0.1^2, -5.2988e-1, 8.9867e-2)
+    ]
+
 const colors = ["black", "red", "blue", "green", "magenta"]
 marks = ["x", "o", "square", "+", "diamond"]
-
-function test_convergence_t3ff(tL_ratio, g, u_sol, energy_sol)
-    @info "Clamped hypar, T3FF elements, t/L=$(tL_ratio)"
-    overall_results = []
-    for mult_el_size in mult_el_sizes
-        results = []
-        for n in ns
-            r = _execute_t3ff(tL_ratio, g, mult_el_size, n, false)
-            push!(results, r)
-        end   
-        push!(overall_results, (mult_el_size = mult_el_size, results = results))
-    end
-    return overall_results
-end
 
 function start_case()
     objects = []
     return objects
 end
 
-function plot_case!(objects, j, nu_errs)
+function plot_case!(objects, j, nu_errs, ns, mult_el_sizes)
     @pgf p = PGFPlotsX.Plot(
         {
             color = colors[j],
@@ -301,27 +294,12 @@ function display_case(tL_ratio, objects)
     pgfsave("tL_ratio=$(tL_ratio).pdf", ax)
 end
 
-function test_convergence_all()
-    # for c in case_data
-    #     @info "--------------------------------------------------"
-    #     @info "Convergence study for case t/L=$(c[1]) "
-    #     @show c
-    #     or = test_convergence_t3ff(c...)
-    #     for (m, r) in or
-    #         @info "  mult_el_size=$(m)"
-    #         aprox_u_sols = [r[i][1] for i in eachindex(r)]
-    #         approx_energy_sols = [r[i][2] for i in eachindex(r)]
-    #         nu_errs = [abs(aprox_u_sols[i+1] - aprox_u_sols[i]) / aprox_u_sols[end] for i in 1:length(aprox_u_sols)-1]
-    #         @info "  Displ. solutions: $(round.(aprox_u_sols, digits = 7))"
-    #         # @info "  Displ. norm. solutions: $(round.(aprox_u_sols ./ c[3], digits = 4))"
-    #         @info "  Displ. norm. approximate errors: $(round.(nu_errs, digits = 4))"
-    #         # @info "  Energy convergence: $(nenergy_sols)"
-    #     end
-    # end
-    for c in case_data
+function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ])
+    mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4]
+    for c in cases
         @info "--------------------------------------------------"
-        @info "Convergence study for case t/L=$(c[1]) "
-        or = test_convergence_q4rs(c...)
+        @info "Convergence study for case t/L=$(c.tL_ratio) "
+        or = _test_convergence_q4rs(c, ns, mult_el_sizes)
         objects = start_case()
         for (j, (m, r)) in enumerate(or)
             @info "  mult_el_size=$(m)"
@@ -332,41 +310,62 @@ function test_convergence_all()
             # @info "  Displ. norm. solutions: $(round.(aprox_u_sols ./ c[3], digits = 4))"
             @info "  Displ. norm. approximate errors: $(round.(nu_errs, digits = 4))"
             # @info "  Energy convergence: $(nenergy_sols)"
-            plot_case!(objects, j, nu_errs)
+            plot_case!(objects, j, nu_errs, ns, mult_el_sizes)
         end
-        display_case(c[1], objects)
+        display_case(c.tL_ratio, objects)
     end
     return true
 end
 
-function test_convergence_q4rs(tL_ratio, g, u_sol, energy_sol)
-    @info "Clamped hypar, Q4RS elements, t/L=$(tL_ratio)"
-    overall_results = []
+function _test_convergence_q4rs(c, ns, mult_el_sizes)
+    @info "Clamped hypar, Q4RS elements, t/L=$(c.tL_ratio)"
+    all_results = []
     for mult_el_size in mult_el_sizes
         results = []
         for n in ns
-            r = _execute_q4rs(tL_ratio, g, mult_el_size, n, false)
+            r = _execute_q4rs(c.tL_ratio, c.g, mult_el_size, n, false)
             push!(results, r)
         end   
-        push!(overall_results, (mult_el_size = mult_el_size, results = results))
+        push!(all_results, (case = c, mult_el_size = mult_el_size, results = results))
     end
-    return overall_results
+    return all_results
 end
 
-# using Gnuplot
+using FinEtools.AlgoBaseModule: richextrapol
 
-# ns = 1 ./ [4, 8, 16, 32, 64, 128, 256, ]
-# results = [0.8839348674712617, 0.8750949157612452, 0.9199805802913757, 0.9619508790573108, 0.9856803572479892, 0.9955727622499687, 0.9993169031485688]   
-# @gp ns results "with lp"      :-           
-# results = [1.0429797613488236, 0.9314984628085947, 0.9365905225801154, 0.9565506281799385, 0.9764476699285441, 0.9902805329751646, 0.9968920296205528]   
-# @gp :- ns results "with lp"    :-                             
-# results = [1.251888013432877, 1.0155533090845452, 0.9678060658415124, 0.9718188010061173, 0.9812934066246979, 0.9889499817887738, 0.9953521405300628] 
-# @gp :- ns results "with lp"
+function try_rich_all(c, ns = [4, 8, 16, 32, 64, 128, ], mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4])
+    @show c
+    @info "--------------------------------------------------"
+    @info "Convergence study for case t/L=$(c.tL_ratio), u_sol=$(c.u_sol), energy_sol=$(c.energy_sol)"
+    or = _test_convergence_q4rs(c, ns, mult_el_sizes)
+    _try_rich(or)
+    return true
+end
+
+function _try_rich(all_results)
+    start = 1
+    for j in eachindex(all_results)
+        c = all_results[j].case
+        mult_el_size = all_results[j].mult_el_size
+        results = all_results[j].results
+        aprox_u_sols = [results[s][1] for s in start:start+2]
+        try
+            er = richextrapol(aprox_u_sols, [4.0, 2.0, 1.0])
+            @info "mult_el_size=$(mult_el_size): $(er[1]), i.e. $(round(er[1]/c.u_sol, digits = 4)*100)%"
+        catch e
+            @warn "Richardson extrapolation failed for mult_el_size=$(mult_el_size)"
+            @show aprox_u_sols
+        end
+    end
+end
 
 function allrun()
     println("#####################################################")
     println("# test_convergence_all ")
-    test_convergence_all()
+    # test_convergence_all(case_data, [4, 8, 16])
+    println("#####################################################")
+    println("# try_rich_all ")
+    try_rich_all(case_data[1], [4, 8, 16], [0.0, 0.05, 0.1])
     return true
 end # function allrun
 
