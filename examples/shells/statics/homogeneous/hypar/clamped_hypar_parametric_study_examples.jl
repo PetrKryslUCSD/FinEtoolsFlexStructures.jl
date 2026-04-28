@@ -247,8 +247,8 @@ const case_data = [
     CaseData(1/10000, 80*0.1^2, -5.2988e-1, 8.9867e-2)
     ]
 
-const colors = ["black", "red", "blue", "green", "magenta"]
-marks = ["x", "o", "square", "+", "diamond"]
+const colors = ["black", "red", "blue", "green", "magenta", "cyan"]
+marks = ["x", "o", "square", "+", "diamond", "star"]
 
 function start_case()
     objects = []
@@ -294,14 +294,13 @@ function display_case(tL_ratio, objects)
     pgfsave("tL_ratio=$(tL_ratio).pdf", ax)
 end
 
-function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ])
-    mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4]
+function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ], mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4])
     for c in cases
         @info "--------------------------------------------------"
         @info "Convergence study for case t/L=$(c.tL_ratio) "
         or = _test_convergence_q4rs(c, ns, mult_el_sizes)
         objects = start_case()
-        for (j, (m, r)) in enumerate(or)
+        for (j, (_, m, r)) in enumerate(or)
             @info "  mult_el_size=$(m)"
             aprox_u_sols = [r[i][1] for i in eachindex(r)]
             approx_energy_sols = [r[i][2] for i in eachindex(r)]
@@ -336,7 +335,7 @@ using FinEtools.AlgoBaseModule: richextrapol
 function try_rich_all(c, ns = [4, 8, 16, 32, 64, 128, ], mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4])
     @show c
     @info "--------------------------------------------------"
-    @info "Convergence study for case t/L=$(c.tL_ratio), u_sol=$(c.u_sol), energy_sol=$(c.energy_sol)"
+    @info "Convergence study for case t/L=$(c.tL_ratio), ns=$(ns), u_sol=$(c.u_sol), energy_sol=$(c.energy_sol)"
     or = _test_convergence_q4rs(c, ns, mult_el_sizes)
     _try_rich(or)
     return true
@@ -353,19 +352,22 @@ function _try_rich(all_results)
             er = richextrapol(aprox_u_sols, [4.0, 2.0, 1.0])
             @info "mult_el_size=$(mult_el_size): $(er[1]), i.e. $(round(er[1]/c.u_sol, digits = 4)*100)%"
         catch e
-            @warn "Richardson extrapolation failed for mult_el_size=$(mult_el_size)"
-            @show aprox_u_sols
+            @warn "Richardson extrapolation failed for mult_el_size=$(mult_el_size)\n  $(aprox_u_sols)"
         end
     end
 end
 
 function allrun()
+    ns = [4, 8, 16, 32, 64, 128, ]
+    mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4, 1.0]
     println("#####################################################")
     println("# test_convergence_all ")
-    # test_convergence_all(case_data, [4, 8, 16])
+    test_convergence_all(case_data, ns, mult_el_sizes)
     println("#####################################################")
     println("# try_rich_all ")
-    try_rich_all(case_data[1], [4, 8, 16], [0.0, 0.05, 0.1])
+    try_rich_all(case_data[1], [4, 8, 16], mult_el_sizes)
+    try_rich_all(case_data[1], [8, 16, 32], mult_el_sizes)
+    try_rich_all(case_data[1], [16, 32, 64], mult_el_sizes)
     return true
 end # function allrun
 
