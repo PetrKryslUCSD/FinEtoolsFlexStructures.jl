@@ -29,10 +29,10 @@
 
 ## News
 
+- 05/02/2026: Make transverse shear stabilization configurable.
 - 03/07/2026: Clean up Q4RS.
 - 03/05/2026: Fix a bug where an XYZ array was inadvertently modified (coordinate systems!).
-- 02/27/2026: Rename shell element Q4RNT to Q4RS.
-- 02/06/2026: Add quadrilateral shell element Q4RNT.
+
 
 
 [Past news](#past-news)
@@ -123,9 +123,12 @@ pictures and time collections (useful for animations) are supported this way.
   triangular flat-facet shell element has been accepted for publication in the
   International Journal for Numerical Methods in Engineering. [Draft is
   available in PDF.](docs/shells-submitted.pdf)
+- Paper on the quadrilateral   Q4RS element accepted for publication in Finite Element Analysis and Design.
 
 ## <a name="past-news"></a>Past news
 
+- 02/27/2026: Rename shell element Q4RNT to Q4RS.
+- 02/06/2026: Add quadrilateral shell element Q4RNT.
 - 01/29/2026: Add option to use constant transverse shear correction factor.
 - 01/3/2026: Update versions.
 - 08/28/2025: Update examples. Update workflows.

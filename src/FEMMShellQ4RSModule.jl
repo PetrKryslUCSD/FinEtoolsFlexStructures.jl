@@ -25,6 +25,12 @@ using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 const __NN = 4 # number of nodes
 const __NDOF = 6 # number of degrees of freedom per node
 
+const __DEFAULT_DRILLING_STIFFNESS_SCALE = 1.0
+const __DEFAULT_THRESHOLD_ANGLE = 30.0
+
+# Lyly et al 1993 stabilization factor for the shear term
+_mult_el_size(t, h) = t^2 / (t^2 + 0.1 * h^2)
+
 """
     mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
 
@@ -62,24 +68,21 @@ These attributes of the FEMM can be set after it's been created.
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
   then this threshold, the nodal normal at that note is marked as invalid.
-- `mult_el_size`: multiplier of the square of the element size, used to control
+- `mult_el_size`: function to compute the multiplier of the square of the element size, used to control
   transverse shear stiffness.
 """
-mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
     mcsys::CS # updater of the material orientation matrix
     material::M # material object.
     drilling_stiffness_scale::T # default is 1.0
     threshold_angle::T # default is 30.0
-    mult_el_size::T # default is 0.1
+    mult_el_size::F # default is Lyly et al 1993 stabilization factor for the shear term
     _associatedgeometry::Bool
     _normals::Matrix{T}
     _normal_valid::Vector{Bool}
 end
 
-const __DEFAULT_DRILLING_STIFFNESS_SCALE = 1.0
-const __DEFAULT_THRESHOLD_ANGLE = 30.0
-const __DEFAULT_MULT_EL_SIZE = 0.1
 
 _number_type(femm::FEMMShellQ4RS{ID, T, CS}) where {ID, T, CS} = T
 
@@ -168,7 +171,8 @@ function FEMMShellQ4RS(
     integdomain::ID,
     mcsys::CS,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M}
+    mult_el_size::F = _mult_el_size,
+) where {ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, F<:Function, M}
     _nnmax = 0
     for j in eachindex(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -186,7 +190,7 @@ function FEMMShellQ4RS(
         material,
         T(__DEFAULT_DRILLING_STIFFNESS_SCALE),
         T(__DEFAULT_THRESHOLD_ANGLE),
-        T(__DEFAULT_MULT_EL_SIZE),
+        mult_el_size,
         false,
         _normals,
         _normal_valid,
@@ -214,8 +218,9 @@ Constructor of the Q4RS shell FEMM.
 function FEMMShellQ4RS(
     integdomain::ID,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetQ4}, M}
-    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), _isoparametric!), material)
+    mult_el_size::F = _mult_el_size,
+) where {ID<:IntegDomain{S} where {S<:FESetQ4}, F<:Function, M}
+    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), _isoparametric!), material, mult_el_size)
 end
 
 """
@@ -924,9 +929,8 @@ function stiffness(
             bbmat!(Bb, gradN_e, T)
             add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * w[j], Dps, DpsBmb)
             bsmat!(Bs, ecoords_e, pc[j, :], T)
-            Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
             add_btdb_ut_only!(elmat, Bs,
-                t  * Lylyetal * Jac * w[j],
+                t  * mult_el_size(t, h) * Jac * w[j],
                 Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
@@ -1149,9 +1153,8 @@ function inspectintegpoints(
             if quant == TRANSVERSE_SHEAR
                 _ecoords_e!(ecoords_e, ecoords, E_G)
                 bsmat!(Bs, ecoords_e, pc[j, :], T)
-                Lylyetal = t^2 / (t^2 + mult_el_size * h^2)
                 shr = Bs * edisp
-                frc = t * Lylyetal * Dt * shr
+                frc = t * mult_el_size(t, h) * Dt * shr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
             end
