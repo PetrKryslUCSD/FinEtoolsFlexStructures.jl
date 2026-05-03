@@ -229,7 +229,7 @@ end
 Make a Q4RS FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normais is used.
 """
-function make(integdomain, material, mult_el_size = _mult_el_size)
+function make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
     return FEMMShellQ4RS(integdomain, material, mult_el_size)
 end
 
@@ -239,7 +239,7 @@ end
 Make a Q4RS FEMM from the integration domain, a coordinate system to define the
 orientation of the normals, and a material.
 """
-function make(integdomain, mcsys, material, mult_el_size = _mult_el_size)
+function make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
     return FEMMShellQ4RS(integdomain, mcsys, material, mult_el_size)
 end
 
