@@ -47,7 +47,10 @@ function _execute_t3ff_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize =
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), 
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.0 * h^2),
+    )
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -167,7 +170,10 @@ function _execute_Q4RS_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize =
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), 
+        mater, 
+        (t, h) -> t^2 / (t^2 + 0.0 * h^2)
+        )
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -453,7 +459,10 @@ function _execute_Q4RS_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), 
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.1 * h^2),
+        )
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -599,11 +608,19 @@ end
 
 function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001, 0.000001, 0.0000001, 1.0e-10])
     formul = FEMMShellT3FFModule
-    @info "Simply supported square plate with uniform load,"
+    @info "Simply supported square plate with uniform load, T3FF"
     for n in [2, 4, 8, 16, 32, 64]
         for tL_ratio in tL_ratios
             @info "thickness/length = $tL_ratio formulation=$(formul)"
             _execute_t3ff_full_model(formul, n, tL_ratio, :soft, false)
+        end
+    end
+    formul = FEMMShellQ4RSModule
+    @info "Simply supported square plate with uniform load, Q4RS"
+    for n in [2, 4, 8, 16, 32, 64]
+        for tL_ratio in tL_ratios
+            @info "thickness/length = $tL_ratio formulation=$(formul)"
+            _execute_Q4RS_full_model(formul, n, tL_ratio, :soft, false)
         end
     end
     return true
@@ -612,10 +629,10 @@ end
 function allrun()
     println("#####################################################")
     println("# test_convergence_full ")
-    test_convergence_full()
+    # test_convergence_full()
     println("#####################################################")
     println("# test_convergence_full_thickness ")
-    # test_convergence_full_thickness()
+    test_convergence_full_thickness()
     return true
 end # function allrun
 

@@ -176,6 +176,8 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_e
                 (t, h) -> 1 / sqrt(1 + mult_el_size * (h/t)^2)
             elseif mes_fun == :quadfract
                 (t, h) -> 1 / (1 + mult_el_size * (h/t)^2)
+            elseif mes_fun == :simple
+                (t, h) -> (t < h / sqrt(mult_el_size)) ? mult_el_size * (t/h)^2 : 1.0
             end
             # (t, h) -> 1 / (1 + mult_el_size * h^2/t^2))
             # (t, h) -> t^2 / (t^2 + mult_el_size * h^2))
@@ -260,8 +262,8 @@ const case_data = [
     CaseData(1/10000, 80*0.1^2, -5.2988e-1, 8.9867e-2)
     ]
 
-const colors = ["black", "red", "blue", "green", "magenta", "cyan"]
-marks = ["x", "o", "square", "+", "diamond", "star"]
+const colors = ["black", "red", "blue", "green", "magenta", "cyan", "orange", "purple", "brown", "pink"]
+marks = ["x", "o", "square", "+", "diamond", "star", "pentagon", "dtriangle", "oplus", "otimes"]
 
 function start_case()
     objects = []
@@ -420,6 +422,8 @@ function allrun()
     mes_fun = :sqrtlinfract
     mes_fun = :powfract
     mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4, 1.0]
+    mes_fun = :simple
+    mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0].^2
     println("#####################################################")
     println("# test_convergence_all ")
     test_convergence_all(case_data, ns, mes_fun, mult_el_sizes)
