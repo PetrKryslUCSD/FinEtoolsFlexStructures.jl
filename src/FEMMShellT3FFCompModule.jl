@@ -35,6 +35,9 @@ const __NN = 3 # number of nodes
 const __NDOF = 6 # number of degrees of freedom per node
 
 
+# Lyly et al 1993 stabilization factor for the shear term
+_mult_el_size(t, h) = t^2 / (t^2 + (5 / 12 / 1.5) * h^2)
+
 """
 Formulation for the transverse shear stiffness which averages the
 strain-displacement matrix.
@@ -56,7 +59,7 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details about the homogeneous-shell refer to [`FinEtoolsFlexStructures.FEMMShellT3FFModule.FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
     integdomain::ID # integration domain data
     # Definitions of layups
     layup_groups::Vector{Tuple{CompositeLayup{TSM},Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
@@ -64,7 +67,7 @@ mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, TSM<:Abs
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
-    mult_el_size::Float64
+    mult_el_size::F # default is Lyly et al 1993 stabilization factor for the shear term
     # Private data
     _associatedgeometry::Bool
     _normals::FFltMat
@@ -103,7 +106,8 @@ Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 function FEMMShellT3FFComp(
     integdomain::ID,
     layup::CompositeLayup,
-)  where {ID<:IntegDomain{S} where {S<:FESetT3}}
+    mult_el_size::F = _mult_el_size
+)  where {ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function}
     _nnmax = 0
     for j = 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -151,7 +155,7 @@ function FEMMShellT3FFComp(
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B,
         1.0,
         30.0,
-        5 / 12 / 1.5,
+        mult_el_size,
         false,
         _normals,
         _normal_valid,
@@ -178,12 +182,12 @@ function FEMMShellT3FFComp(
 end
 
 """
-    make(integdomain, layup)
+    make(integdomain, layup, mult_el_size::F = _mult_el_size) where {F<:Function}
 
 Make a T3FFComp FEMM from the integration domain and a composite layup.
 """
-function make(integdomain, layup)
-    return FEMMShellT3FFComp(integdomain, layup)
+function make(integdomain, layup, mult_el_size::F = _mult_el_size) where {F<:Function}
+    return FEMMShellT3FFComp(integdomain, layup, mult_el_size)
 end
 
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, feid::FInt, qpid::FInt)
@@ -613,7 +617,7 @@ function stiffness(
             add_btdb_ut_only!(elmat, Bb, Ae, sD, DpsBmb)
             add_b1tdb2!(elmat, Bm, Bb, Ae, sB, DpsBmb)
             add_b1tdb2!(elmat, Bb, Bm, Ae, sB, DpsBmb)
-            # he = sqrt(2*Ae) # we avoid taking the square root here, replacing
+            h = sqrt(2*Ae) # we avoid taking the square root here, replacing
             # he^2 with 2*Ae
             if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
                 for o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
@@ -622,7 +626,8 @@ function stiffness(
                     add_btdb_ut_only!(
                         elmat,
                         Bs,
-                        (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
+                        mult_el_size(t, h) * Ae / 3,
+                        # (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
                         sH,
                         DtBs,
                     )
@@ -632,7 +637,8 @@ function stiffness(
                 add_btdb_ut_only!(
                     elmat,
                     Bs,
-                    (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
+                    mult_el_size(t, h) * Ae,
+                    # (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
                     sH,
                     DtBs,
                 )
@@ -909,9 +915,10 @@ function inspectintegpoints(
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)
-            he = sqrt(2 * Ae)
+            h = sqrt(2 * Ae)
             shrstr = Bs * edisp_e
-            frc = (t^2 / (t^2 + mult_el_size * 2 * Ae)) * sH * shrstr
+            frc = mult_el_size(t, h) * sH * shrstr
+            # frc = (t^2 / (t^2 + mult_el_size * 2 * Ae)) * sH * shrstr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end

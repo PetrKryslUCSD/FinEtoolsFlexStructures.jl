@@ -29,6 +29,7 @@
 
 ## News
 
+- 05/03/2026: Extend the shear stabilization configuration to all shells.
 - 05/02/2026: Make transverse shear stabilization configurable.
 - 03/07/2026: Clean up Q4RS.
 - 03/05/2026: Fix a bug where an XYZ array was inadvertently modified (coordinate systems!).

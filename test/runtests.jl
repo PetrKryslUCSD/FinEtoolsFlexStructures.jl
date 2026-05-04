@@ -1,4 +1,10 @@
 using Test
+@time @testset "Composite shell dynamics" begin
+    include("test_composite_shell_dynamics.jl")
+end
+@time @testset "Composite shell statics" begin
+    include("test_composite_shell_statics.jl")
+end
 @time @testset "Shell statics Q4RS" begin
     include("test_q4rs_shell_statics.jl")
 end
@@ -33,12 +39,7 @@ end
 @time @testset "Shell resultants" begin
     include("test_shell_resultants.jl")
 end
-@time @testset "Composite shell dynamics" begin
-    include("test_composite_shell_dynamics.jl")
-end
-@time @testset "Composite shell statics" begin
-    include("test_composite_shell_statics.jl")
-end
+
 @time @testset "Shell statics" begin
     include("test_shell_statics.jl")
 end

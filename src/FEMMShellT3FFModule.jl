@@ -32,8 +32,11 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_B = 0
 const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
+# Lyly et al 1993 stabilization factor for the shear term
+_mult_el_size(t, h) = t^2 / (t^2 + (5 / 12 / 1.5) * h^2)
+
 """
-    mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+    mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
 
 Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -91,17 +94,17 @@ These attributes of the FEMM can be set after it's been created.
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
   then this threshold, the nodal normal at that note is marked as invalid.
-- `mult_el_size`: multiplier of the square of the element size, used to control
+- `mult_el_size`: function to compute the multiplier of the square of the element size, used to control
   transverse shear stiffness.
 """
-mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
     mcsys::CS # updater of the material orientation matrix
     material::M # material object.
     transv_shear_formulation::FInt
     drilling_stiffness_scale::T
     threshold_angle::T
-    mult_el_size::T
+    mult_el_size::F # default is Lyly et al 1993 stabilization factor for the shear term
     _associatedgeometry::Bool
     _normals::Matrix{T}
     _normal_valid::Vector{Bool}
@@ -185,7 +188,8 @@ function FEMMShellT3FF(
     integdomain::ID,
     mcsys::CS,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, M}
+    mult_el_size::F = _mult_el_size,
+) where {ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, CS<:CSys{T}, F<:Function, M}
     _nnmax = 0
     for j in eachindex(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -204,11 +208,10 @@ function FEMMShellT3FF(
         # transv_shear_formulation::FInt
         # drilling_stiffness_scale::Float64
         # threshold_angle::Float64
-        # mult_el_size::Float64
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B,
         T(1.0),
         T(30.0),
-        T(5 / 12 / 1.5),
+        mult_el_size,
         false,
         _normals,
         _normal_valid,
@@ -229,35 +232,37 @@ end
     FEMMShellT3FF(
         integdomain::ID,
         material::M,
-    ) where {ID<:IntegDomain{S} where {S<:FESetT3}, M}
+        mult_el_size::F = _mult_el_size,
+    ) where {ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function, M}
 
 Constructor of the T3FF shell FEMM.
 """
 function FEMMShellT3FF(
     integdomain::ID,
     material::M,
-) where {ID<:IntegDomain{S} where {S<:FESetT3}, M}
-    return FEMMShellT3FF(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material)
+    mult_el_size::F = _mult_el_size,
+) where {ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function, M}
+    return FEMMShellT3FF(integdomain, CSys(3, 3, zero(Float64), isoparametric!), material, mult_el_size)
 end
 
 """
-    make(integdomain, material)
+    make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
 
 Make a T3FF FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normals is used.
 """
-function make(integdomain, material)
-    return FEMMShellT3FF(integdomain, material)
+function make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
+    return FEMMShellT3FF(integdomain, material, mult_el_size)
 end
 
 """
-    make(integdomain, mcsys, material)
+    make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
 
 Make a T3FF FEMM from the integration domain, a coordinate system to define the
 orientation of the normals, and a material.
 """
-function make(integdomain, mcsys, material)
-    return FEMMShellT3FF(integdomain, mcsys, material)
+function make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
+    return FEMMShellT3FF(integdomain, mcsys, material, mult_el_size)
 end
 
 function _compute_J!(J0, ecoords)
@@ -675,7 +680,7 @@ function stiffness(
         add_btdb_ut_only!(elmat, Bm, t * Ae, Dps, DpsBmb)
         _Bbmat!(Bb, gradN_e)
         add_btdb_ut_only!(elmat, Bb, (t^3) / 12 * Ae, Dps, DpsBmb)
-        # he = sqrt(2*Ae) # we avoid taking the square root here, replacing he^2 with 2*Ae
+        h = sqrt(2*Ae) 
         if transv_shear_formulation == __TRANSV_SHEAR_FORMULATION_AVERAGE_K
             for o in [(1, 2, 3), (2, 3, 1), (3, 1, 2)]
                 Bs .= 0.0
@@ -683,7 +688,8 @@ function stiffness(
                 add_btdb_ut_only!(
                     elmat,
                     Bs,
-                    (t^3 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
+                    t * mult_el_size(t, h) * Ae / 3,
+                    # (t^3 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
                     Dt,
                     DtBs,
                 )
@@ -693,7 +699,8 @@ function stiffness(
             add_btdb_ut_only!(
                 elmat,
                 Bs,
-                (t^3 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
+                t * mult_el_size(t, h) * Ae,
+                # (t^3 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
                 Dt,
                 DtBs,
             )
@@ -941,9 +948,10 @@ function inspectintegpoints(
         end
         if quant == TRANSVERSE_SHEAR
             _Bsmat!(Bs, ecoords_e, Ae)
-            he = sqrt(2 * Ae)
+            h = sqrt(2 * Ae)
             shr = Bs * edisp_e
-            frc = ((t^3 / (t^2 + mult_el_size * 2 * Ae))) * Dt * shr
+            frc = t * mult_el_size(t, h) * Dt * shr
+            # frc = ((t^3 / (t^2 + mult_el_size * 2 * Ae))) * Dt * shr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end

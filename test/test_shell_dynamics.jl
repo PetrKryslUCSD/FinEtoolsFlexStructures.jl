@@ -44,9 +44,10 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = 0.2 # make the test happy
-    
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), 
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.2 * h^2),# make the test happy
+    )
     associate = formul.associategeometry!
     stiffness = formul.stiffness
     mass = formul.mass

@@ -32,7 +32,7 @@ const __DEFAULT_THRESHOLD_ANGLE = 30.0
 _mult_el_size(t, h) = t^2 / (t^2 + 0.1 * h^2)
 
 """
-    mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, M} <: AbstractFEMM
+    mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
 
 Type for the finite element modeling machine of the Q4 quadrilateral 
 shell with the MITC (DSG) approach on the shear term and a consistent handling of the
@@ -211,7 +211,8 @@ end
     FEMMShellQ4RS(
         integdomain::ID,
         material::M,
-    ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, M}
+        mult_el_size::F = _mult_el_size,
+    ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, F<:Function, M}
 
 Constructor of the Q4RS shell FEMM.
 """
@@ -224,7 +225,7 @@ function FEMMShellQ4RS(
 end
 
 """
-    make(integdomain, material)
+    make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
 
 Make a Q4RS FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normais is used.
@@ -234,7 +235,7 @@ function make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:
 end
 
 """
-    make(integdomain, mcsys, material)
+    make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
 
 Make a Q4RS FEMM from the integration domain, a coordinate system to define the
 orientation of the normals, and a material.

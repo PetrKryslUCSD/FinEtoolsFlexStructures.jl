@@ -37,8 +37,10 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = 0.2 # make the test happy
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness),
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.2 * h^2),# make the test happy
+    )
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -177,8 +179,10 @@ function _execute(input = "raasch_s4_1x9.inp", visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = 0.2 # make the test happy
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness),
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.2 * h^2),# make the test happy
+    )
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -462,8 +466,10 @@ function _execute(input = "nle5xf3c.inp", nrefs = 0, visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = 0.2 # make the test happy
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness),
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.2 * h^2),# make the test happy
+    )
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -603,8 +609,10 @@ function _execute(input = "barrelvault_s3r_fineirreg.inp", visualize = true)
 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = 0.2 # make the test happy
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness),
+        mater,
+        (t, h) -> t^2 / (t^2 + 0.2 * h^2),# make the test happy
+    )
     femm.drilling_stiffness_scale = 0.1 # make the test happy
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
