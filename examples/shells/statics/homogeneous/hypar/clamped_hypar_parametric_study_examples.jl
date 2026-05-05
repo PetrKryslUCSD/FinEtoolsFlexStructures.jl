@@ -178,6 +178,10 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_e
                 (t, h) -> 1 / (1 + mult_el_size * (h/t)^2)
             elseif mes_fun == :simple
                 (t, h) -> (t < h / sqrt(mult_el_size)) ? mult_el_size * (t/h)^2 : 1.0
+            elseif mes_fun == :linsimple
+                (t, h) -> (t < h / (mult_el_size)) ? mult_el_size * (t/h) : 1.0
+            elseif mes_fun == :mix
+                (t, h) -> (1 / (1 + mult_el_size * (h/t)^2)) * 97 / 100  + 3 / 100
             end
             # (t, h) -> 1 / (1 + mult_el_size * h^2/t^2))
             # (t, h) -> t^2 / (t^2 + mult_el_size * h^2))
@@ -208,6 +212,7 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_e
     associategeometry!(femm, geom0)
     vtkwrite("debug-normals.vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
     Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
+    # @info "mult_el_size = $mult_el_size, Condition number: $(cond(Kff, Inf))"
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[L/2 L/2 0 0 -Inf Inf], inflate = tolerance)
@@ -418,12 +423,15 @@ function allrun()
     ns = [4, 8, 16, 32, 64, 128, ]
     mes_fun = :linfract
     mes_fun = :quadfract
-    mes_fun = :sqrtquadfract
-    mes_fun = :sqrtlinfract
-    mes_fun = :powfract
-    mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4, 1.0]
-    mes_fun = :simple
-    mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0].^2
+    # mes_fun = :sqrtquadfract
+    # mes_fun = :sqrtlinfract
+    # mes_fun = :powfract
+    # mes_fun = :mix
+    mult_el_sizes = [0.0, 0.0001, 0.001, 0.01, 0.02, 0.05]
+    # mes_fun = :simple
+    # mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0].^2
+    # mes_fun = :linsimple
+    # mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
     println("#####################################################")
     println("# test_convergence_all ")
     test_convergence_all(case_data, ns, mes_fun, mult_el_sizes)
