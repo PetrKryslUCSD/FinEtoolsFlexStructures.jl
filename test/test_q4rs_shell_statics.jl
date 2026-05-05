@@ -36,8 +36,8 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    mult_el_size = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, mult_el_size)
+    stab_fun = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, stab_fun)
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -314,8 +314,8 @@ function _execute(
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    mult_el_size = (t, h) -> t^2 / (t^2 + 0.05 * h^2) # make the test happy 
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater, mult_el_size)
+    stab_fun = (t, h) -> t^2 / (t^2 + 0.05 * h^2) # make the test happy 
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), t), mater, stab_fun)
     # 
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -795,8 +795,8 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    mult_el_size = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, mult_el_size)
+    stab_fun = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, stab_fun)
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -881,8 +881,8 @@ function _execute(n = 8, visualize = true)
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    mult_el_size = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, mult_el_size)
+    stab_fun = (t, h) -> t^2 / (t^2 + 0.2 * h^2) # make the test happy
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater, stab_fun)
     
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!

@@ -36,7 +36,7 @@ const __NDOF = 6 # number of degrees of freedom per node
 
 
 # Lyly et al 1993 stabilization factor for the shear term
-_mult_el_size(t, h) = t^2 / (t^2 + (5 / 12 / 1.5) * h^2)
+_stab_fun(t, h) = t^2 / (t^2 + (5 / 12 / 1.5) * h^2)
 
 """
 Formulation for the transverse shear stiffness which averages the
@@ -67,7 +67,7 @@ mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, F<:Funct
     transv_shear_formulation::FInt
     drilling_stiffness_scale::Float64
     threshold_angle::Float64
-    mult_el_size::F # default is Lyly et al 1993 stabilization factor for the shear term
+    stab_fun::F # default is Lyly et al 1993 stabilization factor for the shear term
     # Private data
     _associatedgeometry::Bool
     _normals::FFltMat
@@ -106,7 +106,7 @@ Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 function FEMMShellT3FFComp(
     integdomain::ID,
     layup::CompositeLayup,
-    mult_el_size::F = _mult_el_size
+    stab_fun::F = _stab_fun
 )  where {ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function}
     _nnmax = 0
     for j = 1:count(integdomain.fes)
@@ -155,7 +155,7 @@ function FEMMShellT3FFComp(
         __TRANSV_SHEAR_FORMULATION_AVERAGE_B,
         1.0,
         30.0,
-        mult_el_size,
+        stab_fun,
         false,
         _normals,
         _normal_valid,
@@ -182,12 +182,12 @@ function FEMMShellT3FFComp(
 end
 
 """
-    make(integdomain, layup, mult_el_size::F = _mult_el_size) where {F<:Function}
+    make(integdomain, layup, stab_fun::F = _stab_fun) where {F<:Function}
 
 Make a T3FFComp FEMM from the integration domain and a composite layup.
 """
-function make(integdomain, layup, mult_el_size::F = _mult_el_size) where {F<:Function}
-    return FEMMShellT3FFComp(integdomain, layup, mult_el_size)
+function make(integdomain, layup, stab_fun::F = _stab_fun) where {F<:Function}
+    return FEMMShellT3FFComp(integdomain, layup, stab_fun)
 end
 
 function _compute_nodal_normal!(n, mcsys::CSys, XYZ, J0::FFltMat, feid::FInt, qpid::FInt)
@@ -575,7 +575,7 @@ function stiffness(
     tts! = TransformerQtEQ(Tts)
     drilling_stiffness_scale = self.drilling_stiffness_scale
     transv_shear_formulation = self.transv_shear_formulation
-    mult_el_size = self.mult_el_size
+    stab_fun = self.stab_fun
     startassembly!(
         assembler,
         size(elmat)..., count(fes),
@@ -626,8 +626,8 @@ function stiffness(
                     add_btdb_ut_only!(
                         elmat,
                         Bs,
-                        mult_el_size(t, h) * Ae / 3,
-                        # (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae / 3,
+                        stab_fun(t, h) * Ae / 3,
+                        # (t^2 / (t^2 + stab_fun * 2 * Ae)) * Ae / 3,
                         sH,
                         DtBs,
                     )
@@ -637,8 +637,8 @@ function stiffness(
                 add_btdb_ut_only!(
                     elmat,
                     Bs,
-                    mult_el_size(t, h) * Ae,
-                    # (t^2 / (t^2 + mult_el_size * 2 * Ae)) * Ae,
+                    stab_fun(t, h) * Ae,
+                    # (t^2 / (t^2 + stab_fun * 2 * Ae)) * Ae,
                     sH,
                     DtBs,
                 )
@@ -824,7 +824,7 @@ function inspectintegpoints(
     tps! = TransformerQtEQ(Tps)
     tts! = TransformerQtEQ(Tts)
     lla = Layup2ElementAngle()
-    mult_el_size = self.mult_el_size
+    stab_fun = self.stab_fun
     edisp_e = deepcopy(edisp)
     edisp_n = deepcopy(edisp_e)
     out = fill(0.0, 3)
@@ -917,8 +917,8 @@ function inspectintegpoints(
             _Bsmat!(Bs, ecoords_e, Ae)
             h = sqrt(2 * Ae)
             shrstr = Bs * edisp_e
-            frc = mult_el_size(t, h) * sH * shrstr
-            # frc = (t^2 / (t^2 + mult_el_size * 2 * Ae)) * sH * shrstr
+            frc = stab_fun(t, h) * sH * shrstr
+            # frc = (t^2 / (t^2 + stab_fun * 2 * Ae)) * sH * shrstr
             fo = o2_e' * frc
             out[1:2] .= fo[1], fo[2]
         end

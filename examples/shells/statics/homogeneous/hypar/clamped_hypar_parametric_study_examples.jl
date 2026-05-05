@@ -8,7 +8,7 @@ hard test for locking behaviour as suggested in References (Chapelle and Bathe,
 1998; Bathe, Iosilevich, and Chapelle, 2000). 
 
 Table 2 in Bathe, Iosilevich, and Chapelle, 2000 (computed with MITC16).
-mult_el_size   Strain energy  Displacement
+stab_fun   Strain energy  Displacement
 1/100 1.6790e-3 9.3355e-5
 1/1000 1.1013e-2 6.3941e-3
 1/10,000 8.9867e-2 5.2988e-1
@@ -58,7 +58,7 @@ function (o::_CSEval)(csmatout, XYZ, tangents, feid, qpid)
 end
 
 
-function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 32, visualize = false)
+function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, stab_fun = 1.0, n = 32, visualize = false)
     thickness = tL_ratio * L
     formul = FEMMShellT3FFModule
 
@@ -77,7 +77,7 @@ function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = mult_el_size
+    femm.stab_fun = stab_fun
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -143,7 +143,7 @@ function _execute_t3ff(tL_ratio = 1/100, g = 80*0.1^0, mult_el_size = 1.0, n = 3
     return targetu, targetenergy
 end
 
-function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_el_size = 1.0, n = 32, visualize = false)
+function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, stab_fun = 1.0, n = 32, visualize = false)
     thickness = tL_ratio * L
     formul = FEMMShellQ4RSModule
 
@@ -167,24 +167,24 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_e
             GaussRule(2, 2),
             thickness), ocsys, mater,
             if mes_fun == :linfract
-                (t, h) -> 1 / (1 + mult_el_size * h/t)
+                (t, h) -> 1 / (1 + stab_fun * h/t)
             elseif mes_fun == :powfract
-                (t, h) -> 1 / (1 + mult_el_size * (h/t)^(5/4))
+                (t, h) -> 1 / (1 + stab_fun * (h/t)^(5/4))
             elseif mes_fun == :sqrtlinfract
-                (t, h) -> 1 / (1 + mult_el_size * sqrt(h/t))
+                (t, h) -> 1 / (1 + stab_fun * sqrt(h/t))
             elseif mes_fun == :sqrtquadfract
-                (t, h) -> 1 / sqrt(1 + mult_el_size * (h/t)^2)
+                (t, h) -> 1 / sqrt(1 + stab_fun * (h/t)^2)
             elseif mes_fun == :quadfract
-                (t, h) -> 1 / (1 + mult_el_size * (h/t)^2)
+                (t, h) -> 1 / (1 + stab_fun * (h/t)^2)
             elseif mes_fun == :simple
-                (t, h) -> (t < h / sqrt(mult_el_size)) ? mult_el_size * (t/h)^2 : 1.0
+                (t, h) -> (t < h / sqrt(stab_fun)) ? stab_fun * (t/h)^2 : 1.0
             elseif mes_fun == :linsimple
-                (t, h) -> (t < h / (mult_el_size)) ? mult_el_size * (t/h) : 1.0
+                (t, h) -> (t < h / (stab_fun)) ? stab_fun * (t/h) : 1.0
             elseif mes_fun == :mix
-                (t, h) -> (1 / (1 + mult_el_size * (h/t)^2)) * 97 / 100  + 3 / 100
+                (t, h) -> (1 / (1 + stab_fun * (h/t)^2)) * 97 / 100  + 3 / 100
             end
-            # (t, h) -> 1 / (1 + mult_el_size * h^2/t^2))
-            # (t, h) -> t^2 / (t^2 + mult_el_size * h^2))
+            # (t, h) -> 1 / (1 + stab_fun * h^2/t^2))
+            # (t, h) -> t^2 / (t^2 + stab_fun * h^2))
     )
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
@@ -212,7 +212,7 @@ function _execute_q4rs(tL_ratio = 1/100, g = 80*0.1^0, mes_fun=:linfract, mult_e
     associategeometry!(femm, geom0)
     vtkwrite("debug-normals.vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
     Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
-    # @info "mult_el_size = $mult_el_size, Condition number: $(cond(Kff, Inf))"
+    # @info "stab_fun = $stab_fun, Condition number: $(cond(Kff, Inf))"
 
     # Midpoint of the free edge
     nl = selectnode(fens; box = Float64[L/2 L/2 0 0 -Inf Inf], inflate = tolerance)
@@ -275,7 +275,7 @@ function start_case()
     return objects
 end
 
-function plot_case_approx_error!(objects, j, nu_errs, ns, mult_el_sizes)
+function plot_case_approx_error!(objects, j, nu_errs, ns, stab_funs)
     @pgf p = PGFPlotsX.Plot(
         {
             color = colors[j],
@@ -285,7 +285,7 @@ function plot_case_approx_error!(objects, j, nu_errs, ns, mult_el_sizes)
         Coordinates([v for v in zip(L ./ ns, abs.(nu_errs))])
     )
     push!(objects, p)
-    push!(objects, LegendEntry("$(mult_el_sizes[j])"))
+    push!(objects, LegendEntry("$(stab_funs[j])"))
 end
 
 function display_case_approx_error(objects, tL_ratio, mes_fun)
@@ -314,15 +314,15 @@ function display_case_approx_error(objects, tL_ratio, mes_fun)
     pgfsave("approx_error-$(mes_fun)-tL_ratio=$(tL_ratio).pdf", ax)
 end
 
-function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :linfract, mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4])
+function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :linfract, stab_funs = [0.0, 0.05, 0.1, 0.2, 0.4])
     for c in cases
         @info "--------------------------------------------------"
         @info "Convergence study for case t/L=$(c.tL_ratio) "
-        or = _test_convergence_q4rs(c, ns, mes_fun, mult_el_sizes)
+        or = _test_convergence_q4rs(c, ns, mes_fun, stab_funs)
         objects_errors = start_case()
         objects_displacements = start_case()
         for (j, (_, m, r)) in enumerate(or)
-            @info "  mult_el_size=$(m)"
+            @info "  stab_fun=$(m)"
             aprox_u_sols = [r[i][1] for i in eachindex(r)]
             approx_energy_sols = [r[i][2] for i in eachindex(r)]
             nu_errs = [abs(aprox_u_sols[i+1] - aprox_u_sols[i]) / aprox_u_sols[end] for i in 1:length(aprox_u_sols)-1]
@@ -331,8 +331,8 @@ function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :
             # @info "  Displ. norm. solutions: $(round.(aprox_u_sols ./ c[3], digits = 4))"
             @info "  Displ. norm. approximate errors: $(round.(nu_errs, digits = 4))"
             # @info "  Energy convergence: $(nenergy_sols)"
-            plot_case_approx_error!(objects_errors, j, nu_errs, ns, mult_el_sizes)
-            plot_case_result!(objects_displacements, j, nus, ns, mult_el_sizes)
+            plot_case_approx_error!(objects_errors, j, nu_errs, ns, stab_funs)
+            plot_case_result!(objects_displacements, j, nus, ns, stab_funs)
         end
         display_case_approx_error(objects_errors, c.tL_ratio, mes_fun)
         display_case_result(objects_displacements, c.tL_ratio, mes_fun)
@@ -340,21 +340,21 @@ function test_convergence_all(cases, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :
     return true
 end
 
-function _test_convergence_q4rs(c, ns, mes_fun, mult_el_sizes)
+function _test_convergence_q4rs(c, ns, mes_fun, stab_funs)
     @info "Clamped hypar, Q4RS elements, t/L=$(c.tL_ratio)"
     all_results = []
-    for mult_el_size in mult_el_sizes
+    for stab_fun in stab_funs
         results = []
         for n in ns
-            r = _execute_q4rs(c.tL_ratio, c.g, mes_fun, mult_el_size, n, false)
+            r = _execute_q4rs(c.tL_ratio, c.g, mes_fun, stab_fun, n, false)
             push!(results, r)
         end   
-        push!(all_results, (case = c, mult_el_size = mult_el_size, results = results))
+        push!(all_results, (case = c, stab_fun = stab_fun, results = results))
     end
     return all_results
 end
 
-function plot_case_result!(objects, j, res, ns, mult_el_sizes)
+function plot_case_result!(objects, j, res, ns, stab_funs)
     @pgf p = PGFPlotsX.Plot(
         {
             color = colors[j],
@@ -364,7 +364,7 @@ function plot_case_result!(objects, j, res, ns, mult_el_sizes)
         Coordinates([v for v in zip(L ./ ns, res)])
     )
     push!(objects, p)
-    push!(objects, LegendEntry("$(mult_el_sizes[j])"))
+    push!(objects, LegendEntry("$(stab_funs[j])"))
 end
 
 function display_case_result(objects, tL_ratio, mes_fun)
@@ -395,10 +395,10 @@ end
 
 using FinEtools.AlgoBaseModule: richextrapol
 
-function try_rich_all(c, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :linfract, mult_el_sizes = [0.0, 0.05, 0.1, 0.2, 0.4])
+function try_rich_all(c, ns = [4, 8, 16, 32, 64, 128, ], mes_fun = :linfract, stab_funs = [0.0, 0.05, 0.1, 0.2, 0.4])
     @info "--------------------------------------------------"
     @info "Convergence study for case t/L=$(c.tL_ratio), ns=$(ns), u_sol=$(c.u_sol), energy_sol=$(c.energy_sol)"
-    or = _test_convergence_q4rs(c, ns, mes_fun, mult_el_sizes)
+    or = _test_convergence_q4rs(c, ns, mes_fun, stab_funs)
     _try_rich(or)
     return true
 end
@@ -407,14 +407,14 @@ function _try_rich(all_results)
     start = 1
     for j in eachindex(all_results)
         c = all_results[j].case
-        mult_el_size = all_results[j].mult_el_size
+        stab_fun = all_results[j].stab_fun
         results = all_results[j].results
         aprox_u_sols = [results[s][1] for s in start:start+2]
         try
             er = richextrapol(aprox_u_sols, [4.0, 2.0, 1.0])
-            @info "mult_el_size=$(mult_el_size): $(er[1]), i.e. $(round(er[1]/c.u_sol, digits = 4)*100)%"
+            @info "stab_fun=$(stab_fun): $(er[1]), i.e. $(round(er[1]/c.u_sol, digits = 4)*100)%"
         catch e
-            @warn "Richardson extrapolation failed for mult_el_size=$(mult_el_size)\n  $(aprox_u_sols)"
+            @warn "Richardson extrapolation failed for stab_fun=$(stab_fun)\n  $(aprox_u_sols)"
         end
     end
 end
@@ -427,19 +427,19 @@ function allrun()
     # mes_fun = :sqrtlinfract
     # mes_fun = :powfract
     # mes_fun = :mix
-    mult_el_sizes = [0.0, 0.0001, 0.001, 0.01, 0.02, 0.05]
+    stab_funs = [0.0, 0.0001, 0.001, 0.01, 0.02, 0.05]
     # mes_fun = :simple
-    # mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0].^2
+    # stab_funs = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0].^2
     # mes_fun = :linsimple
-    # mult_el_sizes = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
+    # stab_funs = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
     println("#####################################################")
     println("# test_convergence_all ")
-    test_convergence_all(case_data, ns, mes_fun, mult_el_sizes)
+    test_convergence_all(case_data, ns, mes_fun, stab_funs)
     println("#####################################################")
     println("# try_rich_all ")
-    try_rich_all(case_data[1], [4, 8, 16], mes_fun, mult_el_sizes)
-    try_rich_all(case_data[1], [8, 16, 32], mes_fun, mult_el_sizes)
-    try_rich_all(case_data[1], [16, 32, 64], mes_fun, mult_el_sizes)
+    try_rich_all(case_data[1], [4, 8, 16], mes_fun, stab_funs)
+    try_rich_all(case_data[1], [8, 16, 32], mes_fun, stab_funs)
+    try_rich_all(case_data[1], [16, 32, 64], mes_fun, stab_funs)
     return true
 end # function allrun
 

@@ -58,7 +58,7 @@ function _execute_t3ff_model(n = 8, beta = 0.1, visualize = true)
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), thickness), mater)
-    femm.mult_el_size = beta
+    femm.stab_fun = beta
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_B
     # femm.transv_shear_formulation = formul.__TRANSV_SHEAR_FORMULATION_AVERAGE_K
     stiffness = formul.stiffness
@@ -148,7 +148,7 @@ function _execute_Q4RS_model(n = 8, beta = 0.1, visualize = true)
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), mater)
-    femm.mult_el_size = beta
+    femm.stab_fun = beta
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -309,13 +309,13 @@ end
 
 function test_convergence(ns = [8, 16, 32, 64, 128])
     for beta in [1, 0.5, 0.1, 0.0]
-        @info "Scordelis-Lo shell, T3FF, mult_el_size = $(beta)"
+        @info "Scordelis-Lo shell, T3FF, stab_fun = $(beta)"
         for n in ns
             _execute_t3ff_model(n, beta, false)
         end
     end
     for beta in [1, 0.5,0.1, 0.0]
-        @info "Scordelis-Lo shell, Q4RS, mult_el_size = $(beta)"
+        @info "Scordelis-Lo shell, Q4RS, stab_fun = $(beta)"
         for n in ns
             _execute_Q4RS_model(n, beta, true)
         end

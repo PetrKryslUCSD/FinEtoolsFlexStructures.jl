@@ -28,8 +28,8 @@ const __NDOF = 6 # number of degrees of freedom per node
 const __DEFAULT_DRILLING_STIFFNESS_SCALE = 1.0
 const __DEFAULT_THRESHOLD_ANGLE = 30.0
 
-# Lyly et al 1993 stabilization factor for the shear term
-_mult_el_size(t, h) = t^2 / (t^2 + 0.1 * h^2)
+# Lyly et al 1993 stabilization function for the shear term.
+_stab_fun(t, h) = t^2 / (t^2 + 0.1 * h^2)
 
 """
     mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
@@ -68,8 +68,8 @@ These attributes of the FEMM can be set after it's been created.
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
   then this threshold, the nodal normal at that note is marked as invalid.
-- `mult_el_size`: function to compute the multiplier of the square of the element size, used to control
-  transverse shear stiffness.
+- `stab_fun`: function to compute the multiplier of the square of the element 
+    size, used to stabilize transverse shear stiffness.
 """
 mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
@@ -77,7 +77,7 @@ mutable struct FEMMShellQ4RS{ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, F<:
     material::M # material object.
     drilling_stiffness_scale::T # default is 1.0
     threshold_angle::T # default is 30.0
-    mult_el_size::F # default is Lyly et al 1993 stabilization factor for the shear term
+    stab_fun::F # default is Lyly et al 1993 stabilization factor for the shear term
     _associatedgeometry::Bool
     _normals::Matrix{T}
     _normal_valid::Vector{Bool}
@@ -171,7 +171,7 @@ function FEMMShellQ4RS(
     integdomain::ID,
     mcsys::CS,
     material::M,
-    mult_el_size::F = _mult_el_size,
+    stab_fun::F = _stab_fun,
 ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, T<:Real, CS<:CSys{T}, F<:Function, M}
     _nnmax = 0
     for j in eachindex(integdomain.fes)
@@ -190,7 +190,7 @@ function FEMMShellQ4RS(
         material,
         T(__DEFAULT_DRILLING_STIFFNESS_SCALE),
         T(__DEFAULT_THRESHOLD_ANGLE),
-        mult_el_size,
+        stab_fun,
         false,
         _normals,
         _normal_valid,
@@ -211,7 +211,7 @@ end
     FEMMShellQ4RS(
         integdomain::ID,
         material::M,
-        mult_el_size::F = _mult_el_size,
+        stab_fun::F = _stab_fun,
     ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, F<:Function, M}
 
 Constructor of the Q4RS shell FEMM.
@@ -219,29 +219,29 @@ Constructor of the Q4RS shell FEMM.
 function FEMMShellQ4RS(
     integdomain::ID,
     material::M,
-    mult_el_size::F = _mult_el_size,
+    stab_fun::F = _stab_fun,
 ) where {ID<:IntegDomain{S} where {S<:FESetQ4}, F<:Function, M}
-    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), _isoparametric!), material, mult_el_size)
+    return FEMMShellQ4RS(integdomain, CSys(3, 3, zero(Float64), _isoparametric!), material, stab_fun)
 end
 
 """
-    make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
+    make(integdomain, material, stab_fun::F = _stab_fun) where {F<:Function}
 
 Make a Q4RS FEMM from the integration domain,  and a material.
 Default isoparametric method for computing the normais is used.
 """
-function make(integdomain, material, mult_el_size::F = _mult_el_size) where {F<:Function}
-    return FEMMShellQ4RS(integdomain, material, mult_el_size)
+function make(integdomain, material, stab_fun::F = _stab_fun) where {F<:Function}
+    return FEMMShellQ4RS(integdomain, material, stab_fun)
 end
 
 """
-    make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
+    make(integdomain, mcsys, material, stab_fun::F = _stab_fun) where {F<:Function}
 
 Make a Q4RS FEMM from the integration domain, a coordinate system to define the
 orientation of the normals, and a material.
 """
-function make(integdomain, mcsys, material, mult_el_size::F = _mult_el_size) where {F<:Function}
-    return FEMMShellQ4RS(integdomain, mcsys, material, mult_el_size)
+function make(integdomain, mcsys, material, stab_fun::F = _stab_fun) where {F<:Function}
+    return FEMMShellQ4RS(integdomain, mcsys, material, stab_fun)
 end
 
 function _e_g!(E_G, J)
@@ -903,7 +903,7 @@ function stiffness(
     Dt .*= scf
     
     drilling_stiffness_scale = self.drilling_stiffness_scale
-    mult_el_size = self.mult_el_size
+    stab_fun = self.stab_fun
     startassembly!(
         assembler,
         size(elmat)..., count(fes),
@@ -931,7 +931,7 @@ function stiffness(
             add_btdb_ut_only!(elmat, Bb, (t^3 / 12.0) * Jac * w[j], Dps, DpsBmb)
             bsmat!(Bs, ecoords_e, pc[j, :], T)
             add_btdb_ut_only!(elmat, Bs,
-                t  * mult_el_size(t, h) * Jac * w[j],
+                t  * stab_fun(t, h) * Jac * w[j],
                 Dt, DtBs)
         end
         # Complete the elementwise matrix by filling in the lower triangle
@@ -1089,7 +1089,7 @@ function inspectintegpoints(
     Dps, Dt = _shell_material_stiffness(self.material)
     scf = 5 / 6  # shear correction factor
     Dt .*= scf
-    mult_el_size = self.mult_el_size
+    stab_fun = self.stab_fun
     out = fill(0.0, 3)
     o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
@@ -1155,7 +1155,7 @@ function inspectintegpoints(
                 _ecoords_e!(ecoords_e, ecoords, E_G)
                 bsmat!(Bs, ecoords_e, pc[j, :], T)
                 shr = Bs * edisp
-                frc = t * mult_el_size(t, h) * Dt * shr
+                frc = t * stab_fun(t, h) * Dt * shr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
             end

@@ -100,7 +100,7 @@ I implemented, even though this is based on the central point.
 #     scf = 5/6;  # shear correction factor
 #     Dt .*= scf
 #     drilling_stiffness_scale = self.drilling_stiffness_scale
-#     mult_el_size = self.mult_el_size
+#     stab_fun = self.stab_fun
 #     edisp = fill(0.0, 18)
 #     nodal_moments = 0.0 .* deepcopy(normals)
 #     nodal_rotations = 0.0 .* deepcopy(normals)
@@ -121,7 +121,7 @@ I implemented, even though this is based on the central point.
 #         add_btdb_ut_only!(elmat, Bb, (t^3)/12*Ae, Dps, DpsBmb)
 #         he = sqrt(2*Ae)
 #         _Bsmat!(Bs, ecoords_e, Ae)
-#         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+mult_el_size*he^2))*Ae, Dt, DtBs)
+#         add_btdb_ut_only!(elmat, Bs, (t^3/(t^2+stab_fun*he^2))*Ae, Dt, DtBs)
 #         # Complete the elementwise matrix by filling in the lower triangle
 #         complete_lt!(elmat)
 #         # Now treat the transformation from the element to the nodal triad
