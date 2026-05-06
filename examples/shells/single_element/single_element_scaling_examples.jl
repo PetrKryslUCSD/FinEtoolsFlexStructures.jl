@@ -213,7 +213,7 @@ function distorted_single_t3ff()
 end
 
 function _do_standard_single_q4rs(;tL_ratio = 0.01, stab_alpha = 0.001)
-    E = 200e3*phun("MPa")
+    E = 2*phun("MPa") / tL_ratio^3
     nu = 0.3;
     rho= 8000*phun("KG/M^3");
     L = 1.0*phun("m");
@@ -269,7 +269,7 @@ function _do_standard_single_q4rs(;tL_ratio = 0.01, stab_alpha = 0.001)
     Kff = Matrix(Kff)
     dec = eigen(Kff)
     # @info "$(round.(dec.values[1:8], digits=4))"
-    @info "$(round.(dec.values[5:8], digits=4))"
+    @info "Eigenvalues $(round.(dec.values[5:8], sigdigits=4))"
     # @info "$(round.(dec.values[1:6], digits=4))"
     # @info "$(round.(dec.values[7:12], digits=4))"
     # @info "$(round.(dec.values[13:18], digits=4))"
@@ -314,9 +314,12 @@ function _do_standard_single_q4rs(;tL_ratio = 0.01, stab_alpha = 0.001)
 end
 
 function standard_single_q4rs()
-    for stab_alpha in [0.1, 0.01, 0.001, 0.0001, 0]
-        @info "stab_alpha = $stab_alpha"
-        _do_standard_single_q4rs(stab_alpha = stab_alpha)
+    for tL_ratio in [0.1, 0.01, 0.001, 0.0001, 0.00001]
+        @info "t/L = $tL_ratio"
+        for stab_alpha in [0.1, 0.01, 0.001, 0.0001, 0]
+            @info "stab_alpha = $stab_alpha"
+            _do_standard_single_q4rs(tL_ratio=tL_ratio, stab_alpha=stab_alpha)
+        end
     end
     return nothing
 end
