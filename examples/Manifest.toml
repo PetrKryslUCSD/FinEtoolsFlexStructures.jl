@@ -323,7 +323,7 @@ version = "3.0.6"
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
 path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "3.5.0"
+version = "3.6.0"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
