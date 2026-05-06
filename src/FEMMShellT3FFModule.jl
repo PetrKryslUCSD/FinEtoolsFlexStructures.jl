@@ -94,8 +94,9 @@ These attributes of the FEMM can be set after it's been created.
 - `drilling_stiffness_scale`: multiplier of the generalized stiffness coefficient
 - `threshold_angle`: angle in degrees. If a nodal normal subtends angle bigger
     then this threshold, the nodal normal at that note is marked as invalid.
-- `stab_fun`: function to compute the multiplier of the square of the element size, 
-    used to stabilize  transverse shear stiffness.
+- `stab_fun`: function of `(t, h)` (`t` = thickness, `h` = element size) 
+    to compute the multiplier of the element size, used to stabilize 
+    transverse shear stiffness.
 """
 mutable struct FEMMShellT3FF{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, CS<:CSys{T}, M} <: AbstractFEMM
     integdomain::ID # integration domain data
