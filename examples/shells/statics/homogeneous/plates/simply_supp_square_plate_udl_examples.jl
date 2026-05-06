@@ -3,7 +3,7 @@
 # to be adopted.
 module simply_supp_square_plate_udl_examples
 
-using LinearAlgebra
+using Arpack
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
@@ -15,6 +15,11 @@ using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_fie
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
+function _cond(A)
+    emax = eigs(A, nev = 1, which = :LM, tol = 1e-3)[1]
+    emin = eigs(A, nev = 1, which = :SM, tol = 1e-3)[1]
+    return (emax[1]) / (emin[1])
+end
 
 function   cartesian!(csmatout, XYZ, tangents, feid, qpid)
     csmatout[:, 1] .= (1.0, 0.0, 0.0)
@@ -294,8 +299,8 @@ function _execute_t3ff_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     nu = 0.3;
     L = 10.0;
     thickness = L * tL_ratio;
-    D = E*thickness^3/12/(1-nu^2)
-    p = 1.0*tL_ratio
+    D = E/12/(1-nu^2)*thickness^3
+    p = 1.0*thickness^3
     # analytical solution for the vertical deflection under the load
     # analytical solution for the vertical deflection under the load
     # From A Triangular Plate Bending Element Based on an Energy-Orthogonal Free, 
@@ -441,8 +446,8 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     nu = 0.3;
     L = 10.0;
     thickness = L * tL_ratio;
-    D = E*thickness^3/12/(1-nu^2)
-    p = 1.0*tL_ratio
+    D = E/12/(1-nu^2)*thickness^3
+    p = 1.0*thickness^3
     # analytical solution for the vertical deflection under the load
     # analytical solution for the vertical deflection under the load
     # From A Triangular Plate Bending Element Based on an Energy-Orthogonal Free, 
@@ -507,7 +512,7 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     # Assemble the system matrix
     associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi);
-    @info "stab_alpha = $stab_alpha, Condition number: $(cond(matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff], Inf))"
+    # @info "stab_alpha = $stab_alpha, Condition number: $(_cond(matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]))"
 
     # Load
     nl = selectnode(fens; box = Float64[0 0 0 0 -Inf Inf], tolerance = tolerance)
@@ -551,16 +556,16 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
         # end
         # vtkwrite("simply_supp_square_plate_udl-full-n=$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
-        vtkwrite("simply_supp_square_plate_udl-full-n=$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         # ocsys = CSys(3)
-        # scalars = []
-        # for nc in 1:3
-        #     fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
-        #     # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
-        #     push!(scalars, ("m$nc", fld.values))
-        # end
-        # vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        scalars = []
+        for nc in 1:3
+            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+            push!(scalars, ("m$nc", fld.values))
+        end
+        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         # scalars = []
         # for nc in 1:3
         #     fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys=ocsys)
@@ -568,13 +573,13 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
         #     push!(scalars, ("n$nc", fld.values))
         # end
         # vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-n.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
-        # scalars = []
-        # for nc in 1:2
-        #     fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
-        #     # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
-        # push!(scalars, ("q$nc", fld.values))
-        # end
-        # vtkwrite("simply_supp_square_plate_udl-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        scalars = []
+        for nc in 1:2
+            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
+            # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
+        push!(scalars, ("q$nc", fld.values))
+        end
+        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
 
         # scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
@@ -614,15 +619,16 @@ function test_convergence_full()
     return true
 end
 
-function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001, 0.000001, 0.0000001, 1.0e-10])
+function test_convergence_full_thickness(tL_ratios = [1.0e-1, 1.0e-2, 1.0e-4, 1.0e-8])
     stab_alpha = 0.001
-    visualize = false
+    visualize = !false
     support = :soft
+    ns = [2, 4, 8, 16, 32, 64]
     formul = FEMMShellT3FFModule
     @info "Simply supported square plate with uniform load, T3FF --------------------"
     for tL_ratio in tL_ratios
         @info "thickness/length = $tL_ratio"
-        for n in [2, 4, 8, 16, 32, 64]
+        for n in ns
             _execute_t3ff_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
         end
     end
@@ -630,23 +636,24 @@ function test_convergence_full_thickness(tL_ratios = [0.01, 0.001, 0.0001, 0.000
     @info "Simply supported square plate with uniform load, Q4RS --------------------"
     for tL_ratio in tL_ratios
         @info "thickness/length = $tL_ratio"
-        for n in [2, 4, 8, 16, 32, 64]
+        for n in ns
             _execute_q4rs_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
         end
     end
     return true
 end
 
-function test_stabilization(tL_ratios = [1.0e-3, 1.0e-6, 1.0e-9])
+function test_stabilization(tL_ratios = [1.0e-2, 1.0e-4, 1.0e-8])
     stab_alpha = 0.001
     visualize = false
     support = :soft
-    n = 4
+    n = 64
     formul = FEMMShellQ4RSModule
     @info "Simply supported square plate with uniform load, Q4RS --------------------"
     for tL_ratio in tL_ratios
-        @info "thickness/length = $tL_ratio"
+        @info ">>>>>>>>>>>>> thickness/length = $tL_ratio"
         for stab_alpha in [0.0, 0.000001, 0.001, 0.1]
+            @info "  stab_alpha = $stab_alpha"
             _execute_q4rs_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
         end
     end
