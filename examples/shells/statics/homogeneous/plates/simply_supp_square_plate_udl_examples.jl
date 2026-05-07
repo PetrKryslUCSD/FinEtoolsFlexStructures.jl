@@ -28,7 +28,8 @@ function   cartesian!(csmatout, XYZ, tangents, feid, qpid)
     return csmatout
 end
 
-function _execute_t3ff_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
+function _execute_t3ff_quarter_model(n = 2, tL_ratio = 0.01, visualize = true)
+    formul = FEMMShellT3FFModule
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -151,7 +152,8 @@ function _execute_t3ff_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize =
     return true
 end
 
-function _execute_Q4RS_quarter_model(formul, n = 2, tL_ratio = 0.01, visualize = true)
+function _execute_Q4RS_quarter_model(n = 2, tL_ratio = 0.01, visualize = true)
+    formul = FEMMShellQ4RSModule
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -281,7 +283,7 @@ function test_convergence_quarter()
     @info "thickness/length = $tL_ratio"
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64]
-        _execute_t3ff_quarter_model(formul, n, tL_ratio, true)
+        _execute_t3ff_quarter_model(n, tL_ratio, true)
     end
     formul = FEMMShellQ4RSModule
     tL_ratio = 0.1
@@ -289,12 +291,12 @@ function test_convergence_quarter()
     @info "thickness/length = $tL_ratio"
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64]
-        _execute_Q4RS_quarter_model(formul, n, tL_ratio, true)
+        _execute_Q4RS_quarter_model(n, tL_ratio, true)
     end
     return true
 end
 
-function _execute_t3ff_full_model(formul, n = 2, tL_ratio = 0.01, simple_support = :hard, stab_alpha = 0.1, visualize = true)
+function _execute_t3ff_full_model(n = 2, tL_ratio = 0.01, simple_support = :hard, stab_alpha = 0.1, visualize = true)
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -441,7 +443,15 @@ function _execute_t3ff_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     return true
 end
 
-function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support = :hard, stab_alpha = 0.1, visualize = true)
+function _execute_q4rs_full_model(
+    n=2,
+    tL_ratio=0.01,
+    simple_support=:hard,
+    stab_alpha=0.1,
+    tweak_mesh=false,
+    visualize=true
+    )
+    formul = FEMMShellQ4RSModule
     E = 30e6;
     nu = 0.3;
     L = 10.0;
@@ -459,6 +469,12 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
     fens.xyz = xyz3(fens)
     fens.xyz[:, 1] .-= L/2
     fens.xyz[:, 2] .-= L/2
+    nm = selectnode(fens; box = Float64[-L/2+L/n -L/2+L/n -L/2+L/n -L/2+L/n -Inf Inf], inflate = tolerance)
+    if tweak_mesh
+        shift = L/n/4
+        fens.xyz[nm, 1] .+= shift
+        fens.xyz[nm, 2] .+= shift
+    end
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
     
@@ -556,7 +572,7 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
         # end
         # vtkwrite("simply_supp_square_plate_udl-full-n=$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
-        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         # ocsys = CSys(3)
         scalars = []
@@ -565,7 +581,7 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-r=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         # scalars = []
         # for nc in 1:3
         #     fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys=ocsys)
@@ -579,7 +595,7 @@ function _execute_q4rs_full_model(formul, n = 2, tL_ratio = 0.01, simple_support
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
         push!(scalars, ("q$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-q4rs-r=$(tL_ratio)-full-$(simple_support)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
 
         # scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
@@ -597,6 +613,7 @@ function test_convergence_full()
     stab_alpha = 0.1
     visualize = false
     support = :soft
+    tweak_mesh = false
     tL_ratio = 0.00001
     tL_ratio = 0.001
     @info "Simply supported square plate with uniform load, T3FF"
@@ -604,7 +621,8 @@ function test_convergence_full()
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
         @info "---------------------------------------------------------------------"
-        _execute_t3ff_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
+        _execute_t3ff_full_model(n, tL_ratio, support, stab_alpha, visualize)
+        formul = FEMMShellT3FFModule
     end
     formul = FEMMShellQ4RSModule
     tL_ratio = 0.00001
@@ -614,7 +632,7 @@ function test_convergence_full()
     # for n in [32,  ]
     for n in [2, 4, 8, 16, 32, 64, 128, 256, 512]
         @info "---------------------------------------------------------------------"
-        _execute_q4rs_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
+        _execute_q4rs_full_model(n, tL_ratio, support, stab_alpha, tweak_mesh, visualize)
     end
     return true
 end
@@ -623,13 +641,15 @@ function test_convergence_full_thickness(tL_ratios = [1.0e-1, 1.0e-2, 1.0e-4, 1.
     stab_alpha = 0.001
     visualize = !false
     support = :soft
+    tweak_mesh = false
     ns = [2, 4, 8, 16, 32, 64]
     formul = FEMMShellT3FFModule
     @info "Simply supported square plate with uniform load, T3FF --------------------"
     for tL_ratio in tL_ratios
         @info "thickness/length = $tL_ratio"
         for n in ns
-            _execute_t3ff_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
+            _execute_t3ff_full_model(n, tL_ratio, support, stab_alpha, visualize)
+            formul = FEMMShellT3FFModule
         end
     end
     formul = FEMMShellQ4RSModule
@@ -637,7 +657,7 @@ function test_convergence_full_thickness(tL_ratios = [1.0e-1, 1.0e-2, 1.0e-4, 1.
     for tL_ratio in tL_ratios
         @info "thickness/length = $tL_ratio"
         for n in ns
-            _execute_q4rs_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
+            _execute_q4rs_full_model(n, tL_ratio, support, stab_alpha, tweak_mesh, visualize)
         end
     end
     return true
@@ -645,16 +665,17 @@ end
 
 function test_stabilization(tL_ratios = [1.0e-2, 1.0e-4, 1.0e-8])
     stab_alpha = 0.001
-    visualize = false
-    support = :soft
-    n = 64
+    visualize = true
+    support = :hard
+    tweak_mesh = true
+    n = 16
     formul = FEMMShellQ4RSModule
     @info "Simply supported square plate with uniform load, Q4RS --------------------"
     for tL_ratio in tL_ratios
         @info ">>>>>>>>>>>>> thickness/length = $tL_ratio"
         for stab_alpha in [0.0, 0.000001, 0.001, 0.1]
             @info "  stab_alpha = $stab_alpha"
-            _execute_q4rs_full_model(formul, n, tL_ratio, support, stab_alpha, visualize)
+            _execute_q4rs_full_model(n, tL_ratio, support, stab_alpha, tweak_mesh, visualize)
         end
     end
     return true
