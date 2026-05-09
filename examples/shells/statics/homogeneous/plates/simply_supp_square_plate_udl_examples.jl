@@ -19,7 +19,7 @@ const E = 30e6;
 const nu = 0.3;
 const L = 10.0;
 
-loading(t) = 1.0e9*(t/L)^3
+loading(t) = 1.0e10*(t/L)^3
 
 # From A Triangular Plate Bending Element Based on an Energy-Orthogonal Free, 
     # by Felippa and Bergan, 1986, Table 3. 
