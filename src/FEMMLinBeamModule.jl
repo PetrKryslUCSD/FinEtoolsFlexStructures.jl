@@ -60,8 +60,8 @@ end
 Constructor.
 
 Supply the integration domain, material, and the eccentricity parameters
-(given in the order: first node, f1 direction, second node, f1 direction, f2
-direction, f3 direction).
+(given in the order: first node, `f1` direction, second node, `f1` direction, `f2`
+direction, `f3` direction).
 """
 function FEMMLinBeam(
     integdomain::ID,
@@ -165,10 +165,10 @@ WITH  ROTATIONAL   DEGREES  OF  FREEDOM.
 J.H.  ARGYRIS,   P.C.  DUNNE  and  D.W. SCHARPF
 
 # Arguments
-`L`= current length of the element
+- `L`= current length of the element
 
 # Outputs
-`aN`= transformation matrix to take Cartesian (local) displacement increments in the
+- `aN`= transformation matrix to take Cartesian (local) displacement increments in the
      element frame and to produce increments of natural deformations;
      see `local_frame_and_def!` for the definition of the natural deformations
 """
@@ -199,7 +199,7 @@ function local_cartesian_to_natural!(aN, L)
     return aN
 end
 
-function local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+function _local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C
     # C  CONSISTENT MASS MATRIX including ROTATIONAL MASSES
     # C  Formulation of the (3.38), (3.39) equation from Dykstra's thesis
@@ -236,7 +236,7 @@ function local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     return MM
 end
 
-function local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+function _local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C
     # C  CONSISTENT MASS MATRIX including ROTATIONAL MASSES
     # C  Formulation of the (3.38), (3.39) equation from Dykstra's thesis
@@ -294,7 +294,7 @@ function local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     return MM
 end
 
-function local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+function _local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C
     # C  LUMPED DIAGONAL MASS MATRIX WITH ROTATIONAL MASSES
     # C
@@ -322,7 +322,7 @@ function local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rh
     return MM
 end
 
-function local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+function _local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     # C
     # C  LUMPED DIAGONAL ISOTROPIC MASS MATRIX WITHOUT ROTATIONAL MASSES
     # C
@@ -348,26 +348,25 @@ end
 Mass matrix of the beam.
 
 # Arguments
-`A`= cross-sectional area,
-`I1`=central moment of inertia of the cross-section about the x1 axis,
-`I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
-coordinate axis,
-`rho`=mass density,
-`L`= initial length of the element,
+- `A`= cross-sectional area,
+- `I1`=central moment of inertia of the cross-section about the x1 axis,
+- `I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
+  coordinate axis,
+- `rho`=mass density,
+- `L`= initial length of the element.
 
 # Outputs
-`MM` = local mass matrix, 12 x 12
-In the element frame the mass matrix is constant.
+- `MM` = local mass matrix, 12 x 12. In the element frame the mass matrix is constant.
 """
 function local_mass!(MM, A, I1, I2, I3, rho, L, mass_type)
     if (mass_type == MASS_TYPE_CONSISTENT_WITH_ROTATION_INERTIA)
-        return local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+        return _local_mass_CONSISTENT_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     elseif (mass_type == MASS_TYPE_CONSISTENT_NO_ROTATION_INERTIA)
-        return local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+        return _local_mass_CONSISTENT_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     elseif (mass_type == MASS_TYPE_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA)
-        return local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+        return _local_mass_LUMPED_DIAGONAL_WITH_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     elseif (mass_type == MASS_TYPE_LUMPED_DIAGONAL_NO_ROTATION_INERTIA)
-        return local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
+        return _local_mass_LUMPED_DIAGONAL_NO_ROTATION_INERTIA!(MM, A, I1, I2, I3, rho, L)
     end
 end
 
@@ -377,15 +376,15 @@ end
 Compute the local elastic stiffness matrix.
 
 # Arguments
-`E`, `G`= Young's and shear modulus,
-`A`= cross-sectional area,
-`I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
-coordinate axis,
-`J`=St Venant torsion constant,
-`L`= current length of the element,
+- `E`, `G`= Young's and shear modulus,
+- `A`= cross-sectional area,
+- `I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
+  coordinate axis,
+- `J`=St Venant torsion constant,
+- `L`= current length of the element,
 
 # Outputs
-`SM` = local stiffness matrix, 12 x 12
+- `SM` = local stiffness matrix, 12 x 12
 """
 function local_stiffness!(SM, E, G, A, I2, I3, J, A2s, A3s, L, aN, DN)
     local_cartesian_to_natural!(aN, L)
@@ -400,16 +399,16 @@ end
 Compute the natural forces from the natural deformations.
 
 # Argument
-`E`, `G`= Young's and shear modulus,
-`A`= cross-sectional area,
-`I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
-coordinate axis,
-`J`=St Venant torsion constant,
-`L`= current length of the element,
-`dN`= column vector of natural deformations; see local_frames()
+- `E`, `G`= Young's and shear modulus,
+- `A`= cross-sectional area,
+- `I2`, `I3`=central moment of inertia of the cross-section about the x2 and x3
+  coordinate axis,
+- `J`=St Venant torsion constant,
+- `L`= current length of the element,
+- `dN`= column vector of natural deformations; see local_frames()
 
 # Outputs
-`PN` = column vector of natural forces;
+- `PN` = column vector of natural forces;
      `PN[1]`= axial force;
      `PN[2]`= symmetric bending moment in the plane x1-x2;
      `PN[3]`= anti-symmetric bending bending moment in the plane x1-x2;
@@ -425,11 +424,9 @@ function natural_forces!(PN, E, G, A, I2, I3, J, A2s, A3s, L, dN, DN)
 end
 
 """
-    natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+    _natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
 
 Compute the natural stiffness matrix.
-
-function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 
 # Arguments
 - `E`, `G`= Young's and shear modulus,
@@ -444,7 +441,7 @@ function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 # Outputs
 - `DN` = 6 x 6 natural stiffness matrix
 """
-function natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+function _natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     fill!(DN, 0.0)
     DN[1, 1] = E * A / L
     DN[2, 2] = E * I3 / L
@@ -456,11 +453,9 @@ function natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
 end
 
 """
-    natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+    _natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
 
 Compute the natural stiffness matrix.
-
-function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 
 # Arguments
 - `E`, `G`= Young's and shear modulus,
@@ -475,7 +470,7 @@ function DN = natural_stiffness(self, E, G, A, I2, I3, J, L)
 # Outputs
 - `DN` = 6 x 6 natural stiffness matrix
 """
-function natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+function _natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     fill!(DN, 0.0)
     DN[1, 1] = E * A / L
     DN[2, 2] = E * I3 / L
@@ -490,9 +485,9 @@ end
 
 function natural_stiffness!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     if A2s == Inf || A3s == Inf
-        return natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+        return _natural_stiffness_Bernoulli!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     else
-        return natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
+        return _natural_stiffness_Timoshenko!(DN, E, G, A, I2, I3, J, A2s, A3s, L)
     end
 end
 
@@ -503,14 +498,14 @@ Compute forces through which the element acts on the nodes in the
 local coordinate system.
 
 # Arguments
-`PN` = column vector of natural forces;
-`L`= current length of the element,
-`aN`= transformation matrix to take Cartesian (local) displacement increments in the
+- `PN` = column vector of natural forces;
+- `L`= current length of the element,
+- `aN`= transformation matrix to take Cartesian (local) displacement increments in the
      element frame and to produce increments of natural deformations;
      see `local_frame_and_def!` for the definition of the natural deformations
 
 # Outputs
-FL = vector of forces acting on the nodes in the local coordinate system
+- `FL` = vector of forces acting on the nodes in the local coordinate system
 """
 function local_forces!(FL, PN, L, aN)
     local_cartesian_to_natural!(aN, L)
