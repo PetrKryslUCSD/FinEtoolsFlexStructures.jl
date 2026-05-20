@@ -5,14 +5,18 @@ pystran - Python package for structural analysis with trusses and beams
 
 # Bending of a two incompressible cantilevers rigidly linked at the free end
 
-## Problem description:
+# Problem description:
 
 Two parallel cantilevers are rigidly linked at the free end.
 They bend in sync due to the rigid link.
 
 Displacements and bending moments are provided in the reference.
 
-## References
+Again using the basic stiffness, we deduce the correct magnitude of the bending moment:
+M = 6 * h * E * I / h**3 * w2
+print("Analytical bending moment magnitude: ", M)
+
+# References
 
 This is the AFNOR SSLL05/89 test case.
 
@@ -161,13 +165,13 @@ function test(nel=1, visualize=true)
     # plots.show(m)
 end # function test
 
-function test_XZ(nel=1, visualize=true)
+function test_XZ(nel=8, visualize=true)
     @show H, B
     cs = CrossSectionRectangle(s -> B, s -> H, s -> [0.0, 1.0, 0.0]) # Bernoulli
     members = []
     xyz = [[0 0 0]; [h 0 0]]
     push!(members, frame_member(xyz, nel, cs))
-    xyz = [[0 -d 0]; [h 0 -d]]
+    xyz = [[0 0 -d]; [h 0 -d]]
     push!(members, frame_member(xyz, nel, cs))
     fens, fes = merge_members(members)
 
@@ -231,34 +235,15 @@ function test_XZ(nel=1, visualize=true)
         pl = render(plots)
     end
 
-    # # Using the stiffness coefficients of a beam in the basic configuration, we
-    # # can calculate the deflection from the relationship between the shear force
-    # # in the beams (there are two!) and the applied force:
-
-    # w2 = F / (12 * E * I / h**3) / 2
-    # print("Analytical deflection in the direction of the force: ", w2)
-    # print("Expected tip deflection: ", [0.0, -1.25250329e-01, 0])
-    # for j in m["joints"].values():
-    #     print(j["displacements"])
-
-    # plots.setup(m)
-    # plots.plot_members(m)
-    # plots.plot_deformations(m)
-    # plots.show(m)
-
-    # # Again using the basic stiffness, we deduce the correct magnitude of the bending moment:
-    # M = 6 * h * E * I / h**3 * w2
-    # print("Analytical bending moment magnitude: ", M)
-    # plots.setup(m)
-    # plots.plot_members(m)
-    # plots.plot_bending_moments(m)
-    # plots.show(m)
 end # function test
 
 function allrun()
     println("#####################################################")
     println("# test ")
     test()
+    println("#####################################################")
+    println("# test_XZ ")
+    test_XZ()
 end
 
 
