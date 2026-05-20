@@ -17,3 +17,6 @@ examples/.vscode/
 *.code-workspace
 .idea/
 
+*.pdf
+*.png
+*.jpg
