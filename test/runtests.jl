@@ -1,4 +1,8 @@
 using Test
+
+@time @testset "Rigid link" begin
+    include("test_rigid.jl")
+end
 @time @testset "Composite shell dynamics" begin
     include("test_composite_shell_dynamics.jl")
 end
@@ -29,7 +33,6 @@ end
 @time @testset "Beam buckling" begin
     include("test_beam_buckling.jl")
 end
-
 @time @testset "Shell dynamics" begin
     include("test_shell_dynamics.jl")
 end
@@ -39,7 +42,6 @@ end
 @time @testset "Shell resultants" begin
     include("test_shell_resultants.jl")
 end
-
 @time @testset "Shell statics" begin
     include("test_shell_statics.jl")
 end

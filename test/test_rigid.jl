@@ -26,7 +26,7 @@ publié par l'AFNOR 1990 (ISBN 2-12-486611-7).
 Data taken from: ICAB Force Exemples Exemples de calculs de statique pour ICAB
 Force. www.icab.fr
 """
-module linked_beams_examples
+module test_linked_beams
 
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
@@ -43,7 +43,7 @@ using Arpack
 using LinearAlgebra
 using SparseArrays
 using Test
-using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json, plot_local_frames
+# using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_solid, space_aspectratio, save_to_json, plot_local_frames
 
 # The geometry of the problem is defined by the length of the beams and the
 # distance between them.
@@ -72,7 +72,7 @@ const d = 0.2
 const Gamma = 1e9
 
 function test(nel=1, visualize=false)
-    @show H, B
+    
     cs = CrossSectionRectangle(s -> B, s -> H, s -> [0.0, 0.0, 1.0]) # Bernoulli
     members = []
     xyz = [[0 0 0]; [h 0 0]]
@@ -126,20 +126,23 @@ function test(nel=1, visualize=false)
     # Solve the static problem
     solve_blocked!(dchi, K + Krb, F)
 
-    @show dchi.values[linked, :]
 
-    if visualize
-        scaling = 1e3
-        dchi.values .*= scaling
-        update_rotation_field!(Rfield0, dchi)
-        plots = cat(plot_space_box([[-h -h -h];
-         [h h h]]),
-                    plot_nodes(fens),
-                    plot_solid(fens, fes;
-                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-                    dims = 1)
-        pl = render(plots)
-    end
+    @test norm(dchi.values[linked, :] - 
+    [4.901640435725044e-6 -0.0013235196741928704 0.0 0.0 0.0 -7.352460653587567e-5; 
+    -4.901640435725045e-6 -0.0013240196722199332 0.0 0.0 0.0 -7.401473987682933e-5])     < 1e-6
+
+    # if visualize
+    #     scaling = 1e3
+    #     dchi.values .*= scaling
+    #     update_rotation_field!(Rfield0, dchi)
+    #     plots = cat(plot_space_box([[-h -h -h];
+    #      [h h h]]),
+    #                 plot_nodes(fens),
+    #                 plot_solid(fens, fes;
+    #                            x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    #                 dims = 1)
+    #     pl = render(plots)
+    # end
 
     # # Using the stiffness coefficients of a beam in the basic configuration, we
     # # can calculate the deflection from the relationship between the shear force
@@ -166,7 +169,7 @@ function test(nel=1, visualize=false)
 end # function test
 
 function test_XZ(nel=8, visualize=false)
-    @show H, B
+    
     cs = CrossSectionRectangle(s -> B, s -> H, s -> [0.0, 1.0, 0.0]) # Bernoulli
     members = []
     xyz = [[0 0 0]; [h 0 0]]
@@ -220,35 +223,35 @@ function test_XZ(nel=8, visualize=false)
     # Solve the static problem
     solve_blocked!(dchi, K + Krb, F)
 
-    @show dchi.values[linked, :]
+    @test norm(dchi.values[linked, :] - 
+    [4.90164043572562e-6 0.0 -0.001323519674193052 0.0 7.35246065358843e-5 0.0; 
+    -4.901640435725623e-6 0.0 -0.001324019672220115 0.0 7.401473987683802e-5 0.0])    < 1e-6
 
-    if visualize
-        scaling = 1e3
-        dchi.values .*= scaling
-        update_rotation_field!(Rfield0, dchi)
-        plots = cat(plot_space_box([[-h -h -h];
-         [h h h]]),
-                    plot_nodes(fens),
-                    plot_solid(fens, fes;
-                               x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
-                    dims = 1)
-        pl = render(plots)
-    end
+    # if visualize
+    #     scaling = 1e3
+    #     dchi.values .*= scaling
+    #     update_rotation_field!(Rfield0, dchi)
+    #     plots = cat(plot_space_box([[-h -h -h];
+    #      [h h h]]),
+    #                 plot_nodes(fens),
+    #                 plot_solid(fens, fes;
+    #                            x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+    #                 dims = 1)
+    #     pl = render(plots)
+    # end
 
 end # function test
 
 function allrun()
-    println("#####################################################")
-    println("# test ")
+    # println("#####################################################")
+    # println("# test ")
     test()
-    println("#####################################################")
-    println("# test_XZ ")
+    # println("#####################################################")
+    # println("# test_XZ ")
     test_XZ()
 end
 
-
-@info "All examples may be executed with "
-println("using .$(@__MODULE__); $(@__MODULE__).allrun()")
+allrun()
 
 nothing
 end # module
