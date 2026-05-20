@@ -95,7 +95,10 @@ end
 
 Fuse members by merging the meshes for the members.
 
-Computes an array of meshes.
+# Arguments
+- `members` = array of meshes for the members. Each mesh 
+    is a tuple of the form `(fens, fes)`.
+- `tolerance` = distance within which nodes are merged
 """
 function fuse_members(members; tolerance = 0.001)
     Meshes = Array{Tuple{FENodeSet,AbstractFESet},1}()
@@ -112,6 +115,11 @@ Merge together meshes of the members.
 
 Uses `fuse_members` to merge the nodes, then concatenates the
 finite elements.
+
+# Arguments
+- `members` = array of meshes for the members. Each mesh 
+    is a tuple of the form `(fens, fes)`.
+- `tolerance` = distance within which nodes are merged
 """
 function merge_members(members; tolerance = 0.001)
     fens, allfes = fuse_members(members; tolerance = tolerance)
