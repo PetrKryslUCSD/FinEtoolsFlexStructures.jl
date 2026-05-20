@@ -33,6 +33,8 @@ include("FEMMCorotBeamModule.jl")
 include("FEMMLinBeamModule.jl")
 include("FEMMRITBeamModule.jl")
 
+include("FEMMRigidLinkModule.jl")
+
 include("FEMMPointMassModule.jl")
 
 include("FEMMPointGroundedSpringModule.jl")
