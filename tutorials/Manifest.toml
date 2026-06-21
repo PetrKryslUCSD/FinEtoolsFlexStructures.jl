@@ -313,9 +313,9 @@ version = "3.0.6"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-git-tree-sha1 = "dc9081c27e52366ae6fbe9f1760372e550d0f62d"
+git-tree-sha1 = "d642fac19d8a1d0f9ace27594f67dee75c45d326"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "3.6.0"
+version = "3.6.1"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]

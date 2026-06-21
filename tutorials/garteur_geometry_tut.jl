@@ -77,7 +77,7 @@ cs_tailh = CrossSectionRectangle(s -> L/10, s -> L, s -> [0.0, 0.0, 1.0]; label 
 cs_constrp = CrossSectionRectangle(s -> L*(1.1/100), s -> L*(76.2/100), s -> [0.0, 0.0, 1.0]; label = 6)
 # Massless connectors of the structural parts of the wing: the main beam and the
 # constraining plate.
-cs_connw2c = CrossSectionRectangle(s -> L/2, s -> L/2, s -> [1.0, 0.0, 1.0]; label = 7)
+cs_connw2c = CrossSectionRectangle(s -> L/20, s -> L/20, s -> [1.0, 0.0, 1.0]; label = 7)
 # Massless connectors of the wing and the drums.
 cs_connw2d = CrossSectionRectangle(s -> L/2, s -> L/2, s -> [1.0, 0.0, 1.0]; label = 8)
 # Massless connector between the body and the wings.
