@@ -159,7 +159,7 @@ function _execute_t3ff_full_model(
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("razz-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("razz-n=$(n)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
