@@ -253,7 +253,7 @@ const case_data = [
     ]
 
 const colors = ["black", "red", "blue", "green", "magenta", "cyan", "orange", "purple", "brown", "pink"]
-marks = ["x", "o", "square", "+", "diamond", "star", "pentagon", "dtriangle", "oplus", "otimes"]
+const marks = ["x", "o", "square", "+", "diamond", "star", "pentagon", "dtriangle", "oplus", "otimes"]
 
 function start_case()
     objects = []
