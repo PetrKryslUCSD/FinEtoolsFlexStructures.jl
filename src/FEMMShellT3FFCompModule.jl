@@ -51,7 +51,7 @@ const __TRANSV_SHEAR_FORMULATION_AVERAGE_K = 1
 
 
 """
-    mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}} <: AbstractFEMM
+    mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
 
 Type for the finite element modeling machine of the T3 triangular Flat-Facet
 shell with the Discrete Shear Gap technology and a consistent handling of the
@@ -59,41 +59,86 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details about the homogeneous-shell refer to [`FinEtoolsFlexStructures.FEMMShellT3FFModule.FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
     integdomain::ID # integration domain data
     # Definitions of layups
     layup_groups::Vector{Tuple{CompositeLayup{TSM},Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     # Configuration parameters
     transv_shear_formulation::FInt
-    drilling_stiffness_scale::Float64
-    threshold_angle::Float64
+    drilling_stiffness_scale::T
+    threshold_angle::T
     stab_fun::F # default is Lyly et al 1993 stabilization factor for the shear term
     # Private data
     _associatedgeometry::Bool
-    _normals::FFltMat
+    _normals::Matrix{T}
     _normal_valid::Vector{Bool}
     _layup_group_lookup::FIntVec # look up the layup group for each element
-    # The attributes below are buffers used in various operations.
-    _loc::FFltMat
-    _J0::FFltMat
-    _ecoords::FFltMat
-    _edisp::FFltVec
-    _ecoords_e::FFltMat
-    _edisp_e::FFltVec
-    _dofnums::FIntMat
-    _E_G::FFltMat
-    _A_Es::Vector{FFltMat} # transformation nodal-element matrices  
-    _nvalid::Vector{Bool}
-    _T::FFltMat  # element transformation matrix
-    _elmat::FFltMat
-    _gradN_e::FFltMat
-    _Bm::FFltMat
-    _Bb::FFltMat
-    _Bs::FFltMat
-    _DpsBmb::FFltMat
-    _DtBs::FFltMat
 end
 
+_number_type(femm::FEMMShellT3FFComp{ID, T, CS}) where {ID, T, CS} = T
+
+# Prepare functions to return buffers of various sorts
+
+function _loc(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 1, 3)
+end
+
+function _J0(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 3, 2)
+end
+
+function _ecoords(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN, 3)
+end
+
+function _edisp(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN * __NDOF)
+end
+
+function _ecoords_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN, 2)
+end
+
+function _edisp_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN * __NDOF)
+end
+
+function _gradN_e(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN, 2)
+end
+
+function _dofnums(it::Type{IT}) where {IT<:Integer}
+    return fill(zero(it), 1, __NN * __NDOF)
+end
+
+function _Bs(ft::Type{T}) where {T<:Real}
+    _Bm = fill(zero(ft), 3, __NN * __NDOF)
+    _Bb = fill(zero(ft), 3, __NN * __NDOF)
+    _Bs = fill(zero(ft), 2, __NN * __NDOF)
+    _DpsBmb = similar(_Bm)
+    _DtBs = similar(_Bs)
+    return _Bm, _Bb, _Bs, _DpsBmb, _DtBs
+end
+
+function _E_G(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), 3, 3)
+end
+
+function _A_Es(ft::Type{T}) where {T<:Real}
+    return [fill(zero(ft), 3, 3), fill(zero(ft), 3, 3), fill(zero(ft), 3, 3)]
+end
+
+function _nvalid()
+    return fill(false, 3)
+end
+
+function _T(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN * __NDOF, __NN * __NDOF)
+end
+
+function _elmat(ft::Type{T}) where {T<:Real}
+    return fill(zero(ft), __NN * __NDOF, __NN * __NDOF)
+end
 
 """
     FEMMShellT3FFComp(
@@ -127,26 +172,7 @@ function FEMMShellT3FFComp(
     # Allocate space for the normals
     _normals = fill(0.0, _nnmax, 3)
     _normal_valid = fill(true, _nnmax)
-    # Alocate the buffers
-    _loc = fill(0.0, 1, 3)
-    _J0 = fill(0.0, 3, 2)
-    _ecoords = fill(0.0, __NN, 3)
-    _edisp = fill(0.0, __NN * __NDOF)
-    _ecoords_e = fill(0.0, __NN, 2)
-    _edisp_e = fill(0.0, __NN * __NDOF)
-    _dofnums = zeros(FInt, 1, __NN * __NDOF)
-    _E_G = fill(0.0, 3, 3)
-    _A_Es = [fill(0.0, 3, 3), fill(0.0, 3, 3), fill(0.0, 3, 3)]
-    _nvalid = fill(false, 3)
-    _T = fill(0.0, __NN * __NDOF, __NN * __NDOF)
-    _elmat = fill(0.0, __NN * __NDOF, __NN * __NDOF)
-    _gradN_e = fill(0.0, __NN, 2)
-    _Bm = fill(0.0, 3, __NN * __NDOF)
-    _Bb = fill(0.0, 3, __NN * __NDOF)
-    _Bs = fill(0.0, 2, __NN * __NDOF)
-    _DpsBmb = similar(_Bm)
-    _DtBs = similar(_Bs)
-
+    
     @assert delegateof(integdomain.fes) === FESetShellT3()
 
     return FEMMShellT3FFComp(
@@ -160,24 +186,6 @@ function FEMMShellT3FFComp(
         _normals,
         _normal_valid,
         _layup_group_lookup,
-        _loc,
-        _J0,
-        _ecoords,
-        _edisp,
-        _ecoords_e,
-        _edisp_e,
-        _dofnums,
-        _E_G,
-        _A_Es,
-        _nvalid,
-        _T,
-        _elmat,
-        _gradN_e,
-        _Bm,
-        _Bb,
-        _Bs,
-        _DpsBmb,
-        _DtBs,
     )
 end
 
@@ -257,8 +265,8 @@ struct _NodalTriadsE
     f3_e::FFltVec
 end
 
-function _NodalTriadsE()
-    _NodalTriadsE(fill(0.0, 3), fill(0.0, 3), fill(0.0, 3), [0.0, 0.0, 1.0])
+function _NodalTriadsE(ft::Type{T}) where {T<:Real}
+    _NodalTriadsE(fill(zero(ft), 3), fill(zero(ft), 3), fill(zero(ft), 3), [zero(ft), zero(ft), zero(ft)+1.0])
 end
 
 (o::_NodalTriadsE)(A_Es, nvalid, E_G, normals, normal_valid, c) = begin
@@ -296,12 +304,12 @@ end
     return A_Es, nvalid
 end
 
-struct _TransfmatGToA
-    Tblock::FFltMat
+struct _TransfmatGToA{FT<:Real}
+    Tblock::Matrix{FT}
 end
 
-function _TransfmatGToA()
-    _TransfmatGToA(fill(0.0, 3, 3))
+function _TransfmatGToA(ft::Type{T}) where {T<:Real}
+    _TransfmatGToA(fill(zero(ft), 3, 3))
 end
 
 (o::_TransfmatGToA)(T, A_Es, E_G) = begin
@@ -315,7 +323,7 @@ end
     # Output
     # - `T` = transformation matrix, input in the global basis, output in the
     #   nodal basis
-    T .= 0.0
+    T .= zero(eltype(T))
     for i = 1:__NN
         mul!(o.Tblock, transpose(A_Es[i]), transpose(E_G))
         offset = (i - 1) * __NDOF
@@ -340,7 +348,7 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
 
-    T .= 0.0
+    T .= zero(eltype(T))
     for i = 1:__NN
         roffst = (i - 1) * __NDOF
         iA_E = A_Es[i]
@@ -436,7 +444,7 @@ end
 
 function _Bsmat!(Bs, ecoords_e, Ae)
     # Compute the linear transverse shear strain-displacement matrix.
-    Bs .= 0.0 # Zero out initially, then add the three contributions  
+    Bs .= zero(eltype(Bs)) # Zero out initially, then add the three contributions  
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (1, 2, 3))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (2, 3, 1))
     _add_Bsmat_o!(Bs, ecoords_e, Ae, (3, 1, 2))
@@ -447,7 +455,7 @@ end
 
 function _Bmmat!(Bm, gradN)
     # Compute the linear membrane strain-displacement matrix.
-    fill!(Bm, 0.0)
+    fill!(Bm, zero(eltype(Bm)))
     for i = 1:__NN
         Bm[1, 6*(i-1)+1] = gradN[i, 1]
         Bm[2, 6*(i-1)+2] = gradN[i, 2]
@@ -460,7 +468,7 @@ function _Bbmat!(Bb, gradN)
     # Compute the linear, displacement independent, curvature-displacement/rotation
     # matrix for a shell quadrilateral element with nfens=3 nodes. Displacements and
     # rotations are in a local coordinate system.
-    fill!(Bb, 0.0)
+    fill!(Bb, zero(eltype(Bb)))
     for i = 1:__NN
         Bb[1, 6*(i-1)+5] = gradN[i, 1]
         Bb[2, 6*(i-1)+4] = -gradN[i, 2]
@@ -478,10 +486,11 @@ In this case it means evaluate the nodal normals.
 """
 function associategeometry!(self::FEMMShellT3FFComp, geom::NodalField{FFlt})
     threshold_angle = self.threshold_angle
-    J0 = self._J0
-    E_G = self._E_G
+    FT = _number_type(self)
+    J0 = _J0(FT)
+    E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
-    nnormal = fill(0.0, 3)
+    nnormal = fill(zero(FT), 3)
 
     # Compute the normals at the nodes
     for lg in self.layup_groups
@@ -510,7 +519,7 @@ function associategeometry!(self::FEMMShellT3FFComp, geom::NodalField{FFlt})
     # amount from the element normals, zero out the nodal normal to indicate
     # that the nodal normal should not be used at that vertex. 
     ntolerance = 1 - sqrt(1 - sin(threshold_angle / 180 * pi)^2)
-    for el = 1:count(self.integdomain.fes)
+    for el in eachindex(self.integdomain.fes)
         i, j, k = self.integdomain.fes.conn[el]
         _compute_J!(J0, geom.values[[i, j, k], :])
         for n in [i, j, k]
@@ -556,21 +565,22 @@ function stiffness(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
+    FT = _number_type(self)
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
+    dofnums = _dofnums(eltype(dchi.dofnums)) 
+    E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
+    elmat = _elmat(FT)
     transformwith = TransformerQtEQ(elmat)
     lla = Layup2ElementAngle()
-    _nodal_triads_e! = _NodalTriadsE()
-    _transfmat_g_to_a! = _TransfmatGToA()
-    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
-    H = zeros(2, 2)
-    sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
-    sH = zeros(2, 2)
-    Tps, Tts = zeros(3, 3), zeros(2, 2)
+    _nodal_triads_e! = _NodalTriadsE(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
+    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    A, B, D, BT = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    H = zeros(FT, 2, 2)
+    sA, sB, sD = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    sH = zeros(FT, 2, 2)
+    Tps, Tts = zeros(FT, 3, 3), zeros(FT, 2, 2)
     tps! = TransformerQtEQ(Tps)
     tts! = TransformerQtEQ(Tts)
     drilling_stiffness_scale = self.drilling_stiffness_scale
@@ -627,7 +637,6 @@ function stiffness(
                         elmat,
                         Bs,
                         stab_fun(t, h) * Ae / 3,
-                        # (t^2 / (t^2 + stab_fun * 2 * Ae)) * Ae / 3,
                         sH,
                         DtBs,
                     )
@@ -638,7 +647,6 @@ function stiffness(
                     elmat,
                     Bs,
                     stab_fun(t, h) * Ae,
-                    # (t^2 / (t^2 + stab_fun * 2 * Ae)) * Ae,
                     sH,
                     DtBs,
                 )
@@ -703,12 +711,13 @@ function mass(
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
-    normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
+    FT = _number_type(self)
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords = _ecoords(FT)
+    dofnums = _dofnums(eltype(dchi.dofnums)) 
+    ecoords_e, gradN_e = _ecoords_e(FT), _gradN_e(FT)
+    E_G = _E_G(FT)
+    elmat = _elmat(FT)
     npe = nodesperelem(fes)
     ndn = ndofs(dchi)
     startassembly!(
@@ -807,20 +816,19 @@ function inspectintegpoints(
     fes = self.integdomain.fes
     label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
-    centroid, J0 = self._loc, self._J0
-    ecoords, edisp, dofnums = self._ecoords, self._edisp, self._dofnums
-    ecoords_e, gradN_e = self._ecoords_e, self._gradN_e
-    E_G, A_Es, nvalid, T = self._E_G, self._A_Es, self._nvalid, self._T
-    elmat = self._elmat
-    transformwith = TransformerQtEQ(elmat)
-    _nodal_triads_e! = _NodalTriadsE()
-    _transfmat_g_to_a! = _TransfmatGToA()
-    Bm, Bb, Bs, DpsBmb, DtBs = self._Bm, self._Bb, self._Bs, self._DpsBmb, self._DtBs
-    A, B, D, BT = zeros(3, 3), zeros(3, 3), zeros(3, 3), zeros(3, 3)
-    H = zeros(2, 2)
-    sA, sB, sD = zeros(3, 3), zeros(3, 3), zeros(3, 3)
-    sH = zeros(2, 2)
-    Tps, Tts = zeros(3, 3), zeros(2, 2)
+    FT = _number_type(self)
+    centroid, J0 = _loc(FT), _J0(FT)
+    ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
+    E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
+    edisp = _edisp(FT)
+    _nodal_triads_e! = _NodalTriadsE(FT)
+    _transfmat_g_to_a! = _TransfmatGToA(FT)
+    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    A, B, D, BT = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    H = zeros(FT, 2, 2)
+    sA, sB, sD = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    sH = zeros(FT, 2, 2)
+    Tps, Tts = zeros(FT, 3, 3), zeros(FT, 2, 2)
     tps! = TransformerQtEQ(Tps)
     tts! = TransformerQtEQ(Tts)
     lla = Layup2ElementAngle()

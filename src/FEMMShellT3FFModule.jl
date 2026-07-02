@@ -690,7 +690,6 @@ function stiffness(
                     elmat,
                     Bs,
                     t * stab_fun(t, h) * Ae / 3,
-                    # (t^3 / (t^2 + stab_fun * 2 * Ae)) * Ae / 3,
                     Dt,
                     DtBs,
                 )
@@ -701,7 +700,6 @@ function stiffness(
                 elmat,
                 Bs,
                 t * stab_fun(t, h) * Ae,
-                # (t^3 / (t^2 + stab_fun * 2 * Ae)) * Ae,
                 Dt,
                 DtBs,
             )
@@ -722,8 +720,8 @@ function stiffness(
                 elmat[11, 11],
                 elmat[17, 17],
             )) * drilling_stiffness_scale
-        # Add the artificial drilling stiffness in the nodal basis, but only if
-        # the nodal normal is valid. 
+            # Add the artificial drilling stiffness in the nodal basis, but only
+            # if the nodal normal is valid. 
         nvalid[1] && (elmat[6, 6] += kavg)
         nvalid[2] && (elmat[12, 12] += kavg)
         nvalid[3] && (elmat[18, 18] += kavg)
