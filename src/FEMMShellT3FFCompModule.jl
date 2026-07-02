@@ -22,6 +22,7 @@ using ..FESetShellT3Module: FESetShellT3
 using ..TransformerModule: TransformerQtEQ, Layup2ElementAngle
 using ..CompositeLayupModule:
     AbstractTransverseShearModel,
+    AbstractCompositeLayup,
     CompositeLayup,
     thickness,
     laminate_stiffnesses!,
@@ -59,10 +60,10 @@ normals. This formulation is suitable for modelling of COMPOSITE (layered) mater
 
 For details about the homogeneous-shell refer to [`FinEtoolsFlexStructures.FEMMShellT3FFModule.FEMMShellT3FF`](@ref).
 """
-mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function, TSM<:AbstractTransverseShearModel} <: AbstractFEMM
+mutable struct FEMMShellT3FFComp{ID<:IntegDomain{S} where {S<:FESetT3}, T<:Real, F<:Function} <: AbstractFEMM
     integdomain::ID # integration domain data
     # Definitions of layups
-    layup_groups::Vector{Tuple{CompositeLayup{TSM},Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
+    layup_groups::Vector{Tuple{AbstractCompositeLayup,Vector{FInt}}} # layups: vector of pairs of the composite layup and the group of elements using that layup.
     # Configuration parameters
     transv_shear_formulation::FInt
     drilling_stiffness_scale::T
@@ -143,16 +144,17 @@ end
 """
     FEMMShellT3FFComp(
         integdomain::ID,
-        layup::CompositeLayup,
-    )  where {ID<:IntegDomain{S} where {S<:FESetT3}}
+        layup::CL,
+        stab_fun::F = _stab_fun
+    )  where {ID<:IntegDomain{S} where {S<:FESetT3}, CL<:AbstractCompositeLayup,F<:Function}
 
 Constructor of the T3FFComp shell FEMM. All elements use a single layup.
 """
 function FEMMShellT3FFComp(
     integdomain::ID,
-    layup::CompositeLayup,
+    layup::CL,
     stab_fun::F = _stab_fun
-)  where {ID<:IntegDomain{S} where {S<:FESetT3}, F<:Function}
+)  where {ID<:IntegDomain{S} where {S<:FESetT3}, CL<:AbstractCompositeLayup,F<:Function}
     _nnmax = 0
     for j = 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -160,7 +162,7 @@ function FEMMShellT3FFComp(
         end
     end
     # When there is only a single layup, all elements belong to a single group
-    layup_groups = [(layup, collect(1:count(integdomain.fes)))]
+    layup_groups = Tuple{AbstractCompositeLayup, Vector{FInt}}[(layup, collect(1:count(integdomain.fes)))]
     # Establish the mapping from the elements to the layup group
     _layup_group_lookup = fill(zero(FInt), count(integdomain.fes))
     for j  in eachindex(layup_groups)

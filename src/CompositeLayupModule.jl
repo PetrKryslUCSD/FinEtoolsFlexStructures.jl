@@ -50,13 +50,13 @@ abstract type AbstractPly end
 
 Type of a ply.
 """
-struct Ply{M} <: AbstractPly
+struct Ply{M, T} <: AbstractPly
     name::String # name of the ply
     material::M # material of the ply
-    thickness::FFlt # thickness of the ply
-    angle::FFlt # angle in degrees
-    _Dps::FFltMat # plane stress stiffness matrix
-    _Dts::FFltMat # transverse shear stiffness matrix
+    thickness::T # thickness of the ply
+    angle::T # angle in degrees
+    _Dps::Matrix{T} # plane stress stiffness matrix
+    _Dts::Matrix{T} # transverse shear stiffness matrix
 end
 
 """
@@ -68,10 +68,10 @@ Provide name, material of the ply, thickness of the ply, an angle between the
 first bases vector of the layup coordinate system and the first direction of
 the ply material coordinate system.
 """
-function Ply(name, material::M, thickness, angle) where {M}
+function Ply(name, material::M, thickness::T, angle) where {M, T<:Real}
     # First we extract the full three dimensional stiffness matrix of the
     # material
-    D = fill(0.0, 6, 6)
+    D = fill(zero(T), 6, 6)
     # TO DO What if the material changes composition from point to point? What do we
     # do now?
     t::FFlt, dt::FFlt, loc::FFltMat, label::FInt = 0.0, 0.0, [0.0 0.0 0.0], 0
@@ -80,7 +80,7 @@ function Ply(name, material::M, thickness, angle) where {M}
     # Both stiffness matrices are expressed on the reference coordinate system
     # for the ply: direction 1 = fiber direction, direction 3 = normal to the
     # ply
-    Dps = fill(0.0, 3, 3)
+    Dps = fill(zero(T), 3, 3)
     Dps[1:2, 1:2] =
         D[1:2, 1:2] - (reshape(D[1:2, 3], 2, 1) * reshape(D[3, 1:2], 1, 2)) / D[3, 3]
     ix = [1, 2, 4]
@@ -88,12 +88,12 @@ function Ply(name, material::M, thickness, angle) where {M}
         Dps[3, i] = Dps[i, 3] = D[4, ix[i]]
     end
     # And we also extract the transverse shear matrix
-    Dts = fill(0.0, 2, 2)
+    Dts = fill(zero(T), 2, 2)
     ix = [5, 6]
     for i in 1:2
         Dts[i, i] = D[ix[i], ix[i]]
     end
-    return Ply(name, material, thickness, FFlt(angle), Dps, Dts)
+    return Ply(name, material, thickness, T(angle), Dps, Dts)
 end
 
 """
@@ -175,19 +175,20 @@ end
 struct TransverseShearModelConstant <: AbstractTransverseShearModel
 end
 
+abstract type AbstractCompositeLayup end
 
 """
     CompositeLayup
 
 Type for composite layup.
 """
-struct CompositeLayup{TSM<:AbstractTransverseShearModel}
+struct CompositeLayup{T<:Real, CS<:CSys, TSM<:AbstractTransverseShearModel} <: AbstractCompositeLayup
     name::String # Name of the composite layup.
-    offset::FFlt # offset of the reference surface from the mid surface, negative when the offset is against the normal
+    offset::T # offset of the reference surface from the mid surface, negative when the offset is against the normal
     plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)
-    csys::CSys # updater of the material orientation matrix
+    csys::CS # updater of the material orientation matrix
     transverse_shear_model::TSM # Transverse shear correction model.
-    transverse_shear_constant::FFlt # Transverse shear correction constant. Only used for TransverseShearModelConstant.
+    transverse_shear_constant::T # Transverse shear correction constant. Only used for TransverseShearModelConstant.
 end
 
 """
