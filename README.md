@@ -29,11 +29,8 @@
 
 ## News
 
+- 07/03/2026: Implemented layered plates for Q4RS.
 - 05/19/2026: Add rigid links.
-- 05/03/2026: Extend the shear stabilization configuration to all shells.
-- 05/02/2026: Make transverse shear stabilization configurable.
-- 03/07/2026: Clean up Q4RS.
-- 03/05/2026: Fix a bug where an XYZ array was inadvertently modified (coordinate systems!).
 
 
 
@@ -128,6 +125,12 @@ pictures and time collections (useful for animations) are supported this way.
 - Paper on the quadrilateral   Q4RS element accepted for publication in Finite Element Analysis and Design.
 
 ## <a name="past-news"></a>Past news
+
+
+- 05/03/2026: Extend the shear stabilization configuration to all shells.
+- 05/02/2026: Make transverse shear stabilization configurable.
+- 03/07/2026: Clean up Q4RS.
+- 03/05/2026: Fix a bug where an XYZ array was inadvertently modified (coordinate systems!).
 - 02/27/2026: Rename shell element Q4RNT to Q4RS.
 - 02/06/2026: Add quadrilateral shell element Q4RNT.
 - 01/29/2026: Add option to use constant transverse shear correction factor.
