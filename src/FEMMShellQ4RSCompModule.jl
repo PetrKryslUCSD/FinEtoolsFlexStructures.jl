@@ -1082,30 +1082,36 @@ function inspectintegpoints(
 ) where {TI<:Number,F<:Function}
     @assert self._associatedgeometry == true
     fes = self.integdomain.fes
-    label = self.integdomain.fes.label
     normals, normal_valid = self._normals, self._normal_valid
     FT = _number_type(self)
     loc, J = _loc(FT), _J(FT)
     ecoords, ecoords_e, gradN_e = _ecoords(FT), _ecoords_e(FT), _gradN_e(FT)
     E_G, A_Es, nvalid, T = _E_G(FT), _A_Es(FT), _nvalid(), _T(FT)
-    edisp = _edisp(FT)
+    elmat = _elmat(FT)
+    npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
+    lla = Layup2ElementAngle()
     _nodal_triads_e! = _NodalTriadsE(FT)
     _transfmat_g_to_a! = _TransfmatGToA(FT)
-    T = _T(FT); Tae = _T(FT); Tga = _T(FT)
-    npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
-    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
-    bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     _gradN_e! = _LocalDerivatives(FT)
     _ecoords_e! = _EcoordsE(FT) 
-    lla = Layup2ElementAngle()
-    Dps, Dt = _shell_material_stiffness(self.material)
-    scf = 5 / 6  # shear correction factor
-    Dt .*= scf
+    T = _T(FT); Tae = _T(FT); Tga = _T(FT)
+    Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
+    A, B, D, BT = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    H = zeros(FT, 2, 2)
+    sA, sB, sD = zeros(FT, 3, 3), zeros(FT, 3, 3), zeros(FT, 3, 3)
+    sH = zeros(FT, 2, 2)
+    Tps, Tts = zeros(FT, 3, 3), zeros(FT, 2, 2)
+    tps! = TransformerQtEQ(Tps)
+    tts! = TransformerQtEQ(Tts)
+    stab_fun = self.stab_fun
+    edisp = _edisp(FT)
+    edisp_e = deepcopy(edisp)
     stab_fun = self.stab_fun
     out = fill(0.0, 3)
     o2_e = fill(0.0, 2, 2)
     # Sort out  the output requirements
-    outputcsys = self.mcsys # default: report the stresses in the material coord system
+    outputcsys = self.layup_groups[1][1].csys # default: report the stresses in the material coord system
     for apair in pairs(context)
         sy, val = apair
         if sy == :outputcsys
@@ -1126,19 +1132,39 @@ function inspectintegpoints(
     # Loop over  all the elements and all the quadrature points within them
     for ilist in eachindex(felist) # Loop over elements
         i = felist[ilist]
+        layup = self.layup_groups[self._layup_group_lookup[i]][1]
+        t = thickness(layup)
+        laminate_stiffnesses!(layup, A, B, D)
+        laminate_transverse_stiffness!(layup, H)
         gathervalues_asmat!(geom0, ecoords, fes.conn[i])
-        h = _quad_diameter(ecoords)
         gathervalues_asvec!(u, edisp, fes.conn[i])
-        for j in 1:npts # Loop over quadrature points
+        h = _quad_diameter(ecoords)
+        fill!(elmat, 0.0) # Initialize element matrix
+        for j in 1:npts
             locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j])
             _e_g!(E_G, J)
+            _ecoords_e!(ecoords_e, ecoords, E_G)
             _gradN_e!(gradN_e, J, E_G, gradNparams[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+            # Working copies to be transformed
+            sA[:] .= A[:]
+            sB[:] .= B[:]
+            sD[:] .= D[:]
+            sH[:] .= H[:]
             _nodal_triads_e!(A_Es, nvalid, E_G, normals, normal_valid, fes.conn[i])
             _transfmat_g_to_a!(Tga, A_Es, E_G)
             _transfmat_a_to_e!(Tae, A_Es, gradN_e)
             mul!(T, Tae, Tga)
-            updatecsmat!(outputcsys, loc, J, i, j)
+            mul!(edisp_e, T, edisp)
+            # Transform the laminate stiffnesses
+            updatecsmat!(layup.csys, Ns[j], J, -1, 0)
+            m, n = lla(E_G, csmat(layup.csys))
+            plane_stress_Tbar_matrix!(Tps, m, n)
+            tps!(sA, Tps)
+            tps!(sB, Tps)
+            tps!(sD, Tps)
+            transverse_shear_T_matrix!(Tts, m, n)
+            tts!(sH, Tts)
             if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
                 @warn "Coordinate systems mismatched?"
             end
@@ -1147,27 +1173,26 @@ function inspectintegpoints(
             o2_e[1, 2] = ocsn
             o2_e[2, 1] = -ocsn
             # Compute the Requested Quantity
+            bmmat!(Bm, gradN_e, T)
+            bbmat!(Bb, gradN_e, T)
+            kurv = Bb * edisp_e
+            memstr = Bm * edisp_e
             if quant == BENDING_MOMENT
-                bbmat!(Bb, gradN_e, T)
-                kurv = Bb * edisp
-                mom = ((t^3) / 12) * Dps * kurv
+                mom = sB * memstr + sD * kurv
                 m = [mom[1] mom[3]; mom[3] mom[2]]
                 mo = o2_e' * m * o2_e
                 out[:] .= mo[1, 1], mo[2, 2], mo[1, 2]
             end
             if quant == MEMBRANE_FORCE
-                bmmat!(Bm, gradN_e, T)
-                strn = Bm * edisp
-                frc = (t) * Dps * strn
+                frc = sA * memstr + sB * kurv
                 f = [frc[1] frc[3]; frc[3] frc[2]]
                 fo = o2_e' * f * o2_e
                 out[:] .= fo[1, 1], fo[2, 2], fo[1, 2]
             end
             if quant == TRANSVERSE_SHEAR
-                _ecoords_e!(ecoords_e, ecoords, E_G)
                 bsmat!(Bs, ecoords_e, pc[j, :], T)
-                shr = Bs * edisp
-                frc = t * stab_fun(t, h) * Dt * shr
+                shrstr = Bs * edisp_e
+                frc = stab_fun(t, h) * sH * shrstr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
             end
