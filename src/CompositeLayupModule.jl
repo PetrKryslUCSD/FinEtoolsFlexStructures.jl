@@ -182,7 +182,7 @@ abstract type AbstractCompositeLayup end
 
 Type for composite layup.
 """
-struct CompositeLayup{T<:Real, CS<:CSys, TSM<:AbstractTransverseShearModel} <: AbstractCompositeLayup
+struct CompositeLayup{T, CS<:CSys, TSM<:AbstractTransverseShearModel} <: AbstractCompositeLayup
     name::String # Name of the composite layup.
     offset::T # offset of the reference surface from the mid surface, negative when the offset is against the normal
     plies::Vector{AbstractPly} # vector of plies; the first ply is at the bottom of the shell (SNEG surface), the last ply is at the top (SPOS)

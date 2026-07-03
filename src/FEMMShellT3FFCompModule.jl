@@ -154,7 +154,7 @@ function FEMMShellT3FFComp(
     integdomain::ID,
     layup::CL,
     stab_fun::F = _stab_fun
-)  where {ID<:IntegDomain{S} where {S<:FESetT3}, CL<:AbstractCompositeLayup,F<:Function}
+)  where {ID<:IntegDomain{S} where {S<:FESetT3}, CL<:AbstractCompositeLayup, F<:Function}
     _nnmax = 0
     for j = 1:count(integdomain.fes)
         for k in eachindex(integdomain.fes.conn[j])
@@ -493,6 +493,9 @@ function associategeometry!(self::FEMMShellT3FFComp, geom::NodalField{FFlt})
     E_G = _E_G(FT)
     normals, normal_valid = self._normals, self._normal_valid
     nnormal = fill(zero(FT), 3)
+
+    normals .= 0.0
+    normal_valid .= true
 
     # Compute the normals at the nodes
     for lg in self.layup_groups
