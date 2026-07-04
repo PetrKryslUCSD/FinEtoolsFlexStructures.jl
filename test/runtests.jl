@@ -1,12 +1,15 @@
 using Test
 
-@time @testset "Rigid link" begin
-    include("test_rigid.jl")
+@time @testset "Composite shell statics Q4RS" begin
+    include("test_composite_shell_statics_q4rs.jl")
 end
-@time @testset "Composite shell dynamics" begin
+@time @testset "Composite Layup" begin
+    include("test_composite_layup.jl")
+end
+@time @testset "Composite shell dynamics T3FF" begin
     include("test_composite_shell_dynamics.jl")
 end
-@time @testset "Composite shell statics" begin
+@time @testset "Composite shell statics T3FF" begin
     include("test_composite_shell_statics.jl")
 end
 @time @testset "Shell statics Q4RS" begin
@@ -36,9 +39,7 @@ end
 @time @testset "Shell dynamics" begin
     include("test_shell_dynamics.jl")
 end
-@time @testset "Composite Layup" begin
-    include("test_composite_layup.jl")
-end
+
 @time @testset "Shell resultants" begin
     include("test_shell_resultants.jl")
 end
@@ -46,3 +47,6 @@ end
     include("test_shell_statics.jl")
 end
 
+@time @testset "Rigid link" begin
+    include("test_rigid.jl")
+end
