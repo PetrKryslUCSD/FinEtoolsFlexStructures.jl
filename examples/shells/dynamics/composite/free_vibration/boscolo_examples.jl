@@ -62,7 +62,7 @@ function _execute_t3ff(aspect, n, refndom, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    vtkwrite("boscolo_n=$n.vtu", fens, fes)
+    vtkwrite("boscolo_t3ff_n=$n.vtu", fens, fes)
 
     mater = CM.lamina_material(Material...)
     plies = CM.Ply[

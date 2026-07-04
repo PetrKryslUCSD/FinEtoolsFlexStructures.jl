@@ -57,7 +57,7 @@ function _execute_30_t3ff(n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    vtkwrite("gruttman_n=$n.vtu", fens, fes)
+    # vtkwrite("gruttman_t3ff_n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
         CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
@@ -127,7 +127,7 @@ function _execute_30_t3ff(n, reference, visualize)
             push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
             # vtkwrite("gruttman-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-            vtkwrite("gruttman-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+            vtkwrite("gruttman_t3ff-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
@@ -171,7 +171,7 @@ function _execute_30_q4rs(n, reference, visualize)
     fens,fes = Q4block(a, a, n, n); # Mesh
     fens.xyz = xyz3(fens)
     
-    vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
+    # vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
         CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
@@ -242,7 +242,7 @@ function _execute_30_q4rs(n, reference, visualize)
         end
             vtkwrite("gruttman_q4rs-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
             # update_rotation_field!(Rfield0, dchi)
-            # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+            # plots = cat(plot_space_box(ve[[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
             #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
             #     dims = 1)
@@ -285,7 +285,7 @@ function _execute_45_t3ff(n, reference, visualize)
     fens.xyz = xyz3(fens)
     fens, fes = Q4toT3(fens, fes)
     
-    vtkwrite("gruttman_n=$n.vtu", fens, fes)
+    # vtkwrite("gruttman_t3ff_n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
         CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
@@ -356,7 +356,7 @@ function _execute_45_t3ff(n, reference, visualize)
             push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
             # vtkwrite("gruttman-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-            vtkwrite("gruttman-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+            vtkwrite("gruttman_t3ff-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
@@ -400,7 +400,7 @@ function _execute_45_q4rs(n, reference, visualize)
     fens,fes = Q4block(a, a, n, n); # Mesh
     fens.xyz = xyz3(fens)
     
-    vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
+    # vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
 
     plies = CM.Ply[
         CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
@@ -470,7 +470,7 @@ function _execute_45_q4rs(n, reference, visualize)
             push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
             # vtkwrite("gruttman-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         end
-            vtkwrite("gruttman-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+            vtkwrite("gruttman_q4rs-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
             # update_rotation_field!(Rfield0, dchi)
             # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
             #     plot_nodes(fens),
