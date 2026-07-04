@@ -102,6 +102,14 @@ Private = true
 Order = [:function, :type, :constant]
 ```
 
+## FEMM for Shell Q4RS with layered composition
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMShellQ4RSCompModule]
+Private = true
+Order = [:function, :type, :constant]
+```
+
 ## FEMM for point masses
 
 ```@autodocs
@@ -114,6 +122,14 @@ Order = [:function, :type]
 
 ```@autodocs
 Modules = [FinEtoolsFlexStructures.FEMMPointGroundedSpringModule]
+Private = true
+Order = [:function, :type]
+```
+
+## FEMM for Rigid Links
+
+```@autodocs
+Modules = [FinEtoolsFlexStructures.FEMMRigidLinkModule]
 Private = true
 Order = [:function, :type]
 ```
@@ -157,8 +173,11 @@ FinEtoolsFlexStructures.FEMMLinBeamModule
 FinEtoolsFlexStructures.FEMMRITBeamModule
 FinEtoolsFlexStructures.FEMMShellT3FFModule
 FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+FinEtoolsFlexStructures.FEMMShellQ4RSModule
+FinEtoolsFlexStructures.FEMMShellQ4RSCompModule
 FinEtoolsFlexStructures.FEMMPointMassModule
 FinEtoolsFlexStructures.FEMMPointGroundedSpringModule
+FinEtoolsFlexStructures.FEMMRigidLinkModule
 FinEtoolsFlexStructures.RotUtilModule
 FinEtoolsFlexStructures.TransformerModule
 FinEtoolsFlexStructures.AssemblyModule
