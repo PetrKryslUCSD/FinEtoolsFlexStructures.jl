@@ -8,8 +8,7 @@ Structural Analysis, Advanced Structured Materials 80,
 https://doi.org/10.1007/978-3-319-70563-7_6 © Springer International Publishing
 AG 2018
 
-
-
+FinEtoolsFlexStructures frequencies are ~2%-8% higher, not sure why.
 """
 module gruttman_examples
 
@@ -19,12 +18,14 @@ using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
+using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
 using FinEtoolsFlexStructures.FEMMShellT3FFCompModule
+using FinEtoolsFlexStructures.FEMMShellQ4RSCompModule
 using FinEtoolsFlexStructures.CompositeLayupModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 
-function _execute_30(n, reference, visualize)
+function _execute_30_t3ff(n, reference, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     # Material from Section 4.1
@@ -139,7 +140,119 @@ function _execute_30(n, reference, visualize)
 end
 
 
-function _execute_45(n, reference, visualize)
+function _execute_30_q4rs(n, reference, visualize)
+    formul = FEMMShellQ4RSCompModule
+    CM = CompositeLayupModule
+    # Material from Section 4.1
+    rho = 1500*phun("KG/M^3")
+    E1 = 172369*phun("MPa")
+    E2 = 6895*phun("MPa")
+    G12 = 3447*phun("MPa")
+    G13 = G12
+    G23 = 1379*phun("MPa")
+    nu12 = 0.25
+    Material = (rho, E1, E2, nu12, G12, G13, G23)
+    angle = 30
+    nplies = 4
+    a = 1.0 * phun("m")
+    thickness = 50.0 * phun("mm")
+       
+    nondimensionalised_frequency = function(om) 
+        rho = Material[1]
+        E2 = Material[3]
+        om * a^2 / thickness * sqrt(rho/E2) 
+    end
+
+    # Report
+    @info "Mesh: $n elements per side"
+
+    tolerance = a/n/1000
+   
+    fens,fes = Q4block(a, a, n, n); # Mesh
+    fens.xyz = xyz3(fens)
+    
+    vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
+
+    plies = CM.Ply[
+        CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
+        CM.Ply("ply_2", CM.lamina_material(Material...), thickness / nplies, -angle)
+        CM.Ply("ply_3", CM.lamina_material(Material...), thickness / nplies, -angle)
+        CM.Ply("ply_4", CM.lamina_material(Material...), thickness / nplies, angle)
+    ]
+    # @show [p.angle for p in plies]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("laminate_$nplies", plies, mcsys)
+    
+    sfes = FESetShellQ4()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), layup)
+    associategeometry! = formul.associategeometry!
+    stiffness = formul.stiffness
+    mass = formul.mass
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in  [1, 2, 3, ] 
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    associategeometry!(femm, geom0)
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = mass(femm, geom0, dchi);
+
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
+    # Solve
+    OmegaShift = (0.1*2*pi)^2
+    neigvs = length(reference)
+    d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
+    d[:] = d .- OmegaShift;
+    oms = real(sqrt.(complex(d)))
+    fs = oms ./(2*pi)
+    @info "Frequencies: $(round.(fs, digits=3)) \n     vs Reference: $(reference)  [Hz]\n         Relative: $(round.(fs ./ reference, digits=4))"
+        
+    # Visualization
+    if visualize
+        # U = v[:, 4]
+        # scattersysvec!(dchi, (a*4)/maximum(abs.(U)).*U)
+        # update_rotation_field!(Rfield0, dchi)
+        # plots = cat(plot_space_box([[0 0 0]; [a a a]]),
+        #             #plot_nodes(fens),
+        #             plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+        #             dims = 1)
+        # pl = render(plots)
+        vectors = []
+        for ev in 1:neigvs
+            U = v[:, ev]
+            scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
+            push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
+            # vtkwrite("gruttman-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        end
+            vtkwrite("gruttman_q4rs-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+            # update_rotation_field!(Rfield0, dchi)
+            # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+            #     plot_nodes(fens),
+            #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            #     dims = 1)
+            # pl = render(plots; title="$(ev)")
+        # end
+    end
+    nothing
+end
+
+function _execute_45_t3ff(n, reference, visualize)
     formul = FEMMShellT3FFCompModule
     CM = CompositeLayupModule
     # Material from Section 4.2.2
@@ -255,6 +368,120 @@ function _execute_45(n, reference, visualize)
     nothing
 end
 
+function _execute_45_q4rs(n, reference, visualize)
+    formul = FEMMShellQ4RSCompModule
+    CM = CompositeLayupModule
+    # Material from Section 4.2.2
+    # glue laminated timber
+    rho = 530*phun("KG/M^3")
+    E1 = 11600*phun("MPa")
+    E2 = 390*phun("MPa")
+    G12 = 720*phun("MPa")
+    G13 = G12
+    G23 = 100*phun("MPa")
+    nu12 = 0.03
+    Material = (rho, E1, E2, nu12, G12, G13, G23)
+    angle = 45
+    nplies = 8
+    a = 4.8 * phun("m")
+    thickness = 120 * phun("mm")
+       
+    nondimensionalised_frequency = function(om) 
+        rho = Material[1]
+        E2 = Material[3]
+        om * a^2 / thickness * sqrt(rho/E2) 
+    end
+
+    # Report
+    @info "Mesh: $n elements per side"
+
+    tolerance = a/n/1000
+   
+    fens,fes = Q4block(a, a, n, n); # Mesh
+    fens.xyz = xyz3(fens)
+    
+    vtkwrite("gruttman_q4rs_n=$n.vtu", fens, fes)
+
+    plies = CM.Ply[
+        CM.Ply("ply_1", CM.lamina_material(Material...), thickness / nplies, angle)
+        CM.Ply("ply_2", CM.lamina_material(Material...), thickness / nplies, -angle)
+        CM.Ply("ply_3", CM.lamina_material(Material...), thickness / nplies, angle)
+        CM.Ply("ply_4", CM.lamina_material(Material...), thickness / nplies, -angle)
+    ]
+    plies = vcat(plies, reverse(plies))
+    # @show [p.angle for p in plies]
+    mcsys = CM.cartesian_csys((1, 2, 3))
+    layup = CM.CompositeLayup("glulam_$nplies", plies, mcsys)
+    
+    sfes = FESetShellQ4()
+    accepttodelegate(fes, sfes)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), layup)
+    associategeometry! = formul.associategeometry!
+    stiffness = formul.stiffness
+    mass = formul.mass
+
+    # Construct the requisite fields, geometry and displacement
+    # Initialize configuration variables
+    geom0 = NodalField(fens.xyz)
+    u0 = NodalField(zeros(size(fens.xyz,1), 3))
+    Rfield0 = initial_Rfield(fens)
+    dchi = NodalField(zeros(size(fens.xyz,1), 6))
+
+    # Apply EBC's
+    # simple support
+    l1 = connectednodes(meshboundary(fes))
+    for i in  [1, 2, 3, ] 
+        setebc!(dchi, l1, true, i)
+    end
+    applyebc!(dchi)
+    numberdofs!(dchi);
+
+    # Assemble the system matrix
+    associategeometry!(femm, geom0)
+    K = stiffness(femm, geom0, u0, Rfield0, dchi);
+    M = mass(femm, geom0, dchi);
+
+    K_ff = matrix_blocked(K, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+    M_ff = matrix_blocked(M, nfreedofs(dchi), nfreedofs(dchi))[:ff]
+
+    # Solve
+    OmegaShift = (0.1*2*pi)^2
+    neigvs = length(reference)
+    d, v, nconv = eigs(K_ff+OmegaShift*M_ff, M_ff; nev=neigvs, which=:SM, explicittransform=:none)
+    d[:] = d .- OmegaShift;
+    oms = real(sqrt.(complex(d)))
+    fs = oms ./(2*pi)
+    @info "Frequencies: $(round.(fs, digits=3)) \n     vs Reference: $(reference)  [Hz]\n         Relative: $(round.(fs ./ reference, digits=4))"
+        
+    # Visualization
+    if visualize
+        # U = v[:, 4]
+        # scattersysvec!(dchi, (a*4)/maximum(abs.(U)).*U)
+        # update_rotation_field!(Rfield0, dchi)
+        # plots = cat(plot_space_box([[0 0 0]; [a a a]]),
+        #             #plot_nodes(fens),
+        #             plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+        #             dims = 1)
+        # pl = render(plots)
+        vectors = []
+        for ev in 1:neigvs
+            U = v[:, ev]
+            scattersysvec!(dchi, 1.0/maximum(abs.(U)).*U)
+            push!(vectors, ("mode_$ev", deepcopy(dchi.values[:, 1:3])))
+            # vtkwrite("gruttman-mode-$(ev).vtu", fens, fes; vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        end
+            vtkwrite("gruttman-a=$angle-np=$(nplies)-modes.vtu", fens, fes; vectors = vectors)
+            # update_rotation_field!(Rfield0, dchi)
+            # plots = cat(plot_space_box([[0 0 -L/2]; [L/2 L/2 L/2]]),
+            #     plot_nodes(fens),
+            #     plot_midsurface(fens, fes; x = geom0.values, u = dchi.values[:, 1:3], R = Rfield0.values);
+            #     dims = 1)
+            # pl = render(plots; title="$(ev)")
+        # end
+    end
+    nothing
+end
+
 function test_30()
     @info "Symmetric angle-ply laminated plate vibration"
     @info "Angle: 30"
@@ -268,8 +495,13 @@ function test_30()
     253.20, 444.31, 669.01, 710.02, 861.31, 1020.29, 1148.31, 1187.15, 1352.61, 1352.36
     )
     ns = [10, 20, 40, 80, 160]
+    @info "T3FF"
     for n in ns
-        _execute_30(n, reference, true)
+        _execute_30_t3ff(n, reference, true)
+    end
+    @info "Q4RS"
+    for n in ns
+        _execute_30_q4rs(n, reference, true)
     end
     
     return true
@@ -288,8 +520,13 @@ function test_45()
     14.28, 31.32, 34.77, 52.23, 60.93, 63.09, 77.86, 85.82, 97.74, 98.99
     )
     ns = [10, 20, 40, 80, 160]
+    @info "T3FF"
     for n in ns
-        _execute_45(n, reference, true)
+        _execute_45_t3ff(n, reference, true)
+    end
+    @info "Q4RS"
+    for n in ns
+        _execute_45_q4rs(n, reference, true)
     end
     
     return true
