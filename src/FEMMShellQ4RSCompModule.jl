@@ -989,7 +989,6 @@ function mass(
     ecoords = _ecoords(FT)
     dofnums = _dofnums(eltype(dchi.dofnums)) 
     elmat = _elmat(FT)
-    rho = massdensity(self.material) # mass density
     npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     startassembly!(
         assembler,
@@ -997,38 +996,44 @@ function mass(
         nalldofs(dchi),
         nalldofs(dchi),
     )
-    for i in eachindex(fes) # Loop over elements
-        gathervalues_asmat!(geom0, ecoords, fes.conn[i])
-        # Calculate the element mass
-        tmass = 0.0
-        rmass = 0.0
-        for j in 1:npts
-            locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
-            Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j])
-            t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
-            tmass += rho * t * Jac * w[j]
-            rmass += rho * t^3 / 12 * Jac * w[j]
-        end
-        tmass = tmass / __NN
-        rmass = rmass / __NN
-        # Fill the elementwise matrix in the global basis.
-        fill!(elmat, 0.0) # Initialize element matrix
-        for k in 1:__NN
-            # Translation degrees of freedom
-            for d in 1:3
-                c = (k - 1) * __NDOF + d
-                elmat[c, c] += tmass
+    for lg in self.layup_groups
+        layup = lg[1]
+        eset = lg[2]
+        mass_density, moment_of_inertia_density = laminate_inertia!(layup)
+        for i in eset # Loop over elements in the layup group
+            gathervalues_asmat!(geom0, ecoords, fes.conn[i])
+            # Calculate the element mass
+            tmass = 0.0
+            rmass = 0.0
+            for j in 1:npts
+                locjac!(loc, J, ecoords, Ns[j], gradNparams[j])
+                Jac = Jacobiansurface(self.integdomain, J, loc, fes.conn[i], Ns[j])
+                t = self.integdomain.otherdimension(loc, fes.conn[i], Ns[j])
+                tmass += mass_density * Jac * w[j]
+                rmass += moment_of_inertia_density * Jac * w[j]
             end
-            # Bending degrees of freedom
-            for d in 4:6
-                c = (k - 1) * __NDOF + d
-                elmat[c, c] += rmass
+            tmass = tmass / __NN
+            rmass = rmass / __NN
+            # Fill the elementwise matrix in the global basis: the matrix is
+            # lumped, hence diagonal, and no transformation is needed.
+            fill!(elmat, 0.0) # Initialize element matrix
+            for k = 1:__NN
+                # Translation degrees of freedom
+                for d = 1:3
+                    c = (k - 1) * __NDOF + d
+                    elmat[c, c] += tmass
+                end
+                # Bending degrees of freedom
+                for d = 4:6
+                    c = (k - 1) * __NDOF + d
+                    elmat[c, c] += rmass
+                end
             end
-        end
-        # Assemble
-        gatherdofnums!(dchi, dofnums, fes.conn[i])# retrieve degrees of freedom
-        assemble!(assembler, elmat, dofnums, dofnums)# assemble symmetric matrix
-    end # Loop over elements
+            # Assemble
+            gatherdofnums!(dchi, dofnums, fes.conn[i]) # retrieve degrees of freedom
+            assemble!(assembler, elmat, dofnums, dofnums) # assemble symmetric matrix
+        end # Loop over elements
+    end # Loop over layup groups.
     return makematrix!(assembler)
 end
 
