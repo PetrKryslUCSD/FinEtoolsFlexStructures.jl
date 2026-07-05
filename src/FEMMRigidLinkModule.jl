@@ -13,12 +13,43 @@ using FinEtools.IntegDomainModule: IntegDomain
 """
     mutable struct FEMMRigidLink{ID<:IntegDomain{S} where {S<:FESetP1}} <: AbstractFEMM
 
-Type for linear reduced-integration beam finite element modeling machine.
+Type for linear rigid-link finite element modeling machine.
 
-Only linear kinematics is implemented at the moment, and only linear basis
-functions are available (i.e. it is a two-node element). The beam stiffness is
-shear-flexible (Timoshenko). The local beam stiffness is expressed analytically:
-the one-point numerical integration is hardwired.
+    
+The stiffness matrix is computed as
+
+```math
+    K =\begin{bmatrix} 
+        C^T\Gamma C & -C^T\Gamma  \\
+        -\Gamma C & \Gamma \\
+    \end{bmatrix}.
+```
+
+Here ``C`` is a matrix computed from the vector  ``r = h e_x``, 
+which is the difference between the location of 
+the subordinate and the location of the master.
+
+In three dimensions
+
+```math
+    C =\begin{bmatrix} 
+        1 & \widetilde{r} \\
+        0 & 1 \\
+    \end{bmatrix}.
+```
+
+Here ``\widetilde{r}`` is a skew matrix corresponding to the 
+vector ``r``, and ``0`` and ``1`` stand for ``3\times3`` zero 
+and identity matrices respectively.
+
+Further, ``\Gamma`` is a diagonal matrix, such that 
+the diagonal entries provide penalty on the difference 
+between the individual degrees of freedom.
+
+Reference: APPLICATION OF RIGID LINKS  IN STRUCTURAL DESIGN MODELS,
+Sergey Yu. Fialko, International Journal for Computational Civil 
+and Structural Engineering, 13(3) 119-137 (2017). 
+
 """
 mutable struct FEMMRigidLink{ID<:IntegDomain{S} where {S<:FESetP1}} <: AbstractFEMM
     integdomain::ID # integration domain data
