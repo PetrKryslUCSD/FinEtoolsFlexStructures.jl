@@ -19,10 +19,10 @@ Type for linear rigid-link finite element modeling machine.
 The stiffness matrix is computed as
 
 ```math
-    K =\begin{bmatrix} 
-        C^T\Gamma C & -C^T\Gamma  \\
-        -\Gamma C & \Gamma \\
-    \end{bmatrix}.
+    K =\\begin{bmatrix} 
+        C^T\\Gamma C & -C^T\\Gamma  \\\\
+        -\\Gamma C & \\Gamma \\\\
+    \\end{bmatrix}.
 ```
 
 Here ``C`` is a matrix computed from the vector  ``r = h e_x``, 
@@ -32,17 +32,17 @@ the subordinate and the location of the master.
 In three dimensions
 
 ```math
-    C =\begin{bmatrix} 
-        1 & \widetilde{r} \\
-        0 & 1 \\
-    \end{bmatrix}.
+    C =\\begin{bmatrix} 
+        1 & \\widetilde{r} \\\\
+        0 & 1 \\\\
+    \\end{bmatrix}.
 ```
 
-Here ``\widetilde{r}`` is a skew matrix corresponding to the 
-vector ``r``, and ``0`` and ``1`` stand for ``3\times3`` zero 
+Here ``\\widetilde{r}`` is a skew matrix corresponding to the 
+vector ``r``, and ``0`` and ``1`` stand for ``3\\times3`` zero 
 and identity matrices respectively.
 
-Further, ``\Gamma`` is a diagonal matrix, such that 
+Further, ``\\Gamma`` is a diagonal matrix, such that 
 the diagonal entries provide penalty on the difference 
 between the individual degrees of freedom.
 
