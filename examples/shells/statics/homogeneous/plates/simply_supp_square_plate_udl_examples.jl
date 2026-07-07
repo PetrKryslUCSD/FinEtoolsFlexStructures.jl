@@ -174,7 +174,7 @@ end
 #             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
 #             push!(scalars, ("eq$nc", fld.values))
 #         end
-#         vtkwrite("simply_supp_square_plate_udl-quarter-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+#         vtkwrite("simply_supp_square_plate_udl-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
 #         scattersysvec!(dchi, (L/4)/maximum(abs.(U)).*U)
 #         update_rotation_field!(Rfield0, dchi)
@@ -212,7 +212,7 @@ function _execute_q4rs_quarter_model(
         shift = L / 2 / n / 4
         fens.xyz[nm[1], 1] -= shift
         fens.xyz[nm[1], 2] += shift
-    elseif mesh_distortion == :randomize
+    elseif mesh_distortion == :rand
         rng = Xoshiro(0)
         bfes = meshboundary(fes)
         cn = connectednodes(bfes)
@@ -252,29 +252,69 @@ function _execute_q4rs_quarter_model(
     dof = [1, 2, 3, 6]
     simple_support == :hard && (dof = [1, 2, 3, 4, 6])
     l1 = selectnode(fens; box=Float64[(-L / 2) (-L / 2) (-L / 2) 0 -Inf Inf], inflate=tolerance)
-    for i in dof
-        setebc!(dchi, l1, true, i)
-    end
+    edges_parallel_to_y = (l1, dof)
     # edges parallel to X, soft support: rotations in plane are free; 
     # hard simple support: rotation orthogonal to edge = 0
     dof = [1, 2, 3, 6]
     simple_support == :hard && (dof = [1, 2, 3, 5, 6])
     l1 = selectnode(fens; box=Float64[(-L / 2) 0 (-L / 2) (-L / 2) -Inf Inf], inflate=tolerance)
-    for i in dof
-        setebc!(dchi, l1, true, i)
-    end
+    edges_parallel_to_x = (l1, dof)
     # plane of symmetry perpendicular to Y
     l1 = selectnode(fens; box=Float64[-Inf Inf 0 0 -Inf Inf], inflate=tolerance)
-    for i in [1, 2, 4, 6]
-        setebc!(dchi, l1, true, i)
-    end
+    symmetry_orthogonal_to_y = (l1, [1, 2, 4, 6])
     # plane of symmetry perpendicular to X
     l1 = selectnode(fens; box=Float64[0 0 -Inf Inf -Inf Inf], inflate=tolerance)
-    for i in [1, 2, 5, 6]
-        setebc!(dchi, l1, true, i)
+    symmetry_orthogonal_to_x = (l1, [1, 2, 5, 6])
+    for e in [edges_parallel_to_y, edges_parallel_to_x, symmetry_orthogonal_to_y, symmetry_orthogonal_to_x]
+        l1, dof = e
+        for i in dof
+            setebc!(dchi, l1, true, i)
+        end
     end
     applyebc!(dchi)
     numberdofs!(dchi)
+
+    AE = AbaqusExporter("ss-qua-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-n=$(n).inp")
+    HEADING(AE, "Simply supported square plate with uniform distributed load")
+    PART(AE, "part1")
+    NODE(AE, fens.xyz)
+    @assert nodesperelem(fes) == 4
+    ELEMENT(
+        AE,
+        "S4",
+        "AllElements",
+        connasarray(fes),
+    )
+    NSET_NSET(AE, "edges_parallel_to_y", edges_parallel_to_y[1])
+    NSET_NSET(AE, "edges_parallel_to_x", edges_parallel_to_x[1])
+    NSET_NSET(AE, "symmetry_orthogonal_to_y", symmetry_orthogonal_to_y[1])
+    NSET_NSET(AE, "symmetry_orthogonal_to_x", symmetry_orthogonal_to_x[1])
+    SHELL_SECTION(AE, "elasticity", "AllElements", thickness)
+    END_PART(AE)
+    ASSEMBLY(AE, "ASSEM1")
+    ORIENTATION(AE, "GlobalOrientation", vec([1.0 0 0]), vec([0 1.0 0]))
+    INSTANCE(AE, "INSTNC1", "PART1")
+    END_INSTANCE(AE)
+    END_ASSEMBLY(AE)
+    MATERIAL(AE, "elasticity")
+    ELASTIC(AE, E, nu)
+    STEP_PERTURBATION_STATIC(AE)
+    DLOAD(AE, "ASSEM1.INSTNC1.AllElements", [0, 0, -p])   
+    for d in edges_parallel_to_y[2]
+        BOUNDARY(AE, "ASSEM1.INSTNC1.edges_parallel_to_y", d)
+    end
+    for d in edges_parallel_to_x[2]
+        BOUNDARY(AE, "ASSEM1.INSTNC1.edges_parallel_to_x", d)
+    end
+    for d in symmetry_orthogonal_to_y[2]
+        BOUNDARY(AE, "ASSEM1.INSTNC1.symmetry_orthogonal_to_y", d)
+    end
+    for d in symmetry_orthogonal_to_x[2]
+        BOUNDARY(AE, "ASSEM1.INSTNC1.symmetry_orthogonal_to_x", d)
+    end
+    FIELD_OUTPUT(AE, "PRESELECT", "LE, S, SF")
+    END_STEP(AE)
+    close(AE)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
@@ -293,26 +333,26 @@ function _execute_q4rs_quarter_model(
 
     # Visualization
     if visualize
-        vtkwrite("ss_sqpl_udl-q4rs-quarter-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("sqssudlq-q4rs-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-q4rs-quarter-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-q4rs-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         connectivity, points, values = elementwise_arrays(femm, geom0, dchi, 1, tolerance)
         push!(scalars, ("q1", values))
         connectivity, points, values = elementwise_arrays(femm, geom0, dchi, 2, tolerance)
         push!(scalars, ("q2", values))
-        vtkwrite("ss_sqpl_udl-q4rs-quarter-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", connectivity, points, VTKWrite.Q4; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-q4rs-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", connectivity, points, VTKWrite.Q4; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         # scalars = []
         # for nc in 1:2
         # fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
         # push!(scalars, ("q$nc", fld.values))
         # end
-        # vtkwrite("ss_sqpl_udl-q4rs-quarter-$(simple_support)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        # vtkwrite("sqssudlq-q4rs-$(simple_support)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
 
     end
     return targetu, analyt_sol
@@ -363,7 +403,7 @@ function _execute_t3ff_full_model(
         shift = L / n / 4
         fens.xyz[nm[1], 1] -= shift
         fens.xyz[nm[1], 2] += shift
-    elseif mesh_distortion == :randomize
+    elseif mesh_distortion == :rand
         rng = Xoshiro(0)
         bfes = meshboundary(fes)
         cn = connectednodes(bfes)
@@ -443,7 +483,7 @@ function _execute_t3ff_full_model(
     @info "Digits of accuracy: $(-log10(epsrel))"
     # Visualization
     if visualize
-        vtkwrite("ss_sqpl_udl-t3ff-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("sqssudlq-t3ff-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
@@ -451,14 +491,14 @@ function _execute_t3ff_full_model(
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-t3ff-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-t3ff-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
             # fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc)
             push!(scalars, ("q$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-t3ff-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-t3ff-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
     end
     return true
 end
@@ -488,7 +528,7 @@ function _execute_q4rs_full_model(
         shift = L / n / 4
         fens.xyz[nm[1], 1] -= shift
         fens.xyz[nm[1], 2] += shift
-    elseif mesh_distortion == :randomize
+    elseif mesh_distortion == :rand
         rng = Xoshiro(0)
         bfes = meshboundary(fes)
         cn = connectednodes(bfes)
@@ -570,26 +610,26 @@ function _execute_q4rs_full_model(
     @info "Digits of accuracy: $(-log10(epsrel))"
     # Visualization
     if visualize
-        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("sqssudlq-q4rs-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-uur.vtu", fens, fes; vectors=[("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-q4rs-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         connectivity, points, values = elementwise_arrays(femm, geom0, dchi, 1, tolerance)
         push!(scalars, ("q1", values))
         connectivity, points, values = elementwise_arrays(femm, geom0, dchi, 2, tolerance)
         push!(scalars, ("q2", values))
-        vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-$(mesh_distortion)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", connectivity, points, VTKWrite.Q4; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        vtkwrite("sqssudlq-q4rs-full-$(simple_support)-$(mesh_distortion)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", connectivity, points, VTKWrite.Q4; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         # scalars = []
         # for nc in 1:2
         # fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
         # push!(scalars, ("q$nc", fld.values))
         # end
-        # vtkwrite("ss_sqpl_udl-q4rs-full-$(simple_support)-r=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
+        # vtkwrite("sqssudlq-q4rs-full-$(simple_support)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
 
     end
     return targetu, analyt_sol
@@ -715,7 +755,7 @@ function test_convergence_full_thickness(tL_ratios=[1.0e-1, 1.0e-2, 1.0e-4, 1.0e
     stab_alpha = 0.001
     visualize = false
     support = :hard
-    mesh_distortion = :randomize
+    mesh_distortion = :rand
     ns = [2, 4, 8, 16, 32, 64]
     formul = FEMMShellT3FFModule
     @info "Simply supported square plate with uniform load, T3FF --------------------"
@@ -737,14 +777,14 @@ function test_convergence_full_thickness(tL_ratios=[1.0e-1, 1.0e-2, 1.0e-4, 1.0e
     return true
 end
 
-function test_convergence_quarter_thickness(tL_ratios=[1.0e-1, 1.0e-3, 1.0e-6])
+function test_convergence_quarter_thickness(tL_ratios=[1.0e-1, 1.0e-4])
     visualize = true
     support = :hard
-    # mesh_distortion = :randomize
-    for mesh_distortion in [:tweak, :randomize, :none]
+    # mesh_distortion = :rand
+    for mesh_distortion in [:tweak, :rand, :none]
         @info "Mesh distortion: $mesh_distortion"
-        ns = [2, 4, 8, 16, 32, 64]
-        for stab_alpha = [0, 1.0e-6, 0.01, 0.1]
+        ns = [16]
+        for stab_alpha = [0, 0.1]
             @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$stab_alpha  ----------------"
             for tL_ratio in tL_ratios
                 @info "thickness/length = $tL_ratio"
@@ -758,16 +798,15 @@ function test_convergence_quarter_thickness(tL_ratios=[1.0e-1, 1.0e-3, 1.0e-6])
 end
 
 function test_stabilization_q4rs(tL_ratios=[1.0e-2, 1.0e-4, 1.0e-8])
-    stab_alpha = 0.001
     visualize = true
     support = :hard
-    mesh_distortion = :randomize
+    mesh_distortion = :rand
     n = 16
     formul = FEMMShellQ4RSModule
     @info "Simply supported square plate with uniform load, Q4RS --------------------"
     for tL_ratio in tL_ratios
         @info ">>>>>>>>>>>>> thickness/length = $tL_ratio"
-        for stab_alpha in [0.0, 0.000001, 0.001, 0.1]
+        for stab_alpha in [0.0, 0.000001, 0.1]
             @info "  stab_alpha = $stab_alpha"
             _execute_q4rs_full_model(n, tL_ratio, support, stab_alpha, mesh_distortion, visualize)
         end
@@ -802,9 +841,9 @@ struct CaseData
 end
 
 const case_data = [
-    CaseData(1 / 100, :hard, :randomize, 0.0),
-    CaseData(1 / 10000, :hard, :randomize, 0.0),
-    CaseData(1 / 1000000, :hard, :randomize, 0.0),
+    CaseData(1 / 100, :hard, :rand, 0.0),
+    CaseData(1 / 10000, :hard, :rand, 0.0),
+    CaseData(1 / 1000000, :hard, :rand, 0.0),
     CaseData(1 / 100, :hard, :none, 0.0),
     CaseData(1 / 10000, :hard, :none, 0.0),
     CaseData(1 / 1000000, :hard, :none, 0.0)
