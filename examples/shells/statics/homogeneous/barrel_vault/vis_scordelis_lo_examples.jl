@@ -10,7 +10,7 @@ regular mesh with the same number of variables.
 Problem description
 
 The physical basis of the problem is a deeply arched roof supported only
-by diaphragms at its curved edges (an aircraft hanger), deforming under its own
+by diaphragms at its curved edges (an aircraft hangar), deforming under its own
 weight. It is interesting to observe that the geometry is such that the
 centerpoint of the roof moves upward under the self-weight(downwardly directed)
 load. Perhaps this is one reason why the problem is not straightforward
@@ -34,16 +34,17 @@ using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_m
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
 
 # Analytical solution?
-analyt_sol=-0.3024;
+const ANALYT_SOL=-0.3020;
+
 # Parameters:
-E=4.32e8;
-nu=0.0;
-thickness = 0.25; # geometrical dimensions are in feet
-R = 25.0;
-L = 50.0;
+const E=4.32e8; 
+const nu=0.0;
+const thickness = 0.25; # geometrical dimensions are in feet
+const R = 25.0;
+const L = 50.0;
 
 cylindrical!(csmatout, XYZ, tangents, feid, qpid) = begin
-    r = vec(deepcopy(XYZ)); r[2] = 0.0; r[3] += R
+    r = vec(deepcopy(XYZ)); r[2] = 0.0; r[3] += R # see def of Z below
     csmatout[:, 3] .= vec(r)/norm(vec(r))
     csmatout[:, 2] .= (0.0, 1.0, 0.0) #  this is along the axis
     cross3!(view(csmatout, :, 1), view(csmatout, :, 2), view(csmatout, :, 3))
@@ -53,7 +54,10 @@ end
 function _execute_t3ff(formul, n = 8, visualize = true)
     tolerance = R/n/10
     # fens, fes = T3blockrand(40/360*2*pi,L/2,n,n);
-    fens, fes = T3block(40/360*2*pi,L/2,n,n,:b);
+    xs = reverse(gradedspace(0.0, 40/360*2*pi, n, 4))
+    ys = reverse(gradedspace(0.0, L/2, n, 4))
+    fens, fes = T3blockx(xs, ys);
+    # fens, fes = T3block(40/360*2*pi,L/2,n,n,:b);
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
@@ -65,7 +69,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
     
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, TriRule(1), thickness),  mater)
+    femm = formul.make(IntegDomain(fes, TriRule(1), thickness), ocsys,  mater)
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -100,6 +104,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
+    # vtkwrite("debug-normals-t3ff-$(n).vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
     Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
@@ -114,7 +119,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     result =   dchi.values[nl, 3][1]
-    @info "Solution: $(result), $(round(result/analyt_sol*100, digits = 4))%"
+    @info "Solution: $(result), $(round(result/ANALYT_SOL*100, digits = 4))%"
 
     # Visualization
     if visualize
@@ -126,7 +131,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("em$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_t3ff-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scolo_t3ff-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
@@ -134,7 +139,7 @@ function _execute_t3ff(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("en$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_t3ff-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scolo_t3ff-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
@@ -142,9 +147,9 @@ function _execute_t3ff(formul, n = 8, visualize = true)
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
         end
-        vtkwrite("vis_scordelis_lo_t3ff-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scolo_t3ff-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
 
-        # vtkwrite("vis_scordelis_lo_t3ff-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        # vtkwrite("scolo_t3ff-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         # scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
@@ -159,10 +164,22 @@ function _execute_t3ff(formul, n = 8, visualize = true)
     result
 end
 
-function _execute_Q4RS(formul, n = 8, visualize = true)
+function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
+    formul = FEMMShellQ4RSModule
+    @info "Mesh: $mesh; $n elements per side"
     tolerance = R/n/10
-    # fens, fes = T3blockrand(40/360*2*pi,L/2,n,n);
-    fens, fes = Q4block(40/360*2*pi,L/2,n,n);
+    if mesh == :uniform
+        fens, fes = Q4block(40/360*2*pi, L/2, n, n);
+    else
+        xs = 40/360*2*pi .- reverse(biasedspace(0.0, 40/360*2*pi, n+1, 100))
+        ys = biasedspace(0.0, L/2, n+1, 100)
+        fens, fes = Q4blockx(xs, ys);
+    end
+    bfes = meshboundary(fes)
+    ela0 = selectelem(fens, bfes; facing = true, direction = Float64[-1, 0])
+    ela1 = selectelem(fens, bfes; facing = true, direction = Float64[+1, 0])
+    ell0 = selectelem(fens, bfes; facing = true, direction = Float64[0, -1])
+    ell1 = selectelem(fens, bfes; facing = true, direction = Float64[0, +1])
     fens.xyz = xyz3(fens)
     for i in 1:count(fens)
         a=fens.xyz[i, 1]; y=fens.xyz[i, 2];
@@ -174,7 +191,7 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
     
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness),  mater)
+    femm = formul.make(IntegDomain(fes, GaussRule(2, 2), thickness), ocsys, mater)
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -186,19 +203,19 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
     dchi = NodalField(zeros(size(fens.xyz,1), 6))
 
     # Apply EBC's
-    # rigid diaphragm
-    l1 = selectnode(fens; box = Float64[-Inf Inf 0 0 -Inf Inf], inflate = tolerance)
-    for i in [1,3,5]
+    # rigid diaphragm: SOFT simple support
+    l1 = connectednodes(subset(bfes, ell0))
+    for i in [1, 3]
         setebc!(dchi, l1, true, i)
     end
     # plane of symmetry perpendicular to Y
-    l1 = selectnode(fens; box = Float64[-Inf Inf L/2 L/2 -Inf Inf], inflate = tolerance)
-    for i in [2,4,6]
+    l1 = connectednodes(subset(bfes, ell1))
+    for i in [2, 4, 6]
         setebc!(dchi, l1, true, i)
     end
     # plane of symmetry perpendicular to X
-    l1 = selectnode(fens; box = Float64[0 0 -Inf Inf -Inf Inf], inflate = tolerance)
-    for i in [1,5,6]
+    l1 = connectednodes(subset(bfes, ela0))
+    for i in [1, 5, 6]
         setebc!(dchi, l1, true, i)
     end
     applyebc!(dchi)
@@ -209,6 +226,7 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
 
     # Assemble the system matrix
     associategeometry!(femm, geom0)
+    vtkwrite("debug-normals-q4rs-$(n).vtu", fens, fes; vectors = [("normals", deepcopy(femm._normals[:, 1:3]))])
     Kff = stiffness(femm, massem, geom0, u0, Rfield0, dchi);
 
     # Midpoint of the free edge
@@ -223,7 +241,7 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
     U = gathersysvec(dchi, DOF_KIND_ALL)
     
     result =   dchi.values[nl, 3][1]
-    @info "Solution: $(result), $(round(result/analyt_sol*100, digits = 4))%"
+    @info "Solution: $(result), $(round(result/ANALYT_SOL*100, digits = 4))%"
 
     # Visualization
     if visualize
@@ -232,28 +250,34 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("m$nc", fld.values))
+            @info "m$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("em$nc", fld.values))
+            @info "em$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
         end
-        vtkwrite("vis_scordelis_lo_Q4RS-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scolo_q4rs-$(mesh)-$(n)-m.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("n$nc", fld.values))
+            @info "n$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("en$nc", fld.values))
+            @info "en$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
         end
-        vtkwrite("vis_scordelis_lo_Q4RS-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        vtkwrite("scolo_q4rs-$(mesh)-$(n)-n.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("q$nc", fld.values))
+            @info "q$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
+            @info "eq$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
         end
-        vtkwrite("vis_scordelis_lo_Q4RS-o-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
-
-        # vtkwrite("vis_scordelis_lo_Q4RS-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
+        vtkwrite("scolo_q4rs-$(mesh)-$(n)-q.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3])])
+        
+        # vtkwrite("scolo_q4rs-$(mesh)-$(n)-uur.vtu", fens, fes; scalars = scalars, vectors = [("u", dchi.values[:, 1:3]), ("ur", dchi.values[:, 4:6])])
 
         # scattersysvec!(dchi, (L/8)/maximum(abs.(U)).*U)
         # update_rotation_field!(Rfield0, dchi)
@@ -268,32 +292,33 @@ function _execute_Q4RS(formul, n = 8, visualize = true)
     result
 end
 
-function test_t3ff(ns = [16, 32], visualize = true)
+function test_t3ff(ns = [16, 32, ], visualize = true)
     formul = FEMMShellT3FFModule
     @info "Scordelis-Lo shell, formulation=$(formul)"
     results = []
     for n in ns
         v = _execute_t3ff(formul, n, visualize)
-        push!(results, v/(-0.3020)*100)
+        push!(results, v/(ANALYT_SOL)*100)
     end
     return ns, results
 end
 
-function test_Q4RS(ns = [16, 32], visualize = true)
-    formul = FEMMShellQ4RSModule
-    @info "Scordelis-Lo shell, formulation=$(formul)"
+function test_Q4RS(ns = [16, 64, 256], visualize = true)
+    @info "Scordelis-Lo shell, formulation=Q4RS"
+    mesh = :uniform
+    mesh = :graded
     results = []
     for n in ns
-        v = _execute_Q4RS(formul, n, visualize)
-        push!(results, v/(-0.3020)*100)
+        v = _execute_Q4RS(mesh, n, visualize)
+        push!(results, v/(ANALYT_SOL)*100)
     end
     return ns, results
 end
 
 function allrun()
-    println("#####################################################")
-    println("# test_t3ff ")
-    test_t3ff()
+    # println("#####################################################")
+    # println("# test_t3ff ")
+    # test_t3ff()
     println("#####################################################")
     println("# test_Q4RS ")
     test_Q4RS()
