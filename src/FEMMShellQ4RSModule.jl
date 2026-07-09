@@ -248,15 +248,15 @@ end
 function _e_g!(E_G, J)
     # J[:, 1] is the tangent to the coordinate curve 1
     E_G[:, 1] .= J[:, 1]
-    n = sqrt(E_G[1, 1]^2 + E_G[2, 1]^2 + E_G[3, 1]^2)
-    E_G[:, 1] ./= n
+    nrm = sqrt(E_G[1, 1]^2 + E_G[2, 1]^2 + E_G[3, 1]^2)
+    E_G[:, 1] ./= nrm
     # J[:, 2] is the tangent to the coordinate curve 2
     # Now compute the normal
     E_G[1, 3] = -E_G[3, 1] * J[2, 2] + E_G[2, 1] * J[3, 2]
     E_G[2, 3] = E_G[3, 1] * J[1, 2] - E_G[1, 1] * J[3, 2]
     E_G[3, 3] = -E_G[2, 1] * J[1, 2] + E_G[1, 1] * J[2, 2]
-    n = sqrt(E_G[1, 3]^2 + E_G[2, 3]^2 + E_G[3, 3]^2)
-    E_G[:, 3] ./= n
+    nrm = sqrt(E_G[1, 3]^2 + E_G[2, 3]^2 + E_G[3, 3]^2)
+    E_G[:, 3] ./= nrm
     E_G[1, 2] = -E_G[3, 3] * E_G[2, 1] + E_G[2, 3] * E_G[3, 1]
     E_G[2, 2] = E_G[3, 3] * E_G[1, 1] - E_G[1, 3] * E_G[3, 1]
     E_G[3, 2] = -E_G[2, 3] * E_G[1, 1] + E_G[1, 3] * E_G[2, 1]
@@ -1112,6 +1112,7 @@ function inspectintegpoints(
     if quantity == :membrane_force || quantity == :membrane
         quant = MEMBRANE_FORCE
     end
+    warned = false
     # Loop over  all the elements and all the quadrature points within them
     for ilist in eachindex(felist) # Loop over elements
         i = felist[ilist]
@@ -1129,7 +1130,8 @@ function inspectintegpoints(
             mul!(T, Tae, Tga)
             updatecsmat!(outputcsys, loc, J, i, j)
             if dot(view(csmat(outputcsys), :, 3), view(E_G, :, 3)) < 0.95
-                @warn "Coordinate systems mismatched?"
+                !warned && @warn "Coordinate systems mismatched?"
+                warned = true
             end
             ocsm, ocsn = lla(E_G, csmat(outputcsys))
             o2_e[1, 1] = o2_e[2, 2] = ocsm
