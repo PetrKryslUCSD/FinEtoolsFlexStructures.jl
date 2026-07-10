@@ -303,7 +303,7 @@ function test_t3ff(ns = [16, 32, ], visualize = true)
     return ns, results
 end
 
-function test_Q4RS(ns = [16, 64, 256], visualize = true)
+function test_Q4RS(ns = [16, 64, 256, 1024], visualize = true)
     @info "Scordelis-Lo shell, formulation=Q4RS"
     mesh = :uniform
     mesh = :graded
