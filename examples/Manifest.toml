@@ -329,9 +329,9 @@ version = "1.16.0"
 
 [[deps.FinEtools]]
 deps = ["DataDrop", "DelimitedFiles", "HDF5", "LinearAlgebra", "LoopVectorization", "Printf", "Random", "SparseArrays", "SparseMatricesCSR", "Statistics", "SuiteSparseGraphBLAS", "SymRCM", "Test", "Unicode", "WriteVTK"]
-git-tree-sha1 = "7d5e7b0477538c02b82a2837a9dcc5945216ec9b"
+git-tree-sha1 = "0459e170cd969d2cf769ae2bb272e56773b0ad60"
 uuid = "91bb5406-6c9a-523d-811d-0644c4229550"
-version = "8.2.7"
+version = "8.2.9"
 
 [[deps.FinEtoolsDeforLinear]]
 deps = ["Arpack", "FinEtools", "LinearAlgebra", "SparseArrays", "Statistics", "SuiteSparse", "Test"]
@@ -341,9 +341,9 @@ version = "3.1.0"
 
 [[deps.FinEtoolsFlexStructures]]
 deps = ["Arpack", "DataDrop", "Dierckx", "FinEtools", "FinEtoolsDeforLinear", "LinearAlgebra", "SparseArrays", "SparseMatricesCSR", "Statistics", "SymRCM", "Test"]
-git-tree-sha1 = "0dbf1d0e951ab90bfd519de2d5ad744543e060f6"
+path = ".."
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "3.6.3"
+version = "3.6.4"
 
 [[deps.FixedPointNumbers]]
 deps = ["Random", "Statistics"]
