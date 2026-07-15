@@ -32,6 +32,7 @@ using FinEtoolsFlexStructures.FEMMShellQ4RSModule
 using FinEtoolsFlexStructures.RotUtilModule: initial_Rfield, update_rotation_field!
 using VisualStructures: plot_nodes, plot_midline, render, plot_space_box, plot_midsurface, space_aspectratio, save_to_json
 using FinEtools.MeshExportModule.VTKWrite: vtkwrite
+using FinEtools.MeshExportModule.CSV: savecsv
 
 # Analytical solution?
 const ANALYT_SOL=-0.3020;
@@ -172,7 +173,7 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
         fens, fes = Q4block(40/360*2*pi, L/2, n, n);
     else
         xs = 40/360*2*pi .- reverse(biasedspace(0.0, 40/360*2*pi, n+1, 100))
-        ys = biasedspace(0.0, L/2, n+1, 100)
+        ys = biasedspace(0.0, L/2, n+1, 10)
         fens, fes = Q4blockx(xs, ys);
     end
     bfes = meshboundary(fes)
@@ -243,6 +244,11 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
     result =   dchi.values[nl, 3][1]
     @info "Solution: $(result), $(round(result/ANALYT_SOL*100, digits = 4))%"
 
+    midsection_nodes = connectednodes(subset(bfes, ell1))
+    midsection_nodes_x = sortperm(fens.xyz[midsection_nodes, 1])
+    midsection_nodes_ordered = midsection_nodes[midsection_nodes_x]
+    midsection_angles = asin.(fens.xyz[midsection_nodes_ordered, 1] ./ R) * 180 / pi
+
     # Visualization
     if visualize
         # Generate a graphical display of resultants
@@ -251,6 +257,7 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("m$nc", fld.values))
             @info "m$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
+            savecsv("scolo_q4rs-$(mesh)-$(n)-m$(nc).csv", a=midsection_angles, v=fld.values[midsection_nodes_ordered])
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys = ocsys)
             push!(scalars, ("em$nc", fld.values))
             @info "em$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
@@ -261,6 +268,7 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
             fld = fieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("n$nc", fld.values))
             @info "n$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
+            savecsv("scolo_q4rs-$(mesh)-$(n)-n$(nc).csv", a=midsection_angles, v=fld.values[midsection_nodes_ordered])
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :membrane, nc, outputcsys = ocsys)
             push!(scalars, ("en$nc", fld.values))
             @info "en$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
@@ -271,6 +279,7 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("q$nc", fld.values))
             @info "q$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
+            savecsv("scolo_q4rs-$(mesh)-$(n)-q$(nc).csv", a=midsection_angles, v=fld.values[midsection_nodes_ordered])
             fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys = ocsys)
             push!(scalars, ("eq$nc", fld.values))
             @info "eq$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
@@ -303,7 +312,7 @@ function test_t3ff(ns = [16, 32, ], visualize = true)
     return ns, results
 end
 
-function test_Q4RS(ns = [16, 64, 256, 1024], visualize = true)
+function test_Q4RS(ns = [16, 64, 256, 512], visualize = true)
     @info "Scordelis-Lo shell, formulation=Q4RS"
     mesh = :uniform
     mesh = :graded
