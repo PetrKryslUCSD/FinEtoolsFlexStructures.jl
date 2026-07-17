@@ -173,7 +173,7 @@ function _execute_Q4RS(mesh = :uniform, n = 8, visualize = true)
         fens, fes = Q4block(40/360*2*pi, L/2, n, n);
     else
         xs = 40/360*2*pi .- reverse(biasedspace(0.0, 40/360*2*pi, n+1, 100))
-        ys = biasedspace(0.0, L/2, n+1, 10)
+        ys = biasedspace(0.0, L/2, n+1, 50)
         fens, fes = Q4blockx(xs, ys);
     end
     bfes = meshboundary(fes)
@@ -312,7 +312,7 @@ function test_t3ff(ns = [16, 32, ], visualize = true)
     return ns, results
 end
 
-function test_Q4RS(ns = [16, 64, 256, 512], visualize = true)
+function test_Q4RS(ns = [16, 32, 64, 128, 256, 512, 1024, 2048], visualize = true)
     @info "Scordelis-Lo shell, formulation=Q4RS"
     mesh = :uniform
     mesh = :graded
