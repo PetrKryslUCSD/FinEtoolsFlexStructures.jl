@@ -20,3 +20,5 @@ examples/.vscode/
 *.pdf
 *.png
 *.jpg
+*.vtu
+*.csv
