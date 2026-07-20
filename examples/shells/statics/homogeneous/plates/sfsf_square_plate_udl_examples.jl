@@ -173,14 +173,15 @@ function _execute_q4rs_quarter_model(
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-s=$(stab_alpha)-m.vtu", fens, fes; 
+        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-m.vtu", fens, fes; 
             scalars=scalars, vectors=[("u", dchi.values[:, 1:3])])
         scalars = []
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
             push!(scalars, ("q$nc", fld.values))
+            @info "q$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
         end
-        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-s=$(stab_alpha)-q.vtu", fens, fes; scalars=scalars,
+        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars,
             vectors=[("u", dchi.values[:, 1:2])])
 
     end
@@ -189,16 +190,17 @@ end
 
 function test_convergence_quarter_thickness(tL_ratios=[1.0e-2])
     visualize = true
+    ns = [64, 128, 256, 512]
     stab_alpha = 0.1
     for support in [:hard, :soft]
+        @info "Support $support --------------------------------------------------"
         for mesh in [:uniform, :graded]
+            @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$stab_alpha  "
             @info "Mesh distortion: $mesh"
-            ns = [64]
-
-            @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$stab_alpha  ----------------"
             for tL_ratio in tL_ratios
                 @info "thickness/length = $tL_ratio"
                 for n in ns
+                    @info "n = $n"
                     _execute_q4rs_quarter_model(n, tL_ratio, support, stab_alpha, mesh, visualize)
                 end
 
