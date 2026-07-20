@@ -1,6 +1,10 @@
 """
 Square plate with uniform distributed load.
 Two opposite sides simply supported, the other ones free.
+
+FEMOL 
+    w(nmidfreeedge) * (p*L^4/D/100) = -1.507
+    q_2(A) * (p * L) = 4.311
 """
 module sfsf_square_plate_udl_examples
 
@@ -41,9 +45,13 @@ function _execute_q4rs_quarter_model(
     
     if mesh == :uniform
         fens, fes = Q4block(L/2, L/2, n, n);
+    elseif mesh == :biased
+        xs = biasedspace(0.0, L/2, n+1, 100)
+        ys = biasedspace(0.0, L/2, n+1, 100)
+        fens, fes = Q4blockx(xs, ys);
     else
-        xs = biasedspace(0.0, L/2, n+1, 1000)
-        ys = biasedspace(0.0, L/2, n+1, 1000)
+        xs = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
+        ys = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
         fens, fes = Q4blockx(xs, ys);
     end
     bfes = meshboundary(fes)
@@ -52,6 +60,7 @@ function _execute_q4rs_quarter_model(
     eldown = selectelem(fens, bfes; facing = true, direction = Float64[0, -1])
     elup = selectelem(fens, bfes; facing = true, direction = Float64[0, +1])
     ncenter = selectnode(fens; box=Float64[(L/2) (L/2) (L/2) (L/2)], tolerance=eps(1.0))
+    nmidfreeedge = selectnode(fens; box=Float64[(0.0) (0.0) (L/2) (L/2)], tolerance=eps(1.0))
     fens.xyz = xyz3(fens)
     
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
@@ -67,7 +76,8 @@ function _execute_q4rs_quarter_model(
 
     sfes = FESetShellQ4()
     accepttodelegate(fes, sfes)
-    ir = Simpson13Rule(2) # GaussRule(2, 2)
+    ir = Simpson13Rule(2) # 
+    ir = GaussRule(2, 2)
     femm = formul.make(IntegDomain(fes, ir, thickness),
         mater,
         (t, h) -> t^2 / (t^2 + stab_alpha * h^2),
@@ -161,8 +171,8 @@ function _execute_q4rs_quarter_model(
     # @infiltrate
     # Solve
     solve_blocked!(dchi, K, F)
-    targetu = dchi.values[ncenter, 3][1]
-    @info "w(center): $(round(targetu, digits=8))"
+    targetu = dchi.values[nmidfreeedge, 3][1]
+    @info "w(nmidfreeedge): $(round(targetu, digits=8) / (p*L^4/D/100))"
 
     # Visualization
     if visualize
@@ -179,7 +189,7 @@ function _execute_q4rs_quarter_model(
         for nc in 1:2
             fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
             push!(scalars, ("q$nc", fld.values))
-            @info "q$nc Range: $(minimum(fld.values)) to $(maximum(fld.values))"
+            @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
         end
         vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-s=$(stab_alpha)-n=$(n)-q.vtu", fens, fes; scalars=scalars,
             vectors=[("u", dchi.values[:, 1:2])])
@@ -188,13 +198,13 @@ function _execute_q4rs_quarter_model(
     return targetu
 end
 
-function test_convergence_quarter_thickness(tL_ratios=[1.0e-2])
+function test_convergence_quarter_thickness(tL_ratios=[1/50])
     visualize = true
-    ns = [64, 128, 256, 512]
+    ns = [16, 32, 64, 128]
     stab_alpha = 0.1
     for support in [:hard, :soft]
         @info "Support $support --------------------------------------------------"
-        for mesh in [:uniform, :graded]
+        for mesh in [:biased]
             @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$stab_alpha  "
             @info "Mesh distortion: $mesh"
             for tL_ratio in tL_ratios
