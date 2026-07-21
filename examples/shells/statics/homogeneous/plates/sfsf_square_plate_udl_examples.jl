@@ -411,20 +411,22 @@ function _execute_t3ff_quarter_model(
     return targetu
 end
 
+const VISUALIZE = true
+const NS = [16, 32, 64, 128, 256, 512]
+const STAB_ALPHA = 0.1
+
 function test_q4rs(tL_ratios=[1/50])
-    visualize = true
-    ns = [16, 32, 64, 128, 256, 512]
-    stab_alpha = 0.1
+    
     for support in [:hard, :soft] # 
         @info "Support $support --------------------------------------------------"
         for mesh in [:biased]
-            @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$stab_alpha  "
+            @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$STAB_ALPHA  "
             @info "Mesh distortion: $mesh"
             for tL_ratio in tL_ratios
                 @info "thickness/length = $tL_ratio"
-                for n in ns
+                for n in NS
                     @info "n = $n"
-                    _execute_q4rs_quarter_model(n, tL_ratio, support, stab_alpha, mesh, visualize)
+                    _execute_q4rs_quarter_model(n, tL_ratio, support, STAB_ALPHA, mesh, VISUALIZE)
                 end
 
             end
@@ -434,19 +436,16 @@ function test_q4rs(tL_ratios=[1/50])
 end
 
 function test_t3ff(tL_ratios=[1/50])
-    visualize = true
-    ns = [16, 32, 64, 128, 256, 512]
-    stab_alpha = 0.1
     for support in [:hard, :soft] # 
         @info "Support $support --------------------------------------------------"
         for mesh in [:biased]
-            @info "Simply supported square plate with uniform load, t3ff, stab_alpha=$stab_alpha  "
+            @info "Simply supported square plate with uniform load, t3ff, stab_alpha=$STAB_ALPHA  "
             @info "Mesh distortion: $mesh"
             for tL_ratio in tL_ratios
                 @info "thickness/length = $tL_ratio"
-                for n in ns
+                for n in NS
                     @info "n = $n"
-                    _execute_t3ff_quarter_model(n, tL_ratio, support, stab_alpha, mesh, visualize)
+                    _execute_t3ff_quarter_model(n, tL_ratio, support, STAB_ALPHA, mesh, VISUALIZE)
                 end
 
             end
