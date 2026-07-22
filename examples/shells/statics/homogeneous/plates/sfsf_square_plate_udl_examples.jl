@@ -181,20 +181,20 @@ function _execute_q4rs_quarter_model(
     if visualize
         u = deepcopy(dchi.values[:, 1:3])
         ur = deepcopy(dchi.values[:, 4:6])
-        # h = maximum(fens.xyz[collect(fes.conn[ecorner]), 2]) - minimum(fens.xyz[collect(fes.conn[ecorner]), 2])
-        # _n = fes.conn[ecorner][1]
-        # @info "Node $(_n)"
-        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        # _n = fes.conn[ecorner][2]
-        # @info "Node $(_n)"
-        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        # _n = fes.conn[ecorner][3]
-        # @info "Node $(_n)"
-        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        # _n = fes.conn[ecorner][4]
-        # @info "Node $(_n)"
-        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        # @info "Slope = $(u[fes.conn[ecorner][4], 3] / h)"
+        h = maximum(fens.xyz[collect(fes.conn[ecorner]), 2]) - minimum(fens.xyz[collect(fes.conn[ecorner]), 2])
+        _n = fes.conn[ecorner][1]
+        @info "Node $(_n)"
+        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        _n = fes.conn[ecorner][2]
+        @info "Node $(_n)"
+        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        _n = fes.conn[ecorner][3]
+        @info "Node $(_n)"
+        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        _n = fes.conn[ecorner][4]
+        @info "Node $(_n)"
+        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        @info "Slope = $(u[fes.conn[ecorner][4], 3] / h)"
         vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-uur.vtu", fens, fes; 
             vectors=[("u", u), ("ur", ur)])
         @info "Corner: t1=$(ur[ncorner, 1]), t2=$(ur[ncorner, 2])"    
