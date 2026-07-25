@@ -2,6 +2,12 @@
 Square plate with uniform distributed load.
 Two opposite sides simply supported, the other ones free.
 
+BENDING ANALYSIS OF MINDLIN PLATES BY EXTENDED
+KANTOROVICH METHOD
+By Si Yuan; Yan Jin, and Fred W. Williams
+J. Eng. Mech., 1998, 124(12): 1339-1345 
+
+Results for aspect ratio 50 (Table 4):
 FEMOL 
     w(nmidfreeedge) * (p*L^4/D/100) = -1.507
     q_2(A) * (p * L) = 4.311
@@ -11,6 +17,9 @@ module sfsf_square_plate_udl_examples
 using Arpack
 using LinearAlgebra: norm
 using Random: rand, Xoshiro
+using ILUZero
+using Krylov
+using LinearOperators
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
@@ -27,12 +36,12 @@ using PGFPlotsX
 const E = 30e6
 const nu = 0.3
 const L = 10.0
+const tL_ratio = 1/50
 
 loading(tL_ratio) = 1.0e6 * (tL_ratio)^3
 
 function _execute_q4rs_quarter_model(
     n=2,
-    tL_ratio=0.01,
     simple_support=:hard,
     stab_alpha=0.1,
     mesh=:none,
@@ -46,8 +55,8 @@ function _execute_q4rs_quarter_model(
     if mesh == :uniform
         fens, fes = Q4block(L/2, L/2, n, n);
     elseif mesh == :biased
-        xs = biasedspace(0.0, L/2, n+1, 100)
-        ys = biasedspace(0.0, L/2, n+1, 100)
+        xs = biasedspace(0.0, L/2, n+1, 10/tL_ratio)
+        ys = biasedspace(0.0, L/2, n+1, 10/tL_ratio)
         fens, fes = Q4blockx(xs, ys);
     else
         xs = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
@@ -171,9 +180,15 @@ function _execute_q4rs_quarter_model(
     fi = ForceIntensity(Float64[0, 0, -p, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 2)
 
-    # @infiltrate
+    # @infiltratei
     # Solve
-    solve_blocked!(dchi, K, F)
+    Kff = matrix_blocked_ff(K, nfreedofs(dchi))
+    Ff = vector_blocked_f(F, nfreedofs(dchi))
+    factor = ilu0(Kff)
+    opM = LinearOperator(Float64, nfreedofs(dchi), nfreedofs(dchi), false, false, (y, v) -> ldiv!(y, factor, v))
+    (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 2)), verbose = 0)
+    scattersysvec!(dchi, U)
+    # solve_blocked!(dchi, K, F)
     targetu = dchi.values[nmidfreeedge, 3][1]
     @info "w(nmidfreeedge): $(round(targetu, digits=8) / (p*L^4/D/100))"
 
@@ -223,7 +238,6 @@ end
 
 function _execute_t3ff_quarter_model(
     n=2,
-    tL_ratio=0.01,
     simple_support=:hard,
     stab_alpha=0.1,
     mesh=:none,
@@ -237,8 +251,8 @@ function _execute_t3ff_quarter_model(
     if mesh == :uniform
         fens, fes = T3block(L/2, L/2, n, n);
     elseif mesh == :biased
-        xs = biasedspace(0.0, L/2, n+1, 100)
-        ys = biasedspace(0.0, L/2, n+1, 100)
+        xs = biasedspace(0.0, L/2, n+1, 1/tL_ratio)
+        ys = biasedspace(0.0, L/2, n+1, 1/tL_ratio)
         fens, fes = T3blockx(xs, ys);
     else
         xs = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
@@ -412,42 +426,36 @@ function _execute_t3ff_quarter_model(
 end
 
 const VISUALIZE = true
-const NS = [16, 32, 64, 128, 256, 512]
+const NS = [16, 32, 64, ]
+const NS = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 const STAB_ALPHA = 0.1
 
-function test_q4rs(tL_ratios=[1/50])
-    
-    for support in [:hard, :soft] # 
+function test_q4rs()
+    @info "thickness/length = $tL_ratio"
+    for support in [:soft] # :hard, 
         @info "Support $support --------------------------------------------------"
         for mesh in [:biased]
             @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$STAB_ALPHA  "
             @info "Mesh distortion: $mesh"
-            for tL_ratio in tL_ratios
-                @info "thickness/length = $tL_ratio"
-                for n in NS
-                    @info "n = $n"
-                    _execute_q4rs_quarter_model(n, tL_ratio, support, STAB_ALPHA, mesh, VISUALIZE)
-                end
-
+            for n in NS
+                @info "n = $n"
+                _execute_q4rs_quarter_model(n, support, STAB_ALPHA, mesh, VISUALIZE)
             end
         end
     end
     return true
 end
 
-function test_t3ff(tL_ratios=[1/50])
+function test_t3ff()
+    @info "thickness/length = $tL_ratio"
     for support in [:hard, :soft] # 
         @info "Support $support --------------------------------------------------"
         for mesh in [:biased]
             @info "Simply supported square plate with uniform load, t3ff, stab_alpha=$STAB_ALPHA  "
-            @info "Mesh distortion: $mesh"
-            for tL_ratio in tL_ratios
-                @info "thickness/length = $tL_ratio"
-                for n in NS
-                    @info "n = $n"
-                    _execute_t3ff_quarter_model(n, tL_ratio, support, STAB_ALPHA, mesh, VISUALIZE)
-                end
-
+            @info "Mesh distortion: $mesh"                
+            for n in NS
+                @info "n = $n"
+                _execute_t3ff_quarter_model(n, support, STAB_ALPHA, mesh, VISUALIZE)
             end
         end
     end
@@ -457,9 +465,9 @@ end
 
 
 function allrun()
-    println("#####################################################")
-    println("# test_t3ff ")
-    test_t3ff()
+    # println("#####################################################")
+    # println("# test_t3ff ")
+    # test_t3ff()
     println("#####################################################")
     println("# test_q4rs ")
     test_q4rs()
