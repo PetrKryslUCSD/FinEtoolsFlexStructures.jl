@@ -21,6 +21,7 @@ using ILUZero
 using IncompleteLU
 using Krylov
 using LinearOperators
+using CliqueTrees
 using FinEtools
 using FinEtools.AlgoBaseModule: solve_blocked!, matrix_blocked
 using FinEtoolsDeforLinear
@@ -184,12 +185,14 @@ function _execute_q4rs_quarter_model(
     # Solve
     Kff = matrix_blocked_ff(K, nfreedofs(dchi))
     Ff = vector_blocked_f(F, nfreedofs(dchi))
-    factor = ilu0(Kff)
-    # @show mKd = minimum(diag(Kff))
-    # factor = ilu(K, τ = 1e-3 * mKd) # This may work for incompressible materials
-    opM = LinearOperator(Float64, nfreedofs(dchi), nfreedofs(dchi), false, false, (y, v) -> ldiv!(y, factor, v))
-    (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 100)), verbose = 0)
-    @info "$stats"
+    # factor = ilu0(Kff)
+    # # @show mKd = minimum(diag(Kff))
+    # # factor = ilu(K, τ = 1e-3 * mKd) # This may work for incompressible materials
+    # opM = LinearOperator(Float64, nfreedofs(dchi), nfreedofs(dchi), false, false, (y, v) -> ldiv!(y, factor, v))
+    # (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 100)), verbose = 0)
+    # @info "$stats"
+    fact = CliqueTrees.cholesky(Kff)
+    U = fact \ Ff
     scattersysvec!(dchi, U)
     # solve_blocked!(dchi, K, F)
     targetu = dchi.values[nmidfreeedge, 3][1]
