@@ -18,6 +18,7 @@ using Arpack
 using LinearAlgebra: norm
 using Random: rand, Xoshiro
 using ILUZero
+using IncompleteLU
 using Krylov
 using LinearOperators
 using FinEtools
@@ -55,8 +56,8 @@ function _execute_q4rs_quarter_model(
     if mesh == :uniform
         fens, fes = Q4block(L/2, L/2, n, n);
     elseif mesh == :biased
-        xs = biasedspace(0.0, L/2, n+1, 10/tL_ratio)
-        ys = biasedspace(0.0, L/2, n+1, 10/tL_ratio)
+        xs = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
+        ys = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
         fens, fes = Q4blockx(xs, ys);
     else
         xs = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
@@ -180,13 +181,15 @@ function _execute_q4rs_quarter_model(
     fi = ForceIntensity(Float64[0, 0, -p, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 2)
 
-    # @infiltratei
     # Solve
     Kff = matrix_blocked_ff(K, nfreedofs(dchi))
     Ff = vector_blocked_f(F, nfreedofs(dchi))
     factor = ilu0(Kff)
+    # @show mKd = minimum(diag(Kff))
+    # factor = ilu(K, τ = 1e-3 * mKd) # This may work for incompressible materials
     opM = LinearOperator(Float64, nfreedofs(dchi), nfreedofs(dchi), false, false, (y, v) -> ldiv!(y, factor, v))
-    (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 2)), verbose = 0)
+    (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 100)), verbose = 0)
+    @info "$stats"
     scattersysvec!(dchi, U)
     # solve_blocked!(dchi, K, F)
     targetu = dchi.values[nmidfreeedge, 3][1]
@@ -428,6 +431,7 @@ end
 const VISUALIZE = true
 const NS = [16, 32, 64, ]
 const NS = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
+# const NS = [256]
 const STAB_ALPHA = 0.1
 
 function test_q4rs()

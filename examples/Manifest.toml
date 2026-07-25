@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "e432ce4d4efd9c42ddeea2d4838c4a32aad6d8d8"
+project_hash = "10443ebae4659c9f044d767553423ff2e89bdeb4"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
@@ -41,9 +41,9 @@ version = "3.5.2+0"
 
 [[deps.ArrayInterface]]
 deps = ["Adapt", "LinearAlgebra"]
-git-tree-sha1 = "75757da5d9f771ef5909fc84f81d2f9d24127315"
+git-tree-sha1 = "60f11b38ebeabd984f5535838d91e197d97202f0"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "7.27.0"
+version = "7.28.1"
 
     [deps.ArrayInterface.extensions]
     ArrayInterfaceAMDGPUExt = "AMDGPU"
@@ -306,9 +306,9 @@ uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
 version = "0.1.11"
 
 [[deps.ExprTools]]
-git-tree-sha1 = "27415f162e6028e81c72b82ef756bf321213b6ec"
+git-tree-sha1 = "d2e49e7efd29719d6f28b891b0e0e159daa9d2b4"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
-version = "0.1.10"
+version = "0.1.11"
 
 [[deps.FastClosures]]
 git-tree-sha1 = "acebe244d53ee1b461970f8910c235b259e772ef"
@@ -420,6 +420,12 @@ git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
 
+[[deps.IncompleteLU]]
+deps = ["LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "6c676e79f98abb6d33fa28122cad099f1e464afe"
+uuid = "40713840-3770-5561-ab4c-a76e7d0d7895"
+version = "0.2.1"
+
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -455,9 +461,9 @@ version = "0.21.4"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "cac745d4e5b7980d1121a549bc8aeb44b47cbd09"
+git-tree-sha1 = "c3d401f110454b4ea24a76be33f6ee0d7d385103"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.11.3"
+version = "0.11.4"
 
 [[deps.JuliaSyntaxHighlighting]]
 deps = ["StyledStrings"]
@@ -617,9 +623,9 @@ version = "0.12.174"
 
 [[deps.LoweredCodeUtils]]
 deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
-git-tree-sha1 = "8b6ba8759d80f313a92545246c8dad2a7e8e7b4e"
+git-tree-sha1 = "1d4c737ab26f51ceed52ab2019c09b7660eb7440"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.7.2"
+version = "3.8.0"
 
 [[deps.MPIABI_jll]]
 deps = ["Artifacts", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
@@ -899,9 +905,9 @@ version = "1.3.1"
 
 [[deps.Revise]]
 deps = ["CRC32c", "CodeTracking", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Preferences", "REPL", "UUIDs"]
-git-tree-sha1 = "838f84266bf2e9ca4b7d0b8965807c7a72745501"
+git-tree-sha1 = "6098400ed73008c45f5f47b35ae114475436ad37"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.16.1"
+version = "3.16.2"
 weakdeps = ["Distributed"]
 
     [deps.Revise.extensions]
@@ -1160,9 +1166,9 @@ version = "1.6.0"
 
 [[deps.Widgets]]
 deps = ["Colors", "Dates", "Observables", "OrderedCollections"]
-git-tree-sha1 = "e9aeb174f95385de31e70bd15fa066a505ea82b9"
+git-tree-sha1 = "cab29ed70d9355a28b95b1798007ff3a00eefc91"
 uuid = "cc8bc4a8-27d6-5769-a93b-9d913e69aa62"
-version = "0.6.7"
+version = "0.6.8"
 
 [[deps.WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams", "VTKBase"]
