@@ -60,10 +60,16 @@ function _execute_q4rs_quarter_model(
         xs = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
         ys = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
         fens, fes = Q4blockx(xs, ys);
-    else
-        xs = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
-        ys = L/2 .* vcat(linearspace(0.0, tL_ratio, n), linearspace(tL_ratio, 1.0, n)[2:end])
+    elseif mesh == :graded
+        xs = gradedspace(0.0, L/2, n, 3)
+        ys = gradedspace(0.0, L/2, n, 3)
         fens, fes = Q4blockx(xs, ys);
+    elseif mesh == :striped
+        xs = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
+        ys = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
+        fens, fes = Q4blockx(xs, ys);
+    else
+        @error "Unknown mesh"
     end
     bfes = meshboundary(fes)
     elleft = selectelem(fens, bfes; facing = true, direction = Float64[-1, 0])
@@ -107,6 +113,10 @@ function _execute_q4rs_quarter_model(
     dchi = NodalField(zeros(size(fens.xyz, 1), 6))
 
     # Apply EBC's
+    dof = [1, 2, 6] # leave only plate degrees of freedom
+    for i in dof
+        setebc!(dchi, 1:count(fens), true, i)
+    end
     # left
     dof = [1, 2, 6]
     for i in dof
@@ -186,10 +196,10 @@ function _execute_q4rs_quarter_model(
     Kff = matrix_blocked_ff(K, nfreedofs(dchi))
     Ff = vector_blocked_f(F, nfreedofs(dchi))
     # factor = ilu0(Kff)
-    # # @show mKd = minimum(diag(Kff))
+    # @show mKd = minimum(diag(Kff))
     # # factor = ilu(K, τ = 1e-3 * mKd) # This may work for incompressible materials
     # opM = LinearOperator(Float64, nfreedofs(dchi), nfreedofs(dchi), false, false, (y, v) -> ldiv!(y, factor, v))
-    # (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 100)), verbose = 0)
+    # (U, stats) = Krylov.cg(Kff, Ff; M = opM, itmax = Int(round(nfreedofs(dchi) / 10)), verbose = 0)
     # @info "$stats"
     fact = CliqueTrees.cholesky(Kff)
     U = fact \ Ff
@@ -441,7 +451,7 @@ function test_q4rs()
     @info "thickness/length = $tL_ratio"
     for support in [:soft] # :hard, 
         @info "Support $support --------------------------------------------------"
-        for mesh in [:biased]
+        for mesh in [:graded] # :biased
             @info "Simply supported square plate with uniform load, Q4RS, stab_alpha=$STAB_ALPHA  "
             @info "Mesh distortion: $mesh"
             for n in NS
