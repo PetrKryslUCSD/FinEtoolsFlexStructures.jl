@@ -232,7 +232,7 @@ function _execute_q4rs_quarter_model(
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
-            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys, nodevalmethod=:averaging)
             push!(scalars, ("m$nc", fld.values))
         end
         vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-m.vtu", fens, fes; 
@@ -240,7 +240,7 @@ function _execute_q4rs_quarter_model(
             vectors=[("u", u), ("ur", ur)])
         scalars = []
         for nc in 1:2
-            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys, nodevalmethod=:averaging)
             push!(scalars, ("q$nc", fld.values))
             @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
         end
