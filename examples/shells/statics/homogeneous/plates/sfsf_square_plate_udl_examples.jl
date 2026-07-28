@@ -210,41 +210,42 @@ function _execute_q4rs_quarter_model(
 
     # Visualization
     if visualize
+        basef = "sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)"
         u = deepcopy(dchi.values[:, 1:3])
         ur = deepcopy(dchi.values[:, 4:6])
-        h = maximum(fens.xyz[collect(fes.conn[ecorner]), 2]) - minimum(fens.xyz[collect(fes.conn[ecorner]), 2])
-        _n = fes.conn[ecorner][1]
-        @info "Node $(_n)"
-        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        _n = fes.conn[ecorner][2]
-        @info "Node $(_n)"
-        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        _n = fes.conn[ecorner][3]
-        @info "Node $(_n)"
-        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        _n = fes.conn[ecorner][4]
-        @info "Node $(_n)"
-        @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
-        @info "Slope = $(u[fes.conn[ecorner][4], 3] / h)"
-        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-uur.vtu", fens, fes; 
-            vectors=[("u", u), ("ur", ur)])
-        @info "Corner: t1=$(ur[ncorner, 1]), t2=$(ur[ncorner, 2])"    
+        # h = maximum(fens.xyz[collect(fes.conn[ecorner]), 2]) - minimum(fens.xyz[collect(fes.conn[ecorner]), 2])
+        # _n = fes.conn[ecorner][1]
+        # @info "Node $(_n)"
+        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        # _n = fes.conn[ecorner][2]
+        # @info "Node $(_n)"
+        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        # _n = fes.conn[ecorner][3]
+        # @info "Node $(_n)"
+        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        # _n = fes.conn[ecorner][4]
+        # @info "Node $(_n)"
+        # @info "w=$(u[_n, 3]), t1=$(ur[_n, 1]), t2=$(ur[_n, 2])"
+        # @info "Slope = $(u[fes.conn[ecorner][4], 3] / h)"
+        # vtkwrite("$(basef)-uur.vtu", fens, fes; vectors=[("u", u), ("ur", ur)])
+        # @info "Corner: t1=$(ur[ncorner, 1]), t2=$(ur[ncorner, 2])"    
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
-            fld = elemfieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
         end
-        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-m.vtu", fens, fes; 
+        vtkwrite("$(basef)-m.vtu", fens, fes; 
             scalars=scalars, 
             vectors=[("u", u), ("ur", ur)])
         scalars = []
         for nc in 1:2
-            fld = elemfieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
             push!(scalars, ("q$nc", fld.values))
             @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
+            @info "q$nc at the corner: $(fld.values[ncorner][1]), normalized $(fld.values[ncorner][1] / (p * L ))"
         end
-        vtkwrite("sfsfsqpludl-q4rs-$(simple_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-q.vtu", fens, fes; 
+        vtkwrite("$(basef)-q.vtu", fens, fes; 
             scalars=scalars,
             vectors=[("u", u), ("ur", ur)])
 

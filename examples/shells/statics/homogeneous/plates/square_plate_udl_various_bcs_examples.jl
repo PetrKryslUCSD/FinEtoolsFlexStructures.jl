@@ -27,10 +27,10 @@ using PGFPlotsX
 const E = 30e6
 const nu = 0.3
 const L = 10.0
-const tL_ratio = 1/10
+const tL_ratio = 1/50
 
 loading(tL_ratio) = 1.0e6 * (tL_ratio)^3
-const p = loading(tL_ratio)
+const pressure = loading(tL_ratio)
 
 function _execute_q4rs_quarter_model(
     n=2,
@@ -176,7 +176,7 @@ function _execute_q4rs_quarter_model(
     if visualize
         u = deepcopy(dchi.values[:, 1:3])
         ur = deepcopy(dchi.values[:, 4:6])
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-uur.vtu", fens, fes; 
+        vtkwrite("sqpl_udl-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-uur.vtu", fens, fes; 
             vectors=[("u", u), ("ur", ur)])  
         # ocsys = CSys(3)
         scalars = []
@@ -186,7 +186,7 @@ function _execute_q4rs_quarter_model(
             savecsv("sqpl_udl-left-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-m$(nc).csv", s=nllefts, v=fld.values[nlleft])
             savecsv("sqpl_udl-bott-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-m$(nc).csv", s=nlbotts, v=fld.values[nlbott])
         end
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-m.vtu", fens, fes; 
+        vtkwrite("sqpl_udl-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-m.vtu", fens, fes; 
             scalars=scalars, 
             vectors=[("u", u), ("ur", ur)])
         scalars = []
@@ -197,7 +197,7 @@ function _execute_q4rs_quarter_model(
             savecsv("sqpl_udl-bott-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-q$(nc).csv", s=nlbotts, v=fld.values[nlbott])
            @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
         end
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-q.vtu", fens, fes; 
+        vtkwrite("sqpl_udl-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-q.vtu", fens, fes; 
             scalars=scalars,
             vectors=[("u", u), ("ur", ur)])
 
@@ -210,39 +210,42 @@ function _execute_q4rs_model(
     horizontal_support=:hard,
     vertical_support=:hard,
     mesh=:uniform,
+    skew=0.0,
     visualize=true
     )
     formul = FEMMShellQ4RSModule
     thickness = L * tL_ratio
     D = E / 12 / (1 - nu^2) * thickness^3
     
-    tol = if mesh == :uniform
-        fens, fes = Q4block(L/2, L/2, n, n);
-        L / n / 1000
-    elseif mesh == :biased
-        xs = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
-        ys = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
-        fens, fes = Q4blockx(xs, ys);
-        minimum(diff(xs)) / 10l
-    elseif mesh == :graded 
-        xs = gradedspace(0.0, L/2, n, 3)
-        ys = gradedspace(0.0, L/2, n, 3)
-        fens, fes = Q4blockx(xs, ys);
-        minimum(diff(xs)) / 10
-    elseif mesh == :striped
-        xs = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
-        ys = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
-        fens, fes = Q4blockx(xs, ys);
-        minimum(diff(xs)) / 10
+    if mesh == :uniform
+        fens, fes = Q4block(L, L, 2*n, 2*n);
     else
-        @error "Unknown mesh"
+        tol = if mesh == :biased
+            xs = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
+            ys = biasedspace(0.0, L/2, n+1, 1000/tL_ratio)
+            fens, fes = Q4blockx(xs, ys);
+            minimum(diff(xs)) / 10l
+        elseif mesh == :graded
+            xs = gradedspace(0.0, L/2, n, 3)
+            ys = gradedspace(0.0, L/2, n, 3)
+            fens, fes = Q4blockx(xs, ys);
+            minimum(diff(xs)) / 10
+        elseif mesh == :striped
+            xs = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
+            ys = L/2 .* vcat(linearspace(0.0, tL_ratio, Int(n/2)), linearspace(tL_ratio, 1.0, Int(n/2))[2:end])
+            fens, fes = Q4blockx(xs, ys);
+            minimum(diff(xs)) / 10
+        else
+            @error "Unknown mesh"
+        end
+        fens1, fes1 = mirrormesh(fens, fes, vec([1.0, 0.0]), vec([L/2, L/2]), renumb=(c) -> c[[2, 1, 4, 3]])
+        fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
+        fes = cat(fes1, fes2)
+        fens1, fes1 = mirrormesh(fens, fes, vec([0.0, 1.0]), vec([L/2, L/2]), renumb=(c) -> c[[2, 1, 4, 3]])
+        fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
+        fes = cat(fes1, fes2)
     end
-    fens1, fes1 = mirrormesh(fens, fes, vec([1.0, 0.0]), vec([L/2, L/2]), renumb = (c) -> c[[2, 1, 4, 3]])
-    fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
-    fes = cat(fes1, fes2)
-    fens1, fes1 = mirrormesh(fens, fes, vec([0.0, 1.0]), vec([L/2, L/2]), renumb = (c) -> c[[2, 1, 4, 3]])
-    fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
-    fes = cat(fes1, fes2)
+
     bfes = meshboundary(fes)
     elleft = selectelem(fens, bfes; facing = true, direction = Float64[-1, 0])
     nlleft = connectednodes(subset(bfes, elleft))
@@ -257,6 +260,11 @@ function _execute_q4rs_model(
     ncorner = selectnode(fens; box=Float64[(0.0) (0.0) (0.0) (0.0)], tolerance=eps(1.0))
     nmidfreeedge = selectnode(fens; box=Float64[(0.0) (0.0) (L/2) (L/2)], tolerance=eps(1.0))
     fens.xyz = xyz3(fens)
+    # s = tan(skew * pi / 180)
+    # for i in 1:count(fens)
+    #     x = fens.xyz[i, 1]
+    #     fens.xyz[i, 2] += s * x
+    # end
 
     mater = MatDeforElastIso(DeforModelRed3D, E, nu)
 
@@ -319,14 +327,21 @@ function _execute_q4rs_model(
     end
     applyebc!(dchi)
     numberdofs!(dchi)
-
+    # dofs1 = [(dchi.kind[i, 1] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs2 = [(dchi.kind[i, 2] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs3 = [(dchi.kind[i, 3] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs4 = [(dchi.kind[i, 4] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs5 = [(dchi.kind[i, 5] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs6 = [(dchi.kind[i, 6] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # vtkwrite("dofs.vtu", fens, fes; scalars=[("1", dofs1), ("2", dofs2), ("3", dofs3), ("4", dofs4), ("5", dofs5), ("6", dofs6)])  
+    
     # Assemble the system matrix
     associategeometry!(femm, geom0)
     K = stiffness(femm, geom0, u0, Rfield0, dchi)
 
     # Load
     lfemm = FEMMBase(IntegDomain(fes, GaussRule(2, 2)))
-    fi = ForceIntensity(Float64[0, 0, -p, 0, 0, 0])
+    fi = ForceIntensity(Float64[0, 0, -pressure, 0, 0, 0])
     F = distribloads(lfemm, geom0, dchi, fi, 2)
 
     # Solve
@@ -337,34 +352,34 @@ function _execute_q4rs_model(
     scattersysvec!(dchi, U)
     # solve_blocked!(dchi, K, F)
     targetu = dchi.values[nmidfreeedge, 3][1]
-    @info "w(nmidfreeedge): $(round(targetu, digits=8) / (p*L^4/D/100))"
+    @info "w(nmidfreeedge): $(round(targetu, digits=8) / (pressure*L^4/D/100))"
 
     # Visualization
     if visualize
+        basef = "pl-$skew-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)"
         u = deepcopy(dchi.values[:, 1:3])
         ur = deepcopy(dchi.values[:, 4:6])
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-uur.vtu", fens, fes; 
-            vectors=[("u", u), ("ur", ur)])  
+        vtkwrite("$(basef)-uur.vtu", fens, fes; vectors=[("u", u), ("ur", ur)])  
         # ocsys = CSys(3)
         scalars = []
         for nc in 1:3
-            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
-            savecsv("sqpl_udl-left-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-m$(nc).csv", s=nllefts, v=fld.values[nlleft])
-            savecsv("sqpl_udl-bott-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-m$(nc).csv", s=nlbotts, v=fld.values[nlbott])
+            savecsv("$(basef)-vert-m$(nc).csv", s=nllefts, v=fld.values[nlleft])
+            savecsv("$(basef)-hori-m$(nc).csv", s=nlbotts, v=fld.values[nlbott])
         end
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-m.vtu", fens, fes; 
+        vtkwrite("$(basef)-m.vtu", fens, fes; 
             scalars=scalars, 
             vectors=[("u", u), ("ur", ur)])
         scalars = []
         for nc in 1:2
-            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys, nodevalmethod=:averaging)
+            fld = fieldfromintegpoints(femm, geom0, dchi, :shear, nc, outputcsys=ocsys)
             push!(scalars, ("q$nc", fld.values))
-            savecsv("sqpl_udl-left-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-q$(nc).csv", s=nllefts, v=fld.values[nlleft])
-            savecsv("sqpl_udl-bott-$(horizontal_support)-$(vertical_support)-$(mesh)-$(n)-q$(nc).csv", s=nlbotts, v=fld.values[nlbott])
-           @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
+            savecsv("$(basef)-vert-q$(nc).csv", s=nllefts, v=fld.values[nlleft])
+            savecsv("$(basef)-hori-q$(nc).csv", s=nlbotts, v=fld.values[nlbott])
+        #    @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
         end
-        vtkwrite("sqpl_udl-q4rs-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)-q.vtu", fens, fes; 
+        vtkwrite("$(basef)-q.vtu", fens, fes; 
             scalars=scalars,
             vectors=[("u", u), ("ur", ur)])
 
@@ -373,8 +388,9 @@ function _execute_q4rs_model(
 end
 
 const VISUALIZE = true
-const NS = [32]
+const NS = [128]
 const STAB_ALPHA = 0.1
+const MESH = :graded
 const SUPPORTS = [
     (:hard, :hard), 
     (:soft, :soft), 
@@ -384,16 +400,17 @@ const SUPPORTS = [
     (:clamp, :soft),
     (:clamp, :free),
     ]
+const SKEW = 0.0
 
 function test_q4rs()
     @info "thickness/length = $tL_ratio"
     for support in SUPPORTS
         @info "Support $support --------------------------------------------------"
-        for mesh in [:graded] # :biased
+        for mesh in [MESH] # :biased
             @info "Mesh distortion: $mesh"
             for n in NS
                 @info "n = $n"
-                _execute_q4rs_model(n, support[1], support[2], mesh, VISUALIZE)
+                _execute_q4rs_model(n, support[1], support[2], mesh, SKEW, VISUALIZE)
             end
         end
     end
@@ -401,34 +418,52 @@ function test_q4rs()
 end
 
 const COLORS = ["black", "red", "green", "blue", "cyan", "magenta", "yellow", "gray"]
+const MARKERS = [
+    "triangle",
+     "triangle*",
+     "x",
+     "square",
+     "square*",
+     "diamond",
+     "diamond*",
+]
+const MARK_REPEAT = [3, 5, 7, 9, 11, 13, 15]
 
-function plot_curve(objects, support, A, color)
+function plot_curve(objects, support, A, set)
+    # @show A./ (pressure * L)
     @pgf o = PGFPlotsX.Plot(
         {
-        color = color,
+        color = COLORS[set],
+        # mark=MARKERS[set], mark_size=1.5, mark_repeat=1, #MARK_REPEAT[set]
         line_width  = 1.0
         },
-        Coordinates([v for v in  zip(A[:,1], A[:,2] ./ (p * L ))])
+        Coordinates([v for v in  zip(A[:,1], A[:,2] ./ (pressure * L))])
         )
     push!(objects, o)
     push!(objects, LegendEntry("$(support[1])-$(support[2])"))
 end
 
 function plot()
-    N = NS[1]
-    for edge in ["bott", "left"]
+    n = NS[1]
+    mesh = MESH
+    skew = SKEW
+    for edge in ["hori", "vert"]
         for nc in [1, 2]
             objects = []
-            for (support, color) in zip(SUPPORTS, COLORS)
-                f = "sqpl_udl-$(edge)-$(support[1])-$(support[2])-graded-$(N)-q$(nc).csv"
+            for (set, support) in enumerate(SUPPORTS)
+                horizontal_support, vertical_support = support
+                basef = "pl-$skew-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)"
+                f = "$(basef)-$(edge)-q$(nc).csv"
                 A = readdlm(f, ',', Float64; skipstart=1)
-                plot_curve(objects, support, A, color)
+                plot_curve(objects, support, A, set)
             end
             @pgf ax = Axis(
                 {
                     title = "$(edge)",
                     xlabel = "Distance from corner",
                     ylabel = "q$(nc)",
+                    xmin = -0.01,
+                    xmax = 1.01,
                     xmode = "linear",
                     ymode = "linear",
                     yminorgrids = "true",
@@ -441,7 +476,7 @@ function plot()
                 objects...
             )
             display(ax)
-            pgfsave("sqpl_udl-$(edge)-q$(nc).pdf", ax)
+            pgfsave("pl-$skew-$(edge)-q$(nc).pdf", ax)
         end
     end
     return true
