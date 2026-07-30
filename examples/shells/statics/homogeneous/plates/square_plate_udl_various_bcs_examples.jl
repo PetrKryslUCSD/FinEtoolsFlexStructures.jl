@@ -400,6 +400,9 @@ const SUPPORTS = [
     (:clamp, :soft),
     (:clamp, :free),
     ]
+# const SUPPORTS = [
+#     (:soft, :free), 
+#     ]
 const SKEW = 0.0
 
 function test_q4rs()
@@ -427,14 +430,14 @@ const MARKERS = [
      "diamond",
      "diamond*",
 ]
-const MARK_REPEAT = [3, 5, 7, 9, 11, 13, 15]
+const MARK_REPEAT = [3, 5, 7, 9, 11, 13, 15] .+ 7
 
 function plot_curve(objects, support, A, set)
     # @show A./ (pressure * L)
     @pgf o = PGFPlotsX.Plot(
         {
         color = COLORS[set],
-        # mark=MARKERS[set], mark_size=1.5, mark_repeat=1, #MARK_REPEAT[set]
+        mark=MARKERS[set], mark_size=1.5, mark_repeat=MARK_REPEAT[set],
         line_width  = 1.0
         },
         Coordinates([v for v in  zip(A[:,1], A[:,2] ./ (pressure * L))])
@@ -447,13 +450,15 @@ function plot()
     n = NS[1]
     mesh = MESH
     skew = SKEW
+    res = "q"
+    ncs = 1:2
     for edge in ["hori", "vert"]
-        for nc in [1, 2]
+        for nc in ncs
             objects = []
             for (set, support) in enumerate(SUPPORTS)
                 horizontal_support, vertical_support = support
                 basef = "pl-$skew-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)"
-                f = "$(basef)-$(edge)-q$(nc).csv"
+                f = "$(basef)-$(edge)-$(res)$(nc).csv"
                 A = readdlm(f, ',', Float64; skipstart=1)
                 plot_curve(objects, support, A, set)
             end
@@ -461,7 +466,7 @@ function plot()
                 {
                     title = "$(edge)",
                     xlabel = "Distance from corner",
-                    ylabel = "q$(nc)",
+                    ylabel = "$(res)$(nc)",
                     xmin = -0.01,
                     xmax = 1.01,
                     xmode = "linear",
@@ -476,7 +481,7 @@ function plot()
                 objects...
             )
             display(ax)
-            pgfsave("pl-$skew-$(edge)-q$(nc).pdf", ax)
+            pgfsave("pl-$skew-$(edge)-$(res)$(nc).pdf", ax)
         end
     end
     return true
