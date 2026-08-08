@@ -2,6 +2,8 @@
 Square plate with uniform distributed load.
 Two opposite sides have one condition, the others another.
 
+The case :soft, :free does not have a boundary layer for
+nu = 0.0, only for positive nu. 
 """
 module square_plate_udl_various_bcs_examples
 
@@ -26,8 +28,26 @@ using PGFPlotsX
 
 const E = 30e6
 const nu = 0.3
-const L = 10.0
+const L = 1.0
 const tL_ratio = 1/50
+
+const VISUALIZE = true
+const NS = [32, 64, 128, ]
+const STAB_ALPHA = 0.1
+const MESH = :graded
+# const SUPPORTS = [
+#     (:hard, :hard), 
+#     (:soft, :soft), 
+#     (:hard, :free), 
+#     (:soft, :free), 
+#     (:clamp, :hard),
+#     (:clamp, :soft),
+#     (:clamp, :free),
+#     ]
+const SUPPORTS = [
+    (:soft, :free), 
+    ]
+const SKEW = 0.0
 
 loading(tL_ratio) = 1.0e6 * (tL_ratio)^3
 const pressure = loading(tL_ratio)
@@ -377,7 +397,7 @@ function _execute_q4rs_model(
             push!(scalars, ("q$nc", fld.values))
             savecsv("$(basef)-vert-q$(nc).csv", s=nllefts, v=fld.values[nlleft])
             savecsv("$(basef)-hori-q$(nc).csv", s=nlbotts, v=fld.values[nlbott])
-        #    @info "q$nc Range: $(minimum(fld.values) / (p * L )) to $(maximum(fld.values) / (p * L ))"
+           @info "q$nc Range: $(minimum(fld.values) / (pressure * L )) to $(maximum(fld.values) / (pressure * L ))"
         end
         vtkwrite("$(basef)-q.vtu", fens, fes; 
             scalars=scalars,
@@ -386,24 +406,6 @@ function _execute_q4rs_model(
     end
     return targetu
 end
-
-const VISUALIZE = true
-const NS = [128]
-const STAB_ALPHA = 0.1
-const MESH = :graded
-const SUPPORTS = [
-    (:hard, :hard), 
-    (:soft, :soft), 
-    (:hard, :free), 
-    (:soft, :free), 
-    (:clamp, :hard),
-    (:clamp, :soft),
-    (:clamp, :free),
-    ]
-# const SUPPORTS = [
-#     (:soft, :free), 
-#     ]
-const SKEW = 0.0
 
 function test_q4rs()
     @info "thickness/length = $tL_ratio"
