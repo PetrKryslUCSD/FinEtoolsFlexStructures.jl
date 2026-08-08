@@ -40,7 +40,7 @@ using DelimitedFiles
 using PGFPlotsX
 
 # Analytical solution?
-const ANALYT_SOL = Dict(:soft => -0.30208, :hard => -0.30144862656549654)
+const ANALYT_SOL = Dict(:soft => -0.3020326, :hard => -0.3014486)
 
 # Parameters:
 const E = 4.32e8;
@@ -220,7 +220,7 @@ function _elementwise_arrays(femm, geom0, dchi, quantity, nc, tol)
     return connectivity, points, values
 end
 
-function _execute_Q4RS(mesh=:uniform, n=8, support = :soft)
+function _execute_q4rs(mesh=:uniform, n=8, support = :soft)
     formul = FEMMShellQ4RSModule
     @info "Mesh: $mesh; $n elements per side"
     bias = 100
@@ -471,7 +471,7 @@ function extrapolate(basef = "", ns = [16, 32, 64, 128], res = "q")
 end
 
 const MESH = :biased
-const SUPPORT = :soft
+const SUPPORT = :hard
 
 function test_t3ff(ns=[4,], visualize=true)
     formul = FEMMShellT3FFModule
@@ -484,11 +484,11 @@ function test_t3ff(ns=[4,], visualize=true)
     return ns, results
 end
 
-function test_Q4RS(ns=[16, 32, 64, 128, 256, 512])
+function test_q4rs(ns=[16, 32, 64, 128, 256, 512])
     @info "Scordelis-Lo shell, formulation=Q4RS"
     results = []
     for n in ns
-        v = _execute_Q4RS(MESH, n, SUPPORT)
+        v = _execute_q4rs(MESH, n, SUPPORT)
         push!(results, v)
     end
     return ns, results
@@ -500,8 +500,8 @@ function allrun()
     # println("# test_t3ff ")
     # test_t3ff()
     println("#####################################################")
-    println("# test_Q4RS ")
-    test_Q4RS()
+    println("# test_q4rs ")
+    test_q4rs()
     return true
 end # function allrun
 
