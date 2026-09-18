@@ -29,7 +29,7 @@ using PGFPlotsX
 const E = 30e6
 # const NU = 0.3
 # const NU = 0.499
-const NU = 0.0
+const NU = 0.01
 const L = 1.0
 const tL_ratio = 1/50
 
