@@ -29,7 +29,7 @@ using PGFPlotsX
 const E = 30e6
 # const NU = 0.3
 # const NU = 0.499
-const NU = 0.01
+const NU = 0.0
 const L = 1.0
 const tL_ratio = 1/50
 
@@ -241,8 +241,8 @@ function _execute_q4rs_model(
     
     basef = "pl-nu=$NU-skew=$skew-$(horizontal_support)-$(vertical_support)-$(mesh)-tL=$(tL_ratio)-n=$(n)"
     tol = if mesh == :biased
-        xs = biasedspace(0.0, L/2, n+1, 10)
-        ys = biasedspace(0.0, L/2, n+1, 10)
+        xs = biasedspace(0.0, L/2, n+1, 1000)
+        ys = biasedspace(0.0, L/2, n+1, 1000)
         fens, fes = Q4blockx(xs, ys);
         minimum(abs.(diff(xs))) / 3
     elseif mesh == :graded
@@ -261,17 +261,13 @@ function _execute_q4rs_model(
     else
         @error "Unknown mesh"
     end
-    @show tol
-    @show count(fens), count(fes)
     fens1, fes1 = mirrormesh(fens, fes, vec([1.0, 0.0]), vec([L/2, L/2]), renumb=(c) -> c[[2, 1, 4, 3]])
     fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
     fes = cat(fes1, fes2)
-    @show count(fens), count(fes)
     fens1, fes1 = mirrormesh(fens, fes, vec([0.0, 1.0]), vec([L/2, L/2]), renumb=(c) -> c[[2, 1, 4, 3]])
     fens, fes1, fes2 = mergemeshes(fens, fes, fens1, fes1, tol)
     fes = cat(fes1, fes2)
-    @show count(fens), count(fes)
-
+    
     # tol = if mesh == :biased
     #     xs = biasedspace(0.0, L/2, n+1, 10)
     #     xs = vcat(xs, L .- reverse(xs[1:end-1]))
@@ -426,7 +422,7 @@ function _execute_q4rs_model(
             push!(scalars, ("q$nc", fld.values))
             savecsv("$(basef)-vert-q$(nc).csv", s=nllefts, v=fld.values[nlleft])
             savecsv("$(basef)-hori-q$(nc).csv", s=nlbotts, v=fld.values[nlbott])
-           @info "q$nc Range: $(minimum(fld.values) / (pressure * L )) to $(maximum(fld.values) / (pressure * L ))"
+           @info "q$nc / (pressure * L / 2): $(minimum(fld.values) / (pressure * L / 2)) to $(maximum(fld.values) / (pressure * L / 2))"
         end
         vtkwrite("$(basef)-q.vtu", fens, fes; 
             scalars=scalars,
