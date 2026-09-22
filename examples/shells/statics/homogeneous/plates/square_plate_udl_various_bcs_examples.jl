@@ -27,9 +27,9 @@ using DelimitedFiles
 using PGFPlotsX
 
 const E = 30e6
-# const NU = 0.3
+const NU = 0.3
 # const NU = 0.499
-const NU = 0.0
+# const NU = 0.0
 const L = 1.0
 const tL_ratio = 1/50
 
@@ -53,6 +53,9 @@ const SKEW = 0.0
 
 loading(tL_ratio) = 1.0e6 * (tL_ratio)^3
 const pressure = loading(tL_ratio)
+
+@info "Pressure scaling: $(pressure / L / 2)"
+@info "Poisson number: $(NU)"
 
 # function _execute_q4rs_quarter_model(
 #     n=2,
@@ -291,7 +294,6 @@ function _execute_q4rs_model(
     # end
     
     bfes = meshboundary(fes)
-    @show count(bfes)
     elleft = selectelem(fens, bfes; facing = true, direction = Float64[-1, 0])
     nlleft = connectednodes(subset(bfes, elleft))
     nlleft = nlleft[sortperm(fens.xyz[nlleft, 2])]
@@ -407,6 +409,14 @@ function _execute_q4rs_model(
         vtkwrite("$(basef)-uur.vtu", fens, fes; vectors=[("u", u), ("ur", ur)])  
         # ocsys = CSys(3)
         scalars = []
+        fld = fieldfromintegpoints(femm, geom0, dchi, :twist, 1, outputcsys=ocsys)
+        push!(scalars, ("t", fld.values))
+        savecsv("$(basef)-vert-t.csv", s=nllefts, v=fld.values[nlleft])
+        savecsv("$(basef)-hori-t.csv", s=nlbotts, v=fld.values[nlbott])
+        vtkwrite("$(basef)-t.vtu", fens, fes; 
+            scalars=scalars, 
+            vectors=[("u", u), ("ur", ur)])
+        scalars = []
         for nc in 1:3
             fld = fieldfromintegpoints(femm, geom0, dchi, :moment, nc, outputcsys=ocsys)
             push!(scalars, ("m$nc", fld.values))
@@ -467,7 +477,7 @@ function plot_curve(objects, support, A, set)
         mark=MARKERS[set], mark_size=1.5, mark_repeat=MARK_REPEAT[set],
         line_width  = 1.0
         },
-        Coordinates([v for v in  zip(A[:,1], A[:,2] ./ (pressure * L))])
+        Coordinates([v for v in  zip(A[:,1], A[:,2] ./ (pressure * L / 2))])
         )
     push!(objects, o)
     push!(objects, LegendEntry("$(support[1])-$(support[2])"))
@@ -492,7 +502,7 @@ function plot()
             end
             @pgf ax = Axis(
                 {
-                    title = "nu=$nu, Edge $(edge)",
+                    title = "Scaled shear force: nu=$nu, Edge $(edge)",
                     xlabel = "Distance from corner",
                     ylabel = "$(res)$(nc)",
                     xmin = -0.01,

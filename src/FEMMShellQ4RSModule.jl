@@ -803,6 +803,24 @@ print('o.tempBs[2, 23] += ', simplify(diff(gyz, Ty4)))
     mul!(Bs, o.tempBs, T)
 end
 
+struct _twistmat{FT<:Real}
+    tempts::Matrix{FT}
+end
+
+function _twistmat(ft::Type{T}) where {T<:Real}
+    _twistmat(fill(zero(ft), 1, __NN * __NDOF))
+end
+
+(o::_twistmat)(Bt, gradN, T) = begin
+    o.tempts .= 0.0
+    for i in 1:__NN
+        off = (i-1)*__NDOF
+        o.tempts[1, off + 4] = -1/2 * gradN[i,1]
+        o.tempts[1, off + 5] = -1/2 * gradN[i,2]
+    end
+    mul!(Bt, o.tempts, T)
+end
+
 # TODO optimize allocations
 function _drilling_penalty_kavg(elmat, normals, normal_valid, conn)
     I3 = Matrix{Float64}(I, 3, 3)
@@ -1083,7 +1101,9 @@ function inspectintegpoints(
     T = _T(FT); Tae = _T(FT); Tga = _T(FT)
     npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
+    Bt = fill(zero(FT), 1, __NN * __NDOF)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
+    twistmat! = _twistmat(FT)
     _gradN_e! = _LocalDerivatives(FT)
     _ecoords_e! = _EcoordsE(FT) 
     lla = Layup2ElementAngle()
@@ -1101,7 +1121,7 @@ function inspectintegpoints(
             outputcsys = val
         end
     end
-    BENDING_MOMENT, TRANSVERSE_SHEAR, MEMBRANE_FORCE = 1, 2, 3
+    BENDING_MOMENT, TRANSVERSE_SHEAR, MEMBRANE_FORCE, TWIST = 1, 2, 3, 4
     quant = BENDING_MOMENT
     if quantity == :bending || quantity == :moment || quantity == :bending_moment
         quant = BENDING_MOMENT
@@ -1111,6 +1131,9 @@ function inspectintegpoints(
     end
     if quantity == :membrane_force || quantity == :membrane
         quant = MEMBRANE_FORCE
+    end
+    if quantity == :twist 
+        quant = TWIST
     end
     warned = false
     # Loop over  all the elements and all the quadrature points within them
@@ -1161,6 +1184,11 @@ function inspectintegpoints(
                 frc = t * stab_fun(t, h) * Dt * shr
                 fo = o2_e' * frc
                 out[1:2] .= fo[1], fo[2]
+            end
+            if quant == TWIST
+                twistmat!(Bt, gradN_e, T)
+                twist = Bt * edisp
+                out[1] = twist[1]
             end
             # Call the inspector
             idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
