@@ -811,14 +811,34 @@ function _twistmat(ft::Type{T}) where {T<:Real}
     _twistmat(fill(zero(ft), 1, __NN * __NDOF))
 end
 
-(o::_twistmat)(Bt, gradN, T) = begin
+(o::_twistmat)(Bt, gradN) = begin
     o.tempts .= 0.0
     for i in 1:__NN
         off = (i-1)*__NDOF
         o.tempts[1, off + 4] = -1/2 * gradN[i,1]
         o.tempts[1, off + 5] = -1/2 * gradN[i,2]
     end
-    mul!(Bt, o.tempts, T)
+    # mul!(Bt, o.tempts, T)
+    Bt .= o.tempts
+end
+
+struct _slopemat{FT<:Real}
+    tempss::Matrix{FT}
+end
+
+function _slopemat(ft::Type{T}) where {T<:Real}
+    _slopemat(fill(zero(ft), 2, __NN * __NDOF))
+end
+
+(o::_slopemat)(Bsl, gradN) = begin
+    o.tempss .= 0.0
+    for i in 1:__NN
+        off = (i-1)*__NDOF
+        o.tempss[1, off + 3] = gradN[i,1]
+        o.tempss[2, off + 3] = gradN[i,2]
+    end
+    # mul!(Bsl, o.tempss, T)
+    Bsl .= o.tempss
 end
 
 # TODO optimize allocations
@@ -1102,8 +1122,10 @@ function inspectintegpoints(
     npts, Ns, gradNparams, w, pc = integrationdata(self.integdomain, self.integdomain.integration_rule)
     Bm, Bb, Bs, DpsBmb, DtBs = _Bs(FT)
     Bt = fill(zero(FT), 1, __NN * __NDOF)
+    Bsl = fill(zero(FT), 2, __NN * __NDOF)
     bmmat! = _Bmmat(FT); bbmat! = _Bbmat(FT); bsmat! = _Bsmat(FT)
     twistmat! = _twistmat(FT)
+    slopemat! = _slopemat(FT)
     _gradN_e! = _LocalDerivatives(FT)
     _ecoords_e! = _EcoordsE(FT) 
     lla = Layup2ElementAngle()
@@ -1121,7 +1143,7 @@ function inspectintegpoints(
             outputcsys = val
         end
     end
-    BENDING_MOMENT, TRANSVERSE_SHEAR, MEMBRANE_FORCE, TWIST = 1, 2, 3, 4
+    BENDING_MOMENT, TRANSVERSE_SHEAR, MEMBRANE_FORCE, TWIST, SLOPE = 1, 2, 3, 4, 5
     quant = BENDING_MOMENT
     if quantity == :bending || quantity == :moment || quantity == :bending_moment
         quant = BENDING_MOMENT
@@ -1134,6 +1156,9 @@ function inspectintegpoints(
     end
     if quantity == :twist 
         quant = TWIST
+    end
+    if quantity == :slope 
+        quant = SLOPE
     end
     warned = false
     # Loop over  all the elements and all the quadrature points within them
@@ -1186,9 +1211,14 @@ function inspectintegpoints(
                 out[1:2] .= fo[1], fo[2]
             end
             if quant == TWIST
-                twistmat!(Bt, gradN_e, T)
+                twistmat!(Bt, gradN_e)
                 twist = Bt * edisp
                 out[1] = twist[1]
+            end
+            if quant == SLOPE
+                slopemat!(Bsl, gradN_e)
+                slope = Bsl * edisp
+                out[1:2] .= o2_e' * slope
             end
             # Call the inspector
             idat = inspector(idat, i, fes.conn[i], ecoords, out, loc)
