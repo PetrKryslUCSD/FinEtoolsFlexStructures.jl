@@ -374,13 +374,13 @@ function _execute_q4rs_model(
     end
     applyebc!(dchi)
     numberdofs!(dchi)
-    dofs1 = [(dchi.kind[i, 1] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    dofs2 = [(dchi.kind[i, 2] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    dofs3 = [(dchi.kind[i, 3] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    dofs4 = [(dchi.kind[i, 4] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    dofs5 = [(dchi.kind[i, 5] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    dofs6 = [(dchi.kind[i, 6] ==  DOF_KIND_FREE) for i in 1:count(fens)]
-    vtkwrite("$basef-dofs.vtu", fens, fes; scalars=[("1", dofs1), ("2", dofs2), ("3", dofs3), ("4", dofs4), ("5", dofs5), ("6", dofs6)])  
+    # dofs1 = [(dchi.kind[i, 1] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs2 = [(dchi.kind[i, 2] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs3 = [(dchi.kind[i, 3] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs4 = [(dchi.kind[i, 4] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs5 = [(dchi.kind[i, 5] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # dofs6 = [(dchi.kind[i, 6] ==  DOF_KIND_FREE) for i in 1:count(fens)]
+    # vtkwrite("$basef-dofs.vtu", fens, fes; scalars=[("1", dofs1), ("2", dofs2), ("3", dofs3), ("4", dofs4), ("5", dofs5), ("6", dofs6)])  
     
     # Assemble the system matrix
     associategeometry!(femm, geom0)
@@ -414,6 +414,27 @@ function _execute_q4rs_model(
         savecsv("$(basef)-vert-t.csv", s=nllefts, v=fld.values[nlleft])
         savecsv("$(basef)-hori-t.csv", s=nlbotts, v=fld.values[nlbott])
         vtkwrite("$(basef)-t.vtu", fens, fes; 
+            scalars=scalars, 
+            vectors=[("u", u), ("ur", ur)])
+        scalars = []
+        for nc in 1:2
+            fld = fieldfromintegpoints(femm, geom0, dchi, :slope, nc, outputcsys=ocsys)
+            push!(scalars, ("s$nc", fld.values))
+            savecsv("$(basef)-vert-s$(nc).csv", s=nllefts, v=fld.values[nlleft])
+            savecsv("$(basef)-hori-s$(nc).csv", s=nlbotts, v=fld.values[nlbott])
+        end
+        vtkwrite("$(basef)-s.vtu", fens, fes; 
+            scalars=scalars, 
+            vectors=[("u", u), ("ur", ur)])
+        slopes = deepcopy(scalars)
+        phicomponents = []
+        push!(phicomponents, vec(dchi.values[:, 5]))
+        push!(phicomponents, -vec(dchi.values[:, 4]))
+        scalars = []
+        for nc in 1:2
+            push!(scalars, ("shear$nc", deepcopy(slopes[nc][2] .+ phicomponents[nc])))
+        end
+        vtkwrite("$(basef)-shears.vtu", fens, fes; 
             scalars=scalars, 
             vectors=[("u", u), ("ur", ur)])
         scalars = []
