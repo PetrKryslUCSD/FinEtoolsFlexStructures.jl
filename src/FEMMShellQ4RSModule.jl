@@ -418,6 +418,7 @@ end
     return T
 end
 
+# Bugs fixed by David Galbally 2026
 function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # Nodal-to-element transformation matrix. 
     # - `A_Es` = matrix with the nodal triad vectors in columns, components on
@@ -430,30 +431,25 @@ function _transfmat_a_to_e!(T, A_Es, gradN_e)
     # Rotation degrees of freedom: The drilling rotation of the mid surface
     # produced by the 1/2*(v,x - u,y) effect is linked to the out of plane
     # rotations.
-
     T .= zero(eltype(T))
     for i = 1:__NN
         roffst = (i - 1) * __NDOF
         iA_E = A_Es[i]
         iA_E_33 = iA_E[3, 3]
-        # T[r, r] .= iA_E
-        for cl = 1:3
-            for rw = 1:3
-                T[roffst+rw, roffst+cl] = iA_E[rw, cl]
-            end
+        for cl = 1:3, rw = 1:3
+            T[roffst+rw, roffst+cl] = iA_E[rw, cl]
         end
-        for cl = 1:2
-            for rw = 1:2
-                T[roffst+3+rw, roffst+3+cl] =
-                    iA_E[rw, cl] - (1 / iA_E_33) * iA_E[rw, 3] * iA_E[cl, 3]
-            end
+        for cl = 1:2, rw = 1:2
+            T[roffst+3+rw, roffst+3+cl] =
+                iA_E[rw, cl] - (1 / iA_E_33) * iA_E[rw, 3] * iA_E[3, cl]   # was iA_E[cl, 3]
         end
         m1 = (1 / iA_E_33) * iA_E[1, 3]
         m2 = (1 / iA_E_33) * iA_E[2, 3]
         for j = 1:__NN
             coffst = (j - 1) * __NDOF
+            jA_E = A_Es[j]                                                 # was iA_E
             for k = 1:3
-                a3 = 1 / 2 * (iA_E[2, k] * gradN_e[j, 1] - iA_E[1, k] * gradN_e[j, 2])
+                a3 = 1 / 2 * (jA_E[2, k] * gradN_e[j, 1] - jA_E[1, k] * gradN_e[j, 2])
                 T[roffst+4, coffst+k] += m1 * a3
                 T[roffst+5, coffst+k] += m2 * a3
             end

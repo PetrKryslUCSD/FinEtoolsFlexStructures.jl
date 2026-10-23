@@ -32,7 +32,7 @@ Simo,  J. C., D. D. Fox, and M. S. Rifai, “On a Stress Resultant Geometrically
 module twisted_beam_examples
 
 using FinEtools
-using FinEtools.AlgoBaseModule: solve_blocked!, DOF_KIND_FREE, DOF_KIND_ALL
+using FinEtools.AlgoBaseModule: solve_blocked!
 using FinEtoolsDeforLinear
 using FinEtoolsFlexStructures.FESetShellT3Module: FESetShellT3
 using FinEtoolsFlexStructures.FESetShellQ4Module: FESetShellQ4
@@ -105,7 +105,7 @@ function _execute_t3ff(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, 
     # Solve
     solve_blocked!(dchi, K, F)
     result = dchi.values[nl, dir][1]
-    @show result/uex*100
+    @info "$nL x $nW, $(result/uex*100)%"
 
     # Visualization
     if visualize
@@ -177,7 +177,7 @@ function _execute_Q4RS(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, 
     # Solve
     solve_blocked!(dchi, K, F)
     result = dchi.values[nl, dir][1]
-    @show result/uex*100
+    @info "$nL x $nW, $(result/uex*100)%"
 
     # Visualization
     if visualize
@@ -195,60 +195,60 @@ function _execute_Q4RS(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, 
     return result
 end
 
-function test_convergence_t3ff(ns = [2, 4, 8, 16, 32, ])
+function test_convergence_t3ff(nls = [4, 8, 16, 32, ], nws = [2, 4])
     @info "Twisted, thicker, T3FF elements"
     results = []
-    for n in ns
-        v = _execute_t3ff(params_thicker_dir_2..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_t3ff(params_thicker_dir_2..., nl, nw, false)
         push!(results, v)
     end
     @show results
     results = []
-    for n in ns
-        v = _execute_t3ff(params_thicker_dir_3..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_t3ff(params_thicker_dir_3..., nl, nw, false)
         push!(results, v)
     end
     @show results
     @info "Twisted, thinner, T3FF elements"
     results = []
-    for n in ns
-        v = _execute_t3ff(params_thinner_dir_2..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_t3ff(params_thinner_dir_2..., nl, nw, false)
         push!(results, v)
     end
     @show results
     results = []
-    for n in ns
-        v = _execute_t3ff(params_thinner_dir_3..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_t3ff(params_thinner_dir_3..., nl, nw, false)
         push!(results, v)
     end
     @show results
     return true
 end
 
-function test_convergence_Q4RS(ns = [2, 4, 8, 16, 32, ])
+function test_convergence_Q4RS(nl = [4, 8, 16, 32, ], nw = [2, 4])
     @info "Twisted, thicker, Q4RS elements"
     results = []
-    for n in ns
-        v = _execute_Q4RS(params_thicker_dir_2..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_Q4RS(params_thicker_dir_2..., nl, nw, false)
         push!(results, v)
     end
     @show results
     results = []
-    for n in ns
-        v = _execute_Q4RS(params_thicker_dir_3..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_Q4RS(params_thicker_dir_3..., nl, nw, false)
         push!(results, v)
     end
     @show results
     @info "Twisted, thinner, Q4RS elements"
     results = []
-    for n in ns
-        v = _execute_Q4RS(params_thinner_dir_2..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_Q4RS(params_thinner_dir_2..., nl, nw, false)
         push!(results, v)
     end
     @show results
     results = []
-    for n in ns
-        v = _execute_Q4RS(params_thinner_dir_3..., 12*n, n, false)
+    for nw in nws, nl in nls
+        v = _execute_Q4RS(params_thinner_dir_3..., nl, nw, false)
         push!(results, v)
     end
     @show results
