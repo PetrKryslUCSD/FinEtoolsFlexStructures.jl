@@ -377,6 +377,7 @@ end
         end
         cross3!(o.r, o.f3_e, o.nk_e)
         if norm(o.r) > 1.0e-12
+            o.r .*= atan(norm(o.r), o.nk_e[3]) / norm(o.r)
             rotmat3!(A_Es[k], o.r)
         else
             # A_Es[k] .= I(3)

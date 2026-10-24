@@ -29,6 +29,7 @@
 
 ## News
 
+- 10/24/2026: Fixed inconsistency of angle required to rotate nodal normals to element frame.
 - 10/23/2026: Transformation bug fixed for all shells.
 - 07/03/2026: Implemented layered plates for Q4RS.
 - 05/19/2026: Add rigid links.
