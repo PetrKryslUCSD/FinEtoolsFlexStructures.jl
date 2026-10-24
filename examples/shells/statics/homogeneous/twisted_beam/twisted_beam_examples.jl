@@ -69,7 +69,7 @@ function _execute_t3ff(t = 0.32, force = 1.0, dir = 3, uex = 0.005424534868469, 
     sfes = FESetShellT3()
     accepttodelegate(fes, sfes)
     femm = formul.make(IntegDomain(fes, TriRule(1), t), mater)
-    femm.drilling_stiffness_scale = 0.1
+    femm.drilling_stiffness_scale = 0.1e9
     stiffness = formul.stiffness
     associategeometry! = formul.associategeometry!
 
@@ -225,7 +225,7 @@ function test_convergence_t3ff(nls = [4, 8, 16, 32, ], nws = [2, 4])
     return true
 end
 
-function test_convergence_Q4RS(nl = [4, 8, 16, 32, ], nw = [2, 4])
+function test_convergence_Q4RS(nls = [4, 8, 16, 32, ], nws = [2, 4])
     @info "Twisted, thicker, Q4RS elements"
     results = []
     for nw in nws, nl in nls
