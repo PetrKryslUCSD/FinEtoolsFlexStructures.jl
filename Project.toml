@@ -1,6 +1,6 @@
 name = "FinEtoolsFlexStructures"
 uuid = "723391e6-6814-4d1d-921c-018f691214d8"
-version = "3.7.0"
+version = "3.7.1"
 authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
 
 [deps]
